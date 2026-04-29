@@ -9,19 +9,37 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TeamRouteImport } from './routes/team'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportRouteImport } from './routes/import'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as ConnectorsRouteImport } from './routes/connectors'
+import { Route as CloudRouteImport } from './routes/cloud'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VersionsProjectIdRouteImport } from './routes/versions.$projectId'
+import { Route as PublishProjectIdRouteImport } from './routes/publish.$projectId'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
 
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
@@ -39,6 +57,11 @@ const ImportRoute = ImportRouteImport.update({
   path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -54,9 +77,34 @@ const CreateRoute = CreateRouteImport.update({
   path: '/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnectorsRoute = ConnectorsRouteImport.update({
+  id: '/connectors',
+  path: '/connectors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CloudRoute = CloudRouteImport.update({
+  id: '/cloud',
+  path: '/cloud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VersionsProjectIdRoute = VersionsProjectIdRouteImport.update({
+  id: '/versions/$projectId',
+  path: '/versions/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublishProjectIdRoute = PublishProjectIdRouteImport.update({
+  id: '/publish/$projectId',
+  path: '/publish/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
@@ -67,93 +115,163 @@ const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/billing': typeof BillingRoute
+  '/cloud': typeof CloudRoute
+  '/connectors': typeof ConnectorsRoute
   '/create': typeof CreateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
+  '/help': typeof HelpRoute
   '/import': typeof ImportRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
+  '/publish/$projectId': typeof PublishProjectIdRoute
+  '/versions/$projectId': typeof VersionsProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/billing': typeof BillingRoute
+  '/cloud': typeof CloudRoute
+  '/connectors': typeof ConnectorsRoute
   '/create': typeof CreateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
+  '/help': typeof HelpRoute
   '/import': typeof ImportRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
+  '/publish/$projectId': typeof PublishProjectIdRoute
+  '/versions/$projectId': typeof VersionsProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/billing': typeof BillingRoute
+  '/cloud': typeof CloudRoute
+  '/connectors': typeof ConnectorsRoute
   '/create': typeof CreateRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
+  '/help': typeof HelpRoute
   '/import': typeof ImportRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
+  '/publish/$projectId': typeof PublishProjectIdRoute
+  '/versions/$projectId': typeof VersionsProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/billing'
+    | '/cloud'
+    | '/connectors'
     | '/create'
     | '/forgot-password'
     | '/health'
+    | '/help'
     | '/import'
     | '/login'
     | '/projects'
+    | '/settings'
     | '/signup'
+    | '/team'
     | '/builder/$projectId'
+    | '/publish/$projectId'
+    | '/versions/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/billing'
+    | '/cloud'
+    | '/connectors'
     | '/create'
     | '/forgot-password'
     | '/health'
+    | '/help'
     | '/import'
     | '/login'
     | '/projects'
+    | '/settings'
     | '/signup'
+    | '/team'
     | '/builder/$projectId'
+    | '/publish/$projectId'
+    | '/versions/$projectId'
   id:
     | '__root__'
     | '/'
+    | '/billing'
+    | '/cloud'
+    | '/connectors'
     | '/create'
     | '/forgot-password'
     | '/health'
+    | '/help'
     | '/import'
     | '/login'
     | '/projects'
+    | '/settings'
     | '/signup'
+    | '/team'
     | '/builder/$projectId'
+    | '/publish/$projectId'
+    | '/versions/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BillingRoute: typeof BillingRoute
+  CloudRoute: typeof CloudRoute
+  ConnectorsRoute: typeof ConnectorsRoute
   CreateRoute: typeof CreateRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HealthRoute: typeof HealthRoute
+  HelpRoute: typeof HelpRoute
   ImportRoute: typeof ImportRoute
   LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
+  SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
+  TeamRoute: typeof TeamRoute
   BuilderProjectIdRoute: typeof BuilderProjectIdRoute
+  PublishProjectIdRoute: typeof PublishProjectIdRoute
+  VersionsProjectIdRoute: typeof VersionsProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects': {
@@ -177,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/health': {
       id: '/health'
       path: '/health'
@@ -198,11 +323,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connectors': {
+      id: '/connectors'
+      path: '/connectors'
+      fullPath: '/connectors'
+      preLoaderRoute: typeof ConnectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cloud': {
+      id: '/cloud'
+      path: '/cloud'
+      fullPath: '/cloud'
+      preLoaderRoute: typeof CloudRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/versions/$projectId': {
+      id: '/versions/$projectId'
+      path: '/versions/$projectId'
+      fullPath: '/versions/$projectId'
+      preLoaderRoute: typeof VersionsProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publish/$projectId': {
+      id: '/publish/$projectId'
+      path: '/publish/$projectId'
+      fullPath: '/publish/$projectId'
+      preLoaderRoute: typeof PublishProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/builder/$projectId': {
@@ -217,14 +377,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BillingRoute: BillingRoute,
+  CloudRoute: CloudRoute,
+  ConnectorsRoute: ConnectorsRoute,
   CreateRoute: CreateRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HealthRoute: HealthRoute,
+  HelpRoute: HelpRoute,
   ImportRoute: ImportRoute,
   LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
+  SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
+  TeamRoute: TeamRoute,
   BuilderProjectIdRoute: BuilderProjectIdRoute,
+  PublishProjectIdRoute: PublishProjectIdRoute,
+  VersionsProjectIdRoute: VersionsProjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

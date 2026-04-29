@@ -2,7 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   MessageSquare, Eye, Code2, Database, Rocket, ArrowLeft, Send, Sparkles,
-  CheckCircle2, ExternalLink, GitBranch, Play, RefreshCw, Smartphone, Monitor, Tablet
+  CheckCircle2, ExternalLink, GitBranch, Play, RefreshCw, Smartphone, Monitor, Tablet,
+  History, Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
@@ -74,6 +75,8 @@ function Builder() {
           })}
         </div>
         <div className="flex items-center gap-2 ml-2 pl-3 border-l border-white/5">
+          <Button asChild variant="ghost" size="sm"><Link to="/versions/$projectId" params={{ projectId: project.id }}><History className="h-3.5 w-3.5" /> History</Link></Button>
+          <Button asChild variant="soft" size="sm"><Link to="/publish/$projectId" params={{ projectId: project.id }}><Globe className="h-3.5 w-3.5" /> Publish</Link></Button>
           <Button variant="soft" size="sm"><GitBranch className="h-3.5 w-3.5" /> PR</Button>
           <Button variant="hero" size="sm"><Rocket className="h-3.5 w-3.5" /> Deploy</Button>
         </div>
