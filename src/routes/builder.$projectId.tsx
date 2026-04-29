@@ -34,7 +34,7 @@ export const Route = createFileRoute("/builder/$projectId")({
 type Tab = "preview" | "code" | "database" | "deploy";
 
 function Builder() {
-  const { project } = Route.useLoaderData();
+  const { project } = Route.useLoaderData() as { project: typeof projects[number] };
   const [tab, setTab] = useState<Tab>("preview");
   const [messages, setMessages] = useState(chatHistory);
   const [input, setInput] = useState("");
