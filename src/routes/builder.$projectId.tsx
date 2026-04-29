@@ -156,11 +156,9 @@ function PreviewPanel({ device, setDevice, project }: any) {
       <div className="flex-1 overflow-auto p-6 grid place-items-start justify-center">
         <div style={{ width: widths[device as keyof typeof widths] }} className="transition-all w-full max-w-full">
           <div className="rounded-2xl border border-white/10 bg-gradient-card overflow-hidden shadow-elevated aspect-[16/10] relative">
-            <div className="absolute inset-0 grid-bg opacity-40" />
-            <div className="absolute -top-32 -right-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
             <div className="relative h-full flex flex-col p-8">
               <div className="flex items-center gap-2 mb-6">
-                <div className="h-7 w-7 rounded-lg bg-gradient-brand" />
+                <div className="h-7 w-7 rounded-lg bg-white/10 border border-white/10" />
                 <span className="font-display font-semibold">{project.name}</span>
               </div>
               <div className="my-auto text-center">
