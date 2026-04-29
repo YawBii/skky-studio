@@ -62,7 +62,7 @@ export function AppSidebar() {
         ))}
         <div className="mt-3 mx-1 rounded-xl glass p-3">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-gradient-brand flex items-center justify-center text-xs font-semibold text-primary-foreground">
+            <div className="h-8 w-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-xs font-semibold">
               SG
             </div>
             <div className="leading-tight">
