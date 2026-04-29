@@ -9,16 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as HealthRouteImport } from './routes/health'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportRoute = ImportRouteImport.update({
@@ -29,6 +42,11 @@ const ImportRoute = ImportRouteImport.update({
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateRoute = CreateRouteImport.update({
@@ -50,26 +68,35 @@ const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
   '/import': typeof ImportRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
+  '/signup': typeof SignupRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
   '/import': typeof ImportRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
+  '/signup': typeof SignupRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
   '/import': typeof ImportRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
+  '/signup': typeof SignupRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
 }
 export interface FileRouteTypes {
@@ -77,44 +104,70 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/create'
+    | '/forgot-password'
     | '/health'
     | '/import'
+    | '/login'
     | '/projects'
+    | '/signup'
     | '/builder/$projectId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/create'
+    | '/forgot-password'
     | '/health'
     | '/import'
+    | '/login'
     | '/projects'
+    | '/signup'
     | '/builder/$projectId'
   id:
     | '__root__'
     | '/'
     | '/create'
+    | '/forgot-password'
     | '/health'
     | '/import'
+    | '/login'
     | '/projects'
+    | '/signup'
     | '/builder/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   HealthRoute: typeof HealthRoute
   ImportRoute: typeof ImportRoute
+  LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
+  SignupRoute: typeof SignupRoute
   BuilderProjectIdRoute: typeof BuilderProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects': {
       id: '/projects'
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -129,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create': {
@@ -158,9 +218,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   HealthRoute: HealthRoute,
   ImportRoute: ImportRoute,
+  LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
+  SignupRoute: SignupRoute,
   BuilderProjectIdRoute: BuilderProjectIdRoute,
 }
 export const routeTree = rootRouteImport
