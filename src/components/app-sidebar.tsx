@@ -32,7 +32,7 @@ export function AppSidebar() {
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/5 bg-sidebar/70 backdrop-blur-xl">
       <div className="flex h-16 items-center gap-2.5 px-5 border-b border-white/5">
-        <div className="relative h-9 w-9 rounded-xl bg-gradient-brand shadow-glow flex items-center justify-center font-display font-bold text-primary-foreground">
+        <div className="relative h-9 w-9 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center font-display font-bold">
           y
         </div>
         <div className="leading-tight">
