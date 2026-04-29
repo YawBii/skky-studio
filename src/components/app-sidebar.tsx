@@ -75,3 +75,29 @@ export function AppSidebar() {
     </aside>
   );
 }
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+      {children}
+    </div>
+  );
+}
+
+function NavLink({ item, active }: { item: { to: string; label: string; icon: any }; active: boolean }) {
+  return (
+    <Link
+      to={item.to}
+      className={cn(
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+        active
+          ? "bg-white/[0.07] text-foreground shadow-inner"
+          : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
+      )}
+    >
+      <item.icon className="h-4 w-4" />
+      <span>{item.label}</span>
+      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground/80" />}
+    </Link>
+  );
+}
