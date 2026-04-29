@@ -27,16 +27,13 @@ function Dashboard() {
     <div className="px-6 md:px-10 py-8 max-w-[1400px] mx-auto">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-card p-8 md:p-10 mb-8 shadow-elevated">
-        <div className="absolute inset-0 grid-bg opacity-40" />
-        <div className="absolute -top-40 -right-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full bg-accent/15 blur-3xl" />
         <div className="relative">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-muted-foreground mb-5">
-            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+            <span className="h-1.5 w-1.5 rounded-full bg-success" />
             All systems operational · {healthy} of {projects.length} projects healthy
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight max-w-2xl">
-            Build, repair and ship <span className="text-gradient-brand">production apps</span> with AI.
+            Build, repair and ship <span className="text-foreground">production apps</span> with confidence.
           </h1>
           <p className="mt-4 text-muted-foreground max-w-xl">
             yawB is your production-first AI builder. Spin up new apps from a prompt,

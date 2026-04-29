@@ -10,7 +10,7 @@ export function ProjectCard({ project }: { project: Project }) {
       params={{ projectId: project.id }}
       className="group relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-card p-5 transition-all hover:border-white/10 hover:shadow-elevated"
     >
-      <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white/[0.02]" />
       <div className="relative">
         <div className="flex items-start justify-between gap-3">
           <div>

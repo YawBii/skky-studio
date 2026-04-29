@@ -24,14 +24,12 @@ function CreateApp() {
 
   return (
     <div className="relative min-h-screen px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-      <div className="absolute inset-x-0 top-0 h-[500px] grid-bg opacity-30 pointer-events-none [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-
       <div className="relative text-center mb-10 pt-6">
         <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-muted-foreground mb-5">
-          <Wand2 className="h-3 w-3 text-primary" /> Production-first generation
+          <Wand2 className="h-3 w-3" /> Production-first generation
         </div>
         <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight">
-          What would you like to <span className="text-gradient-brand">build today?</span>
+          What would you like to <span className="text-foreground">build today?</span>
         </h1>
         <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
           Describe your app, dashboard, SaaS or website. yawB plans, builds, verifies and ships it.
