@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Sparkles, GitBranch, Activity, Settings, LifeBuoy,
-  FolderKanban, Database, Plug, Users, CreditCard,
+  FolderKanban, Database, Plug, Users, CreditCard, Rocket, Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,8 @@ const nav = [
 const platformNav = [
   { to: "/cloud", label: "Cloud", icon: Database },
   { to: "/connectors", label: "Connectors", icon: Plug },
+  { to: "/deploys", label: "Deploys", icon: Rocket },
+  { to: "/codex", label: "Codex Wiring", icon: Terminal },
   { to: "/team", label: "Team", icon: Users },
   { to: "/billing", label: "Billing", icon: CreditCard },
 ];

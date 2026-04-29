@@ -18,8 +18,10 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as DeploysRouteImport } from './routes/deploys'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as ConnectorsRouteImport } from './routes/connectors'
+import { Route as CodexRouteImport } from './routes/codex'
 import { Route as CloudRouteImport } from './routes/cloud'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as IndexRouteImport } from './routes/index'
@@ -72,6 +74,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeploysRoute = DeploysRouteImport.update({
+  id: '/deploys',
+  path: '/deploys',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -80,6 +87,11 @@ const CreateRoute = CreateRouteImport.update({
 const ConnectorsRoute = ConnectorsRouteImport.update({
   id: '/connectors',
   path: '/connectors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodexRoute = CodexRouteImport.update({
+  id: '/codex',
+  path: '/codex',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CloudRoute = CloudRouteImport.update({
@@ -117,8 +129,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
+  '/codex': typeof CodexRoute
   '/connectors': typeof ConnectorsRoute
   '/create': typeof CreateRoute
+  '/deploys': typeof DeploysRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
   '/help': typeof HelpRoute
@@ -136,8 +150,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
+  '/codex': typeof CodexRoute
   '/connectors': typeof ConnectorsRoute
   '/create': typeof CreateRoute
+  '/deploys': typeof DeploysRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
   '/help': typeof HelpRoute
@@ -156,8 +172,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
   '/cloud': typeof CloudRoute
+  '/codex': typeof CodexRoute
   '/connectors': typeof ConnectorsRoute
   '/create': typeof CreateRoute
+  '/deploys': typeof DeploysRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/health': typeof HealthRoute
   '/help': typeof HelpRoute
@@ -177,8 +195,10 @@ export interface FileRouteTypes {
     | '/'
     | '/billing'
     | '/cloud'
+    | '/codex'
     | '/connectors'
     | '/create'
+    | '/deploys'
     | '/forgot-password'
     | '/health'
     | '/help'
@@ -196,8 +216,10 @@ export interface FileRouteTypes {
     | '/'
     | '/billing'
     | '/cloud'
+    | '/codex'
     | '/connectors'
     | '/create'
+    | '/deploys'
     | '/forgot-password'
     | '/health'
     | '/help'
@@ -215,8 +237,10 @@ export interface FileRouteTypes {
     | '/'
     | '/billing'
     | '/cloud'
+    | '/codex'
     | '/connectors'
     | '/create'
+    | '/deploys'
     | '/forgot-password'
     | '/health'
     | '/help'
@@ -235,8 +259,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BillingRoute: typeof BillingRoute
   CloudRoute: typeof CloudRoute
+  CodexRoute: typeof CodexRoute
   ConnectorsRoute: typeof ConnectorsRoute
   CreateRoute: typeof CreateRoute
+  DeploysRoute: typeof DeploysRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HealthRoute: typeof HealthRoute
   HelpRoute: typeof HelpRoute
@@ -316,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deploys': {
+      id: '/deploys'
+      path: '/deploys'
+      fullPath: '/deploys'
+      preLoaderRoute: typeof DeploysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -328,6 +361,13 @@ declare module '@tanstack/react-router' {
       path: '/connectors'
       fullPath: '/connectors'
       preLoaderRoute: typeof ConnectorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/codex': {
+      id: '/codex'
+      path: '/codex'
+      fullPath: '/codex'
+      preLoaderRoute: typeof CodexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cloud': {
@@ -379,8 +419,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BillingRoute: BillingRoute,
   CloudRoute: CloudRoute,
+  CodexRoute: CodexRoute,
   ConnectorsRoute: ConnectorsRoute,
   CreateRoute: CreateRoute,
+  DeploysRoute: DeploysRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HealthRoute: HealthRoute,
   HelpRoute: HelpRoute,
