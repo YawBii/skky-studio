@@ -41,29 +41,12 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-5 space-y-1">
-        <div className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Workspace
-        </div>
-        {nav.map((item) => {
-          const active = isActive(item.to);
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
-                active
-                  ? "bg-white/[0.07] text-foreground shadow-inner"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
-              )}
-            >
-              <item.icon className={cn("h-4 w-4", active && "text-primary")} />
-              <span>{item.label}</span>
-              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-glow" />}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        <SectionLabel>Workspace</SectionLabel>
+        {nav.map((item) => <NavLink key={item.to} item={item} active={isActive(item.to)} />)}
+        <div className="h-3" />
+        <SectionLabel>Platform</SectionLabel>
+        {platformNav.map((item) => <NavLink key={item.to} item={item} active={isActive(item.to)} />)}
       </nav>
 
       <div className="px-3 pb-5 space-y-1 border-t border-white/5 pt-4">
