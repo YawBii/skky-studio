@@ -73,6 +73,7 @@ function Workspace() {
         {tab === "code"     && <ComingSoon title="Code editor" hint="Open the in-app code editor." />}
         {tab === "database" && <ComingSoon title="Database" hint="Browse tables, RLS, and schema." />}
         {tab === "deploy"   && <DeployPane />}
+        {tab === "history"  && <HistoryPane />}
       </div>
 
       {/* Build logs drawer */}
