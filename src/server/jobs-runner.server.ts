@@ -9,8 +9,7 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// ---------- Types (mirrored from client; kept inline to keep this module
-// importable without dragging in client-only code paths) ----------
+// ---------- Types ----------
 
 export type JobStatus =
   | "queued" | "running" | "waiting_for_input"
@@ -28,6 +27,8 @@ interface StepRow {
   id: string; job_id: string; step_key: string; title: string;
   status: StepStatus; position: number; input: Record<string, unknown>;
   output: Record<string, unknown>; logs: Array<{ ts: string; msg: string }>;
+  error?: string | null;
+  attempt_number?: number;
 }
 
 interface AskInput {
@@ -36,7 +37,7 @@ interface AskInput {
   options?: Array<{ value: string; label: string; description?: string }>;
   required?: boolean;
 }
-interface StepResult {
+export interface StepResult {
   status: "succeeded" | "failed" | "skipped" | "waiting_for_input";
   output?: Record<string, unknown>;
   error?: string;
@@ -62,8 +63,6 @@ function buildUserScopedClient(accessToken: string): SupabaseClient {
 }
 
 // ---------- Server-side secret resolution ----------
-// project_secrets.value_ref points to an env var name. The actual value is
-// only ever read here on the server.
 
 async function resolveSecret(
   sb: SupabaseClient,
@@ -80,11 +79,7 @@ async function resolveSecret(
     .maybeSingle();
   if (error) return { ok: false, error: `secret lookup failed: ${error.message}` };
   if (!data?.value_ref) {
-    const labels: Record<string, string> = {
-      github: "GitHub token", vercel: "Vercel token",
-      supabase: "Supabase admin access",
-    };
-    return { ok: false, error: `${labels[provider] ?? `${provider}.${key}`} is not configured.` };
+    return { ok: false, error: missingSecretLabel(provider) };
   }
   const env = process.env[data.value_ref];
   if (!env) {
@@ -93,7 +88,16 @@ async function resolveSecret(
   return { ok: true, value: env };
 }
 
-async function requireConnection(
+function missingSecretLabel(provider: string): string {
+  switch (provider) {
+    case "github": return "GitHub token is not configured.";
+    case "vercel": return "Vercel token is not configured.";
+    case "supabase": return "Supabase admin access is not configured.";
+    default: return `${provider} secret is not configured.`;
+  }
+}
+
+async function checkConnection(
   sb: SupabaseClient,
   projectId: string,
   provider: "github" | "vercel" | "supabase",
@@ -115,77 +119,139 @@ async function requireConnection(
   return { ok: true };
 }
 
-// ---------- Provider step execution (server-side) ----------
+// ---------- Provider adapters ----------
 //
-// Phase 1 keeps the actual provider HTTP calls as clean failures when the
-// required env var is missing. When the secret IS present, we still report a
-// "not wired yet" error rather than fake success — the goal of this phase is
-// to prove the architecture is server-side end-to-end.
+// Each adapter exposes a uniform shape:
+//   isConfigured()              — secret/env availability check
+//   verifyConnection(projectId) — DB-side connection row check
+//   runStep(job, step)          — execute a step, returning a StepResult
+//   missingConfigReason()       — human-readable reason when isConfigured()=false
+//
+// Phase 1: secret/connection wiring is real; outbound provider HTTP calls are
+// intentionally NOT implemented and fail with "<provider>.<step>: provider
+// call is not wired yet." rather than fake success.
 
-async function runGitHubStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<StepResult> {
-  const conn = await requireConnection(sb, job.project_id, "github");
-  if (!conn.ok) return { status: "failed", error: conn.error };
-  const tok = await resolveSecret(sb, job.project_id, "github", "token");
-  if (!tok.ok) return { status: "failed", error: tok.error };
-  return {
-    status: "failed",
-    error: `github.${step.step_key}: token resolved server-side, but provider call is not wired yet (Phase 1).`,
-  };
+export interface ProviderAdapter {
+  name: string;
+  isConfigured(sb: SupabaseClient, projectId: string): Promise<boolean>;
+  verifyConnection(sb: SupabaseClient, projectId: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<StepResult>;
+  missingConfigReason(): string;
 }
 
-async function runVercelStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<StepResult> {
-  const conn = await requireConnection(sb, job.project_id, "vercel");
-  if (!conn.ok) return { status: "failed", error: conn.error };
-  const tok = await resolveSecret(sb, job.project_id, "vercel", "token");
-  if (!tok.ok) return { status: "failed", error: tok.error };
-  return {
-    status: "failed",
-    error: `vercel.${step.step_key}: token resolved server-side, but provider call is not wired yet (Phase 1).`,
-  };
-}
+const githubAdapter: ProviderAdapter = {
+  name: "github",
+  async isConfigured(sb, projectId) {
+    const r = await resolveSecret(sb, projectId, "github", "token");
+    return r.ok;
+  },
+  verifyConnection: (sb, pid) => checkConnection(sb, pid, "github"),
+  async runStep(sb, job, step) {
+    const conn = await checkConnection(sb, job.project_id, "github");
+    if (!conn.ok) return { status: "failed", error: conn.error };
+    const tok = await resolveSecret(sb, job.project_id, "github", "token");
+    if (!tok.ok) return { status: "failed", error: tok.error };
+    return { status: "failed", error: `github.${step.step_key}: provider call is not wired yet.` };
+  },
+  missingConfigReason: () => "GitHub token is not configured.",
+};
 
-async function runSupabaseAdminStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<StepResult> {
-  const conn = await requireConnection(sb, job.project_id, "supabase");
-  if (!conn.ok) return { status: "failed", error: conn.error };
-  // Service-role lookup goes via project_secrets → process.env. Browser never sees it.
-  const tok = await resolveSecret(sb, job.project_id, "supabase", "service_role");
-  if (!tok.ok) return { status: "failed", error: "Supabase admin access is not configured." };
-  return {
-    status: "failed",
-    error: `supabase.${step.step_key}: service role resolved server-side, but admin call is not wired yet (Phase 1).`,
-  };
-}
+const vercelAdapter: ProviderAdapter = {
+  name: "vercel",
+  async isConfigured(sb, projectId) {
+    const r = await resolveSecret(sb, projectId, "vercel", "token");
+    return r.ok;
+  },
+  verifyConnection: (sb, pid) => checkConnection(sb, pid, "vercel"),
+  async runStep(sb, job, step) {
+    const conn = await checkConnection(sb, job.project_id, "vercel");
+    if (!conn.ok) return { status: "failed", error: conn.error };
+    const tok = await resolveSecret(sb, job.project_id, "vercel", "token");
+    if (!tok.ok) return { status: "failed", error: tok.error };
+    return { status: "failed", error: `vercel.${step.step_key}: provider call is not wired yet.` };
+  },
+  missingConfigReason: () => "Vercel token is not configured.",
+};
 
-async function runBuildStep(_sb: SupabaseClient, _job: JobRow, step: StepRow): Promise<StepResult> {
-  return {
-    status: "failed",
-    error: `build.${step.step_key}: requires a server-side build worker. Not wired in Phase 1.`,
-  };
-}
+const supabaseAdminAdapter: ProviderAdapter = {
+  name: "supabase",
+  async isConfigured(sb, projectId) {
+    const r = await resolveSecret(sb, projectId, "supabase", "service_role");
+    return r.ok;
+  },
+  verifyConnection: (sb, pid) => checkConnection(sb, pid, "supabase"),
+  async runStep(sb, job, step) {
+    const conn = await checkConnection(sb, job.project_id, "supabase");
+    if (!conn.ok) return { status: "failed", error: conn.error };
+    const tok = await resolveSecret(sb, job.project_id, "supabase", "service_role");
+    if (!tok.ok) return { status: "failed", error: "Supabase admin access is not configured." };
+    return { status: "failed", error: `supabase.${step.step_key}: provider call is not wired yet.` };
+  },
+  missingConfigReason: () => "Supabase admin access is not configured.",
+};
 
-async function runAIStep(_sb: SupabaseClient, job: JobRow, _step: StepRow): Promise<StepResult> {
-  if (!process.env.LOVABLE_API_KEY && !process.env.AI_GATEWAY_KEY) {
-    return { status: "failed", error: "AI gateway key is not configured on the server." };
-  }
-  return {
-    status: "failed",
-    error: `${job.type}: AI gateway resolved server-side, but provider call is not wired yet (Phase 1).`,
-  };
+const buildAdapter: ProviderAdapter = {
+  name: "build",
+  async isConfigured() {
+    return Boolean(process.env.BUILD_RUNNER_URL || process.env.BUILD_RUNNER_TOKEN);
+  },
+  async verifyConnection() {
+    if (!(process.env.BUILD_RUNNER_URL || process.env.BUILD_RUNNER_TOKEN)) {
+      return { ok: false, error: "Build runner is not configured." };
+    }
+    return { ok: true };
+  },
+  async runStep(_sb, _job, step) {
+    if (!(process.env.BUILD_RUNNER_URL || process.env.BUILD_RUNNER_TOKEN)) {
+      return { status: "failed", error: "Build runner is not configured." };
+    }
+    return { status: "failed", error: `build.${step.step_key}: provider call is not wired yet.` };
+  },
+  missingConfigReason: () => "Build runner is not configured.",
+};
+
+const aiAdapter: ProviderAdapter = {
+  name: "ai",
+  async isConfigured() {
+    return Boolean(process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY);
+  },
+  async verifyConnection() {
+    if (!(process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY)) {
+      return { ok: false, error: "AI gateway key is not configured." };
+    }
+    return { ok: true };
+  },
+  async runStep(_sb, job, _step) {
+    if (!(process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY)) {
+      return { status: "failed", error: "AI gateway key is not configured." };
+    }
+    return { status: "failed", error: `${job.type}: provider call is not wired yet.` };
+  },
+  missingConfigReason: () => "AI gateway key is not configured.",
+};
+
+function adapterForJobType(type: string): ProviderAdapter | null {
+  if (type.startsWith("github.")) return githubAdapter;
+  if (type.startsWith("vercel.")) return vercelAdapter;
+  if (type.startsWith("supabase.")) return supabaseAdminAdapter;
+  if (type === "build.typecheck" || type === "build.production") return buildAdapter;
+  if (type.startsWith("ai.")) return aiAdapter;
+  return null;
 }
 
 // ---------- Step dispatch ----------
 
 async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<StepResult> {
-  // Connection verification step — common across providers.
+  // Common provider verification step.
   if (step.step_key === "verify_connection") {
-    const provider = job.type.startsWith("github.") ? "github"
-      : job.type.startsWith("vercel.") ? "vercel"
-      : job.type.startsWith("supabase.") ? "supabase"
-      : null;
-    if (!provider) return { status: "skipped", log: "no provider verification needed" };
-    const r = await requireConnection(sb, job.project_id, provider);
+    const adapter = adapterForJobType(job.type);
+    if (!adapter) return { status: "skipped", log: "no provider verification needed" };
+    if (adapter.name === "build" || adapter.name === "ai") {
+      return { status: "skipped", log: `${adapter.name} verification not applicable` };
+    }
+    const r = await adapter.verifyConnection(sb, job.project_id);
     if (!r.ok) return { status: "failed", error: r.error };
-    return { status: "succeeded", log: `${provider} connection ok` };
+    return { status: "succeeded", log: `${adapter.name} connection ok` };
   }
 
   // build.production demonstrates the waiting_for_input round-trip.
@@ -209,16 +275,12 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
         },
       };
     }
-    return runBuildStep(sb, job, step);
+    return buildAdapter.runStep(sb, job, step);
   }
 
-  if (job.type.startsWith("github.")) return runGitHubStep(sb, job, step);
-  if (job.type.startsWith("vercel.")) return runVercelStep(sb, job, step);
-  if (job.type.startsWith("supabase.")) return runSupabaseAdminStep(sb, job, step);
-  if (job.type === "build.typecheck" || job.type === "build.production") return runBuildStep(sb, job, step);
-  if (job.type.startsWith("ai.")) return runAIStep(sb, job, step);
-
-  return { status: "failed", error: `Unknown job type: ${job.type}` };
+  const adapter = adapterForJobType(job.type);
+  if (!adapter) return { status: "failed", error: `Unknown job type: ${job.type}` };
+  return adapter.runStep(sb, job, step);
 }
 
 // ---------- Public entry: claim and run one step ----------
@@ -230,6 +292,7 @@ export interface TickResult {
   status?: StepResult["status"];
   error?: string;
   questionId?: string;
+  cancelled?: boolean;
 }
 
 export async function runNextJobStepServer(input: {
@@ -248,6 +311,13 @@ export async function runNextJobStepServer(input: {
   if (jErr) return { advanced: false, error: jErr.message };
   const jobRow = (jobRows ?? [])[0] as JobRow | undefined;
   if (!jobRow) return { advanced: false };
+
+  // Cancellation guard BEFORE we start any step.
+  const { data: liveStatus } = await sb
+    .from("project_jobs").select("status").eq("id", jobRow.id).maybeSingle();
+  if (liveStatus?.status === "cancelled") {
+    return { advanced: false, jobId: jobRow.id, cancelled: true };
+  }
 
   if (jobRow.status === "queued") {
     await sb.from("project_jobs")
@@ -274,7 +344,9 @@ export async function runNextJobStepServer(input: {
     );
     if (allTerminal) {
       const finalStatus: JobStatus = anyFailed ? "failed" : "succeeded";
-      const errorMsg = anyFailed ? (steps.find((s) => s.status === "failed")?.logs?.slice(-1)[0]?.msg ?? "step failed") : null;
+      const errorMsg = anyFailed
+        ? (steps.find((s) => s.status === "failed")?.error ?? "step failed")
+        : null;
       await sb.from("project_jobs").update({
         status: finalStatus,
         finished_at: new Date().toISOString(),
@@ -284,9 +356,32 @@ export async function runNextJobStepServer(input: {
     return { advanced: false, jobId: jobRow.id };
   }
 
+  // Re-check cancellation right before claiming the step.
+  const { data: liveStatus2 } = await sb
+    .from("project_jobs").select("status").eq("id", jobRow.id).maybeSingle();
+  if (liveStatus2?.status === "cancelled") {
+    return { advanced: false, jobId: jobRow.id, cancelled: true };
+  }
+
+  const attemptNumber = Math.max(1, Number(next.attempt_number ?? 1));
+  const startedAt = new Date().toISOString();
+
   await sb.from("project_job_steps")
-    .update({ status: "running", started_at: new Date().toISOString() })
+    .update({ status: "running", started_at: startedAt })
     .eq("id", next.id);
+
+  // Open an attempt row (best-effort; table may not exist on older deployments).
+  const { data: attemptRow } = await sb.from("project_job_step_attempts")
+    .insert({
+      step_id: next.id,
+      job_id: jobRow.id,
+      attempt_number: attemptNumber,
+      status: "running",
+      input: next.input ?? {},
+      started_at: startedAt,
+    })
+    .select("id")
+    .maybeSingle();
 
   let result: StepResult;
   try {
@@ -316,6 +411,12 @@ export async function runNextJobStepServer(input: {
         finished_at: new Date().toISOString(),
         logs: [...(next.logs ?? []), { ts: new Date().toISOString(), msg: `question insert failed: ${qErr.message}` }],
       }).eq("id", next.id);
+      if (attemptRow?.id) {
+        await sb.from("project_job_step_attempts").update({
+          status: "failed", error: qErr.message,
+          finished_at: new Date().toISOString(),
+        }).eq("id", attemptRow.id);
+      }
       return { advanced: true, jobId: jobRow.id, stepKey: next.step_key, status: "failed", error: qErr.message };
     }
     await sb.from("project_job_steps").update({
@@ -323,19 +424,36 @@ export async function runNextJobStepServer(input: {
       logs: [...(next.logs ?? []), { ts: new Date().toISOString(), msg: `awaiting answer: ${result.ask.question}` }],
     }).eq("id", next.id);
     await sb.from("project_jobs").update({ status: "waiting_for_input" }).eq("id", jobRow.id);
+    if (attemptRow?.id) {
+      await sb.from("project_job_step_attempts").update({
+        status: "waiting_for_input",
+        finished_at: new Date().toISOString(),
+      }).eq("id", attemptRow.id);
+    }
     return {
       advanced: true, jobId: jobRow.id, stepKey: next.step_key,
       status: "waiting_for_input", questionId: qRow?.id,
     };
   }
 
+  const finishedAt = new Date().toISOString();
   await sb.from("project_job_steps").update({
     status: result.status,
     output: result.output ?? {},
     error: result.error ?? null,
     logs: [...(next.logs ?? []), logEntry],
-    finished_at: new Date().toISOString(),
+    finished_at: finishedAt,
   }).eq("id", next.id);
+
+  if (attemptRow?.id) {
+    await sb.from("project_job_step_attempts").update({
+      status: result.status,
+      output: result.output ?? {},
+      error: result.error ?? null,
+      logs: [logEntry],
+      finished_at: finishedAt,
+    }).eq("id", attemptRow.id);
+  }
 
   return {
     advanced: true,

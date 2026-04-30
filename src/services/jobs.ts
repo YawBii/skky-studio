@@ -77,6 +77,7 @@ export interface JobStep {
   output: Record<string, unknown>;
   logs: Array<{ ts: string; msg: string }>;
   error: string | null;
+  attemptNumber: number;
   startedAt: string | null;
   finishedAt: string | null;
 }
@@ -122,6 +123,7 @@ function rowToStep(r: Record<string, unknown>): JobStep {
     output: (r.output as Record<string, unknown>) ?? {},
     logs: (r.logs as Array<{ ts: string; msg: string }>) ?? [],
     error: (r.error as string | null) ?? null,
+    attemptNumber: Number(r.attempt_number ?? 1),
     startedAt: (r.started_at as string | null) ?? null,
     finishedAt: (r.finished_at as string | null) ?? null,
   };
@@ -310,15 +312,24 @@ export async function cancelJob(jobId: string): Promise<{ ok: boolean; error?: s
     const now = new Date().toISOString();
     const { error } = await supabase
       .from("project_jobs")
-      .update({ status: "cancelled", finished_at: now })
+      .update({ status: "cancelled", finished_at: now, error: "Job cancelled by user." })
       .eq("id", jobId)
-      .in("status", ["queued", "running"]);
+      .in("status", ["queued", "running", "waiting_for_input"]);
     if (error) return { ok: false, error: error.message };
-    await supabase
+    // Cancel queued/running/waiting steps; append a log entry too.
+    const { data: liveSteps } = await supabase
       .from("project_job_steps")
-      .update({ status: "cancelled", finished_at: now })
+      .select("id, logs, status")
       .eq("job_id", jobId)
-      .in("status", ["queued", "running"]);
+      .in("status", ["queued", "running", "waiting_for_input"]);
+    for (const s of liveSteps ?? []) {
+      const prevLogs = (s.logs as Array<{ ts: string; msg: string }>) ?? [];
+      await supabase.from("project_job_steps").update({
+        status: "cancelled",
+        finished_at: now,
+        logs: [...prevLogs, { ts: now, msg: "Job cancelled by user." }],
+      }).eq("id", s.id);
+    }
     setDiag({ jobStatus: "cancelled" });
     pushDiag("job.cancel", { jobId });
     return { ok: true };
@@ -329,7 +340,9 @@ export async function cancelJob(jobId: string): Promise<{ ok: boolean; error?: s
 
 export async function retryJob(jobId: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    // Re-queue the job and reset failed/cancelled steps.
+    // Re-queue the job. Re-queue ONLY failed/cancelled steps; preserve their
+    // prior logs/output/error (history lives in project_job_step_attempts).
+    // Bump per-step attempt_number so the next run records a new attempt row.
     const { data: jobRow, error: getErr } = await supabase
       .from("project_jobs").select("retry_count").eq("id", jobId).maybeSingle();
     if (getErr) return { ok: false, error: getErr.message };
@@ -339,11 +352,21 @@ export async function retryJob(jobId: string): Promise<{ ok: boolean; error?: st
       .update({ status: "queued", error: null, started_at: null, finished_at: null, retry_count: nextRetry })
       .eq("id", jobId);
     if (error) return { ok: false, error: error.message };
-    await supabase
+    // Find failed/cancelled steps and bump attempt_number while re-queuing.
+    const { data: failedSteps } = await supabase
       .from("project_job_steps")
-      .update({ status: "queued", error: null, started_at: null, finished_at: null, output: {}, logs: [] })
+      .select("id, attempt_number")
       .eq("job_id", jobId)
       .in("status", ["failed", "cancelled"]);
+    for (const s of failedSteps ?? []) {
+      await supabase.from("project_job_steps").update({
+        status: "queued",
+        error: null,
+        started_at: null,
+        finished_at: null,
+        attempt_number: Number(s.attempt_number ?? 1) + 1,
+      }).eq("id", s.id);
+    }
     setDiag({ jobStatus: "queued", retryCount: nextRetry, lastError: null });
     pushDiag("job.retry", { jobId, retryCount: nextRetry });
     return { ok: true };
@@ -351,6 +374,90 @@ export async function retryJob(jobId: string): Promise<{ ok: boolean; error?: st
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
+
+// Retry exactly one failed step. Does not touch other steps. Sets job back to
+// queued so the runner picks the failed step up again. Bumps attempt_number.
+export async function retryStep(input: { jobId: string; stepId: string }): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data: stepRow, error: getErr } = await supabase
+      .from("project_job_steps")
+      .select("id, status, attempt_number")
+      .eq("id", input.stepId)
+      .maybeSingle();
+    if (getErr) return { ok: false, error: getErr.message };
+    if (!stepRow) return { ok: false, error: "Step not found" };
+    if (stepRow.status !== "failed" && stepRow.status !== "cancelled") {
+      return { ok: false, error: `Step is "${stepRow.status}", only failed/cancelled steps can be retried.` };
+    }
+    const nextAttempt = Number(stepRow.attempt_number ?? 1) + 1;
+    const { error: sErr } = await supabase
+      .from("project_job_steps")
+      .update({
+        status: "queued",
+        error: null,
+        started_at: null,
+        finished_at: null,
+        attempt_number: nextAttempt,
+      })
+      .eq("id", input.stepId);
+    if (sErr) return { ok: false, error: sErr.message };
+    const { error: jErr } = await supabase
+      .from("project_jobs")
+      .update({ status: "queued", error: null, finished_at: null })
+      .eq("id", input.jobId)
+      .in("status", ["failed", "succeeded", "cancelled", "waiting_for_input"]);
+    if (jErr) return { ok: false, error: `job re-queue failed: ${jErr.message}` };
+    pushDiag("job.step.retry", { jobId: input.jobId, stepId: input.stepId, attempt: nextAttempt });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export interface StepAttempt {
+  id: string;
+  stepId: string;
+  jobId: string;
+  attemptNumber: number;
+  status: string;
+  output: Record<string, unknown>;
+  error: string | null;
+  logs: Array<{ ts: string; msg: string }>;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+export async function listJobStepAttempts(jobId: string): Promise<{ attempts: StepAttempt[]; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from("project_job_step_attempts")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("started_at", { ascending: true });
+    if (error) {
+      // Table may not exist yet on older deployments — treat as no history.
+      if (isMissingTable(error)) return { attempts: [] };
+      return { attempts: [], error: error.message };
+    }
+    return {
+      attempts: (data ?? []).map((r) => ({
+        id: String(r.id),
+        stepId: String(r.step_id),
+        jobId: String(r.job_id),
+        attemptNumber: Number(r.attempt_number ?? 1),
+        status: String(r.status),
+        output: (r.output as Record<string, unknown>) ?? {},
+        error: (r.error as string | null) ?? null,
+        logs: (r.logs as Array<{ ts: string; msg: string }>) ?? [],
+        startedAt: String(r.started_at),
+        finishedAt: (r.finished_at as string | null) ?? null,
+      })),
+    };
+  } catch (e) {
+    return { attempts: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 
 // ---------- Step types (kept for UI/contract; runner now lives server-side) ----------
 

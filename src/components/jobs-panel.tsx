@@ -1,15 +1,17 @@
 // Per-project Jobs / Activity panel. Shows queued/running/waiting/succeeded/
 // failed jobs, their steps, logs, retry/cancel controls, interactive
-// questions (Lovable-style), a proof report, and quick job-enqueue buttons.
-import { useState } from "react";
+// questions (Lovable-style), a strict proof report, runner diagnostics, and
+// quick job-enqueue buttons.
+import { useState, type ReactNode } from "react";
 import {
   Loader2, Play, RotateCcw, X, ChevronDown, ChevronRight,
-  AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle,
+  AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
-import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType } from "@/services/jobs";
+import { useDiagnostics } from "@/lib/diagnostics";
+import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
 
 interface JobsPanelProps {
   projectId: string | null;
@@ -26,10 +28,11 @@ const QUICK_JOBS: { type: JobType; title: string }[] = [
 
 export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps) {
   const {
-    jobs, source, error, sqlFile, loading, ticking,
-    stepsByJob, questionsByJob,
-    enqueue, cancel, retry, answer, refreshSteps, refreshQuestions,
+    jobs, source, error, sqlFile, loading, ticking, lastTick,
+    stepsByJob, questionsByJob, attemptsByJob,
+    enqueue, cancel, retry, retryStep, answer, refreshSteps, refreshQuestions, refreshAttempts,
   } = useProjectJobs(projectId, workspaceId);
+  const diag = useDiagnostics();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);
 
@@ -37,6 +40,7 @@ export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps)
     setExpanded((p) => ({ ...p, [id]: !p[id] }));
     if (!stepsByJob[id]) void refreshSteps(id);
     if (!questionsByJob[id]) void refreshQuestions(id);
+    if (!attemptsByJob[id]) void refreshAttempts(id);
   };
 
   const onQuick = async (q: { type: JobType; title: string }) => {
@@ -101,9 +105,21 @@ export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps)
               expanded={!!expanded[j.id]}
               steps={stepsByJob[j.id] ?? []}
               questions={questionsByJob[j.id] ?? []}
+              attempts={attemptsByJob[j.id] ?? []}
+              diagBlock={
+                <RunnerDiagnostics
+                  job={j}
+                  steps={stepsByJob[j.id] ?? []}
+                  questions={questionsByJob[j.id] ?? []}
+                  lastTick={lastTick}
+                  providerStatus={diag.state.providerConnectionStatus}
+                  lastError={diag.state.lastError}
+                />
+              }
               onToggle={() => toggle(j.id)}
               onCancel={() => cancel(j.id)}
               onRetry={() => retry(j.id)}
+              onRetryStep={(stepId) => retryStep(j.id, stepId)}
               onAnswer={(input) => answer({ ...input, jobId: j.id })}
             />
           ))}
@@ -119,21 +135,26 @@ function EmptyMissingTable({ error, sqlFile }: { error: string | null; sqlFile: 
       <div className="flex items-center gap-2 text-warning mb-2">
         <AlertTriangle className="h-4 w-4" /> <span className="font-medium">Job tables are not installed yet</span>
       </div>
-      <p className="mb-2">Run the SQL migrations to create <code className="text-foreground">project_jobs</code>, <code className="text-foreground">project_job_steps</code>, <code className="text-foreground">project_secrets</code>, and <code className="text-foreground">project_job_questions</code>.</p>
+      <p className="mb-2">Run the SQL migrations to create <code className="text-foreground">project_jobs</code>, <code className="text-foreground">project_job_steps</code>, <code className="text-foreground">project_secrets</code>, <code className="text-foreground">project_job_questions</code>, and <code className="text-foreground">project_job_step_attempts</code>.</p>
       {sqlFile && <p className="font-mono text-[11px] text-foreground/80">{sqlFile}</p>}
+      <p className="font-mono text-[11px] text-foreground/80">docs/sql/2026-04-30-project-job-questions.sql</p>
+      <p className="font-mono text-[11px] text-foreground/80">docs/sql/2026-04-30-project-job-step-attempts.sql</p>
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
     </div>
   );
 }
 
-function JobRow({ job, expanded, steps, questions, onToggle, onCancel, onRetry, onAnswer }: {
+function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle, onCancel, onRetry, onRetryStep, onAnswer }: {
   job: Job;
   expanded: boolean;
   steps: JobStep[];
   questions: JobQuestion[];
+  attempts: StepAttempt[];
+  diagBlock: ReactNode;
   onToggle: () => void;
   onCancel: () => Promise<unknown>;
   onRetry: () => Promise<unknown>;
+  onRetryStep: (stepId: string) => Promise<unknown>;
   onAnswer: (input: { questionId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => Promise<unknown>;
 }) {
   const canCancel = job.status === "queued" || job.status === "running" || job.status === "waiting_for_input";
@@ -157,12 +178,12 @@ function JobRow({ job, expanded, steps, questions, onToggle, onCancel, onRetry, 
         </div>
         <div className="flex items-center gap-1">
           {canCancel && (
-            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onCancel()} title="Cancel">
+            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onCancel()} title="Cancel job">
               <X className="h-3 w-3" />
             </Button>
           )}
           {canRetry && (
-            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onRetry()} title="Retry">
+            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onRetry()} title="Retry whole job">
               <RotateCcw className="h-3 w-3" />
             </Button>
           )}
@@ -184,24 +205,43 @@ function JobRow({ job, expanded, steps, questions, onToggle, onCancel, onRetry, 
           {steps.length === 0 && (
             <div className="text-[11px] text-muted-foreground">No steps recorded.</div>
           )}
-          {steps.map((s) => <StepRow key={s.id} step={s} />)}
+          {steps.map((s) => (
+            <StepRow
+              key={s.id}
+              step={s}
+              attempts={attempts.filter((a) => a.stepId === s.id)}
+              onRetryStep={() => onRetryStep(s.id)}
+            />
+          ))}
           {questions.length > 0 && <QuestionHistory questions={questions} />}
-          {(job.status === "succeeded" || job.status === "failed") && steps.length > 0 && (
-            <ProofReport steps={steps} jobError={job.error} />
-          )}
+          <ProofReport job={job} steps={steps} questions={questions} />
+          {diagBlock}
         </div>
       )}
     </li>
   );
 }
 
-function StepRow({ step }: { step: JobStep }) {
+function StepRow({ step, attempts, onRetryStep }: {
+  step: JobStep;
+  attempts: StepAttempt[];
+  onRetryStep: () => Promise<unknown>;
+}) {
+  const canRetryStep = step.status === "failed" || step.status === "cancelled";
   return (
     <div className="rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5">
       <div className="flex items-center gap-2">
         <StatusDot status={step.status} />
         <div className="text-[12px] flex-1 truncate">{step.title}</div>
         <span className="text-[10px] text-muted-foreground font-mono">{step.stepKey}</span>
+        {step.attemptNumber > 1 && (
+          <span className="text-[10px] text-muted-foreground font-mono">·attempt {step.attemptNumber}</span>
+        )}
+        {canRetryStep && (
+          <Button size="sm" variant="ghost" className="h-5 px-1" onClick={() => void onRetryStep()} title="Retry this step only">
+            <RotateCcw className="h-3 w-3" /> <span className="text-[10px] ml-0.5">step</span>
+          </Button>
+        )}
       </div>
       {step.error && <div className="mt-1 text-[11px] text-destructive whitespace-pre-wrap">{step.error}</div>}
       {step.logs && step.logs.length > 0 && (
@@ -218,6 +258,29 @@ function StepRow({ step }: { step: JobStep }) {
           {step.startedAt && `start ${new Date(step.startedAt).toLocaleTimeString()}`}
           {step.finishedAt && ` · end ${new Date(step.finishedAt).toLocaleTimeString()}`}
         </div>
+      )}
+      {attempts.length > 1 && (
+        <details className="mt-1.5">
+          <summary className="text-[10.5px] text-muted-foreground cursor-pointer hover:text-foreground">
+            Attempt history ({attempts.length})
+          </summary>
+          <ul className="mt-1 space-y-1 pl-3 border-l border-white/10">
+            {attempts.map((a) => (
+              <li key={a.id} className="text-[10.5px] font-mono">
+                <span className="text-muted-foreground">#{a.attemptNumber}</span>{" "}
+                <span className={cn(
+                  a.status === "succeeded" && "text-success",
+                  a.status === "failed" && "text-destructive",
+                )}>{a.status}</span>
+                {a.error && <span className="text-destructive"> — {a.error}</span>}
+                {" · "}<span className="text-muted-foreground/70">
+                  {new Date(a.startedAt).toLocaleTimeString()}
+                  {a.finishedAt && ` → ${new Date(a.finishedAt).toLocaleTimeString()}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   );
@@ -359,23 +422,154 @@ function QuestionHistory({ questions }: { questions: JobQuestion[] }) {
   );
 }
 
-function ProofReport({ steps, jobError }: { steps: JobStep[]; jobError: string | null }) {
-  const ok = steps.filter((s) => s.status === "succeeded").length;
-  const failed = steps.filter((s) => s.status === "failed").length;
-  const skipped = steps.filter((s) => s.status === "skipped").length;
-  const cancelled = steps.filter((s) => s.status === "cancelled").length;
-  const allOk = failed === 0 && cancelled === 0;
+// Strict proof report — refuses to say "done" until every step is terminal,
+// and clearly says "Not done" when anything is in progress or required steps
+// failed. Built directly from persisted DB state.
+const TERMINAL: ReadonlyArray<string> = ["succeeded", "failed", "skipped", "cancelled"];
+
+function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; questions: JobQuestion[] }) {
+  const inProgress = steps.filter((s) => s.status === "queued" || s.status === "running" || s.status === "waiting_for_input");
+  const failed = steps.filter((s) => s.status === "failed");
+  const allTerminal = steps.length > 0 && steps.every((s) => TERMINAL.includes(s.status));
+
+  let verdict: { kind: "done" | "not-done-progress" | "not-done-failed" | "empty"; line: string };
+  if (steps.length === 0) {
+    verdict = { kind: "empty", line: "Not done — no steps recorded." };
+  } else if (inProgress.length > 0) {
+    verdict = { kind: "not-done-progress", line: "Not done — job is still in progress." };
+  } else if (failed.length > 0) {
+    verdict = { kind: "not-done-failed", line: "Not done — required step failed." };
+  } else if (allTerminal && job.status === "succeeded") {
+    verdict = { kind: "done", line: "Done — all required steps terminal." };
+  } else {
+    verdict = { kind: "not-done-progress", line: `Not done — job status is "${job.status}".` };
+  }
+
+  const verdictColor = verdict.kind === "done" ? "text-success" : "text-destructive";
+
   return (
-    <div className="rounded-md border border-white/5 bg-black/20">
-      <div className={cn("px-2.5 py-1.5 text-[11.5px] font-medium flex items-center gap-1.5",
-        allOk ? "text-success" : "text-destructive")}>
-        {allOk ? <CheckCircle2 className="h-3 w-3" /> : <X className="h-3 w-3" />}
-        Proof report — {ok} ok · {failed} failed · {skipped} skipped · {cancelled} cancelled
+    <div className="rounded-md border border-white/10 bg-black/30">
+      <div className={cn("px-2.5 py-1.5 text-[11.5px] font-medium flex items-center gap-1.5", verdictColor)}>
+        {verdict.kind === "done" ? <CheckCircle2 className="h-3 w-3" /> : <X className="h-3 w-3" />}
+        Proof report
       </div>
-      {jobError && <div className="px-2.5 pb-1.5 text-[11px] text-destructive">{jobError}</div>}
+      <div className="px-2.5 pb-2 space-y-1.5">
+        <div className={cn("text-[11.5px]", verdictColor)}>{verdict.line}</div>
+        <div className="text-[10.5px] font-mono text-muted-foreground">
+          job id: {job.id}<br />
+          job type: {job.type}<br />
+          job status: {job.status}<br />
+          retries: {job.retryCount}
+        </div>
+        <ol className="space-y-1.5 mt-1.5">
+          {steps.map((s) => {
+            const q = questions.find((qq) => qq.stepId === s.id);
+            return (
+              <li key={s.id} className="border-l-2 pl-2 border-white/10">
+                <div className="text-[11.5px] flex items-center gap-1.5">
+                  <StatusDot status={s.status} />
+                  <span className="font-medium">{s.title}</span>
+                  <span className="text-muted-foreground font-mono text-[10px]">{s.stepKey}</span>
+                  <span className="text-muted-foreground font-mono text-[10px]">·attempt {s.attemptNumber}</span>
+                </div>
+                <div className="text-[10.5px] font-mono text-muted-foreground/80">
+                  step id: {s.id}
+                </div>
+                {Object.keys(s.input ?? {}).length > 0 && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">input: {JSON.stringify(s.input)}</div>
+                )}
+                {q && (
+                  <div className="text-[10.5px] text-muted-foreground">
+                    Q: {q.question} → {q.answeredAt ? JSON.stringify(q.answer) : <span className="text-warning">(unanswered)</span>}
+                  </div>
+                )}
+                {s.error && <div className="text-[10.5px] text-destructive whitespace-pre-wrap">error: {s.error}</div>}
+                {s.output && Object.keys(s.output).length > 0 && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">output: {JSON.stringify(s.output)}</div>
+                )}
+                {s.logs && s.logs.length > 0 && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground/60 truncate">
+                    last log: {s.logs[s.logs.length - 1].msg}
+                  </div>
+                )}
+                <div className="text-[10px] font-mono text-muted-foreground/60">
+                  {s.startedAt && `started ${new Date(s.startedAt).toLocaleTimeString()}`}
+                  {s.finishedAt && ` · finished ${new Date(s.finishedAt).toLocaleTimeString()}`}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
+
+// Detailed runner diagnostics for the selected job. Surfaces server-side
+// runner state and clearly distinguishes failure causes.
+function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, lastError }: {
+  job: Job;
+  steps: JobStep[];
+  questions: JobQuestion[];
+  lastTick: { advanced: boolean; jobId?: string; stepKey?: string; status?: string; error?: string; questionId?: string; cancelled?: boolean } | null;
+  providerStatus: Record<string, string> | null;
+  lastError: string | null;
+}) {
+  const currentStep = steps.find((s) => s.status === "running")
+    ?? steps.find((s) => s.status === "waiting_for_input")
+    ?? steps.find((s) => s.status === "queued");
+  const openQuestion = questions.find((q) => !q.answeredAt);
+  const tickForThisJob = lastTick && lastTick.jobId === job.id ? lastTick : null;
+  const failureCause = classifyFailure(tickForThisJob?.error ?? lastError ?? job.error);
+  const lastLog = currentStep?.logs?.[currentStep.logs.length - 1] ?? steps.flatMap((s) => s.logs).slice(-1)[0];
+
+  return (
+    <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary mb-1.5">
+        <Wrench className="h-3 w-3" /> Runner diagnostics
+      </div>
+      <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
+        <Row k="job status" v={job.status} />
+        <Row k="current step" v={currentStep ? `${currentStep.title} (${currentStep.stepKey}) · ${currentStep.status}` : "—"} />
+        <Row k="last server tick" v={tickForThisJob
+          ? `${tickForThisJob.advanced ? "advanced" : "no-op"}${tickForThisJob.status ? ` · ${tickForThisJob.status}` : ""}${tickForThisJob.cancelled ? " · cancelled" : ""}`
+          : "—"} />
+        <Row k="server error" v={tickForThisJob?.error ?? lastError ?? "—"} highlight={!!(tickForThisJob?.error ?? lastError)} />
+        <Row k="failure cause" v={failureCause} />
+        <Row k="provider connections" v={providerStatus ? Object.entries(providerStatus).map(([p, s]) => `${p}=${s}`).join(", ") || "none" : "—"} />
+        <Row k="waiting for input" v={openQuestion ? `yes — "${openQuestion.question}"` : "no"} highlight={!!openQuestion} />
+        <Row k="retry count" v={String(job.retryCount)} />
+        <Row k="cancelled" v={job.status === "cancelled" ? "yes" : "no"} />
+        <Row k="last log" v={lastLog ? `${new Date(lastLog.ts).toLocaleTimeString()} — ${lastLog.msg}` : "—"} />
+      </dl>
+    </div>
+  );
+}
+
+function Row({ k, v, highlight }: { k: string; v: string; highlight?: boolean }) {
+  return (
+    <>
+      <dt className="text-muted-foreground font-mono">{k}</dt>
+      <dd className={cn("font-mono break-all", highlight ? "text-warning" : "text-foreground/90")}>{v}</dd>
+    </>
+  );
+}
+
+// Map a server error message to a clear failure category so the user sees
+// WHY a step failed without reading raw provider strings.
+function classifyFailure(err: string | null | undefined): string {
+  if (!err) return "—";
+  const s = err.toLowerCase();
+  if (s.includes("not connected for this project") || s.includes("connection is")) return "missing provider connection";
+  if (s.includes("is not configured")) return "missing server env secret";
+  if (s.includes("provider call is not wired yet")) return "provider API not wired yet";
+  if (s.includes("row-level security") || s.includes("rls") || s.includes("permission denied")) return "RLS/database error";
+  if (s.includes("not authenticated") || s.includes("no bearer")) return "auth missing";
+  if (s.includes("cancelled")) return "job cancelled";
+  if (s.includes("awaiting") || s.includes("waiting_for_input")) return "user input required";
+  return "unknown";
+}
+
 
 function StatusDot({ status }: { status: string }) {
   if (status === "running") return <Loader2 className="h-3 w-3 animate-spin text-primary" />;
