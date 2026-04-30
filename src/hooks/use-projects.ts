@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { listProjects, type Project, type ProjectsResult } from "@/services/projects";
+import { setDiag } from "@/lib/diagnostics";
 
 const LS_CURRENT_PREFIX = "yawb:current-project-id:";
 
@@ -25,6 +26,7 @@ export function useProjects(workspaceId: string | null | undefined) {
     const r = await listProjects(workspaceId ?? null);
     setResult(r);
     setLoading(false);
+    setDiag({ workspaceId: workspaceId ?? null, projectsCount: r.projects.length });
     if (typeof window !== "undefined") {
       // eslint-disable-next-line no-console
       console.info("[yawb] projects source:", r.source, `count=${r.projects.length}`, r.error ?? "");
