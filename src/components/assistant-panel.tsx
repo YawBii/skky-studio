@@ -208,13 +208,45 @@ export function AssistantPanel() {
             className="w-full resize-none bg-transparent px-2 py-1.5 text-[13px] leading-relaxed placeholder:text-muted-foreground/70 outline-none"
           />
           <div className="flex items-center justify-between pt-1">
-            <button
-              type="button"
-              onClick={() => toast("Coming next: file & screenshot attachments.")}
-              className="inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              <Paperclip className="h-3.5 w-3.5" /> Attach
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => toast("Coming next: file & screenshot attachments.")}
+                className="inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                <Paperclip className="h-3.5 w-3.5" /> Attach
+              </button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={!project}
+                    className="inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    title={project ? "Queue a real job" : "Select a project to queue jobs"}
+                  >
+                    <Play className="h-3.5 w-3.5" /> Run job
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-72 bg-background/95 backdrop-blur-xl border-white/10 p-2">
+                  <div className="text-[11px] text-muted-foreground px-2 py-1.5">
+                    Enqueue against {project?.name ?? "—"}. Watch progress in the Jobs tab.
+                  </div>
+                  <div className="max-h-72 overflow-y-auto scrollbar-thin">
+                    {JOB_TYPES.map((t) => (
+                      <button
+                        key={t}
+                        disabled={enqueuingType === t || !project}
+                        onClick={() => runJob(t, t)}
+                        className="w-full flex items-center gap-2 text-left text-[12px] rounded-md px-2 py-1.5 hover:bg-white/5 disabled:opacity-50"
+                      >
+                        {enqueuingType === t ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 text-primary" />}
+                        <span className="font-mono">{t}</span>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send}>
               <Send className="h-3.5 w-3.5" /> Send
             </Button>
