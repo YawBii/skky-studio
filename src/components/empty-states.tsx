@@ -13,7 +13,13 @@ function slugify(s: string) {
 
 /* -------- Workspace empty state -------- */
 
-export function CreateWorkspaceEmpty({ onCreated }: { onCreated: (w: Workspace) => void }) {
+export function CreateWorkspaceEmpty({
+  onCreated,
+  errorMessage,
+}: {
+  onCreated: (w: Workspace) => void;
+  errorMessage?: string;
+}) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
