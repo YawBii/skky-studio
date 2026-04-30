@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
+import { ConnectDomainDialog } from "@/components/connect-domain-dialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
