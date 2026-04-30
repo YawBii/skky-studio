@@ -20,7 +20,7 @@ export interface ConnectionStatus {
   vercel: "connected" | "disconnected";
 }
 
-export type CollaboratorRole = "admin" | "member" | "viewer";
+export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
 export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
 
 export interface Collaborator {
@@ -38,7 +38,9 @@ interface WorkspaceTopBarProps {
   connections: ConnectionStatus;
   buildStatus: "passing" | "failing" | "building";
   collaborators?: Collaborator[];
+  presenceLive?: boolean;
   onDeploy?: () => void;
+  onShare?: () => void;
 }
 
 export function WorkspaceTopBar({
@@ -48,7 +50,9 @@ export function WorkspaceTopBar({
   connections,
   buildStatus,
   collaborators = [],
+  presenceLive = false,
   onDeploy,
+  onShare,
 }: WorkspaceTopBarProps) {
   const visible = collaborators.slice(0, 3);
   const extra = Math.max(0, collaborators.length - visible.length);
@@ -148,10 +152,16 @@ export function WorkspaceTopBar({
           </TooltipProvider>
         )}
 
+        {presenceLive && (
+          <span className="hidden lg:inline-flex items-center gap-1.5 text-[10.5px] text-success/90">
+            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> Live
+          </span>
+        )}
+
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => toast("Coming next: workspace invites")}
+          onClick={onShare ?? (() => toast("Coming next: workspace invites"))}
           className="text-[12px]"
         >
           <UserPlus className="h-3.5 w-3.5" /> Share
@@ -189,7 +199,7 @@ export function WorkspaceTopBar({
 }
 
 function RoleBadge({ role }: { role: CollaboratorRole }) {
-  const Icon = role === "admin" ? Crown : role === "viewer" ? Eye : null;
+  const Icon = role === "owner" || role === "admin" ? Crown : role === "viewer" ? Eye : null;
   return (
     <span className="inline-flex items-center gap-0.5 rounded bg-white/10 px-1 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
       {Icon && <Icon className="h-2.5 w-2.5" />}
