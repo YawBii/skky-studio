@@ -27,6 +27,11 @@ export function useWorkspaces() {
     const r = await listWorkspaces();
     setResult(r);
     setLoading(false);
+    if (typeof window !== "undefined") {
+      // Dev-visible signal so users can verify "real vs demo" in console.
+      // eslint-disable-next-line no-console
+      console.info("[yawb] workspaces source:", r.source, r.error ? `(${r.error})` : "", `count=${r.workspaces.length}`);
+    }
     return r;
   }, []);
 
@@ -35,7 +40,6 @@ export function useWorkspaces() {
     void refresh();
   }, [authLoading, session?.userId, refresh]);
 
-  // Reconcile selected workspace with available list.
   useEffect(() => {
     if (loading) return;
     const ids = new Set(result.workspaces.map((w) => w.id));
@@ -57,8 +61,14 @@ export function useWorkspaces() {
     workspaces: result.workspaces,
     current,
     source: result.source,
+    error: result.error,
     isReal: result.source === "supabase",
-    isEmpty: result.source === "demo-empty" && result.workspaces.length === 0,
+    // Both "no rows" and "query failed" should drop the user into the empty
+    // state instead of silently showing the Skky Group demo.
+    isEmpty:
+      (result.source === "demo-empty" || result.source === "error") &&
+      result.workspaces.length === 0,
+    isError: result.source === "error",
     loading,
     select,
     refresh,
