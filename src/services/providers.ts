@@ -69,17 +69,12 @@ export interface VercelProvider {
   promoteProduction(projectId: string, input: { deploymentId: string }): Promise<AdapterResult<{ url: string }>>;
 }
 
-const notWiredVercel = (op: string): AdapterResult => ({
-  ok: false,
-  error: `vercel.${op}: connection verified, but the server-side worker is not wired in this build (Phase 2).`,
-});
-
 export const placeholderVercel: VercelProvider = {
   verify: (projectId) => requireConnection(projectId, "vercel"),
-  linkProject: async (projectId) => (await requireConnection(projectId, "vercel")).ok ? notWiredVercel("linkProject") as AdapterResult<never> : await requireConnection(projectId, "vercel") as AdapterResult<never>,
-  setEnv: async (projectId) => (await requireConnection(projectId, "vercel")).ok ? notWiredVercel("setEnv") as AdapterResult<never> : await requireConnection(projectId, "vercel") as AdapterResult<never>,
-  createPreviewDeploy: async (projectId) => (await requireConnection(projectId, "vercel")).ok ? notWiredVercel("createPreviewDeploy") as AdapterResult<never> : await requireConnection(projectId, "vercel") as AdapterResult<never>,
-  promoteProduction: async (projectId) => (await requireConnection(projectId, "vercel")).ok ? notWiredVercel("promoteProduction") as AdapterResult<never> : await requireConnection(projectId, "vercel") as AdapterResult<never>,
+  linkProject: (projectId) => gateThen(projectId, "vercel", "linkProject"),
+  setEnv: (projectId) => gateThen(projectId, "vercel", "setEnv"),
+  createPreviewDeploy: (projectId) => gateThen(projectId, "vercel", "createPreviewDeploy"),
+  promoteProduction: (projectId) => gateThen(projectId, "vercel", "promoteProduction"),
 };
 
 // ---------- Supabase admin ----------
