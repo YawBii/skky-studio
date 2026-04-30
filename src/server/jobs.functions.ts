@@ -2,7 +2,8 @@
 // auth via the bearer token they send. Browser never executes provider work.
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
-import { runNextJobStepServer, type TickResult } from "./jobs-runner.server";
+import { runNextJobStepServer } from "./jobs-runner.server";
+import type { TickResult } from "./jobs-runner.server";
 
 export const runNextJobStep = createServerFn({ method: "POST" })
   .inputValidator((data: { projectId: string }) => {
