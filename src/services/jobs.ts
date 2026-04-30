@@ -9,9 +9,24 @@
 // server-side workers; the browser must never receive provider tokens.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
+import { providers } from "@/services/providers";
 
-export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-export type StepStatus = "queued" | "running" | "succeeded" | "failed" | "skipped" | "cancelled";
+export type JobStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "cancelled";
+export type StepStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "skipped" | "cancelled";
+export type QuestionKind = "single_choice" | "multi_choice" | "text" | "confirm";
+
+export interface JobQuestion {
+  id: string;
+  jobId: string;
+  stepId: string | null;
+  question: string;
+  kind: QuestionKind;
+  options: Array<{ value: string; label: string; description?: string }>;
+  answer: unknown;
+  required: boolean;
+  createdAt: string;
+  answeredAt: string | null;
+}
 
 export const JOB_TYPES = [
   "github.connect_repo",
