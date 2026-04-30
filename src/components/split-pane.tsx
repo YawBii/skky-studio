@@ -72,45 +72,12 @@ export function SplitPane({
 
   if (isMobile) {
     return (
-      <div ref={containerRef} className="relative h-full w-full">
-        <div className="absolute inset-0">{left}</div>
-
-        {/* Floating chat trigger */}
-        {!chatOpen && (
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            className="fixed bottom-5 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-4 py-3 text-[13px] font-medium text-primary-foreground shadow-glow"
-            aria-label="Open yawB chat"
-          >
-            <MessageSquare className="h-4 w-4" /> Chat
-          </button>
-        )}
-
-        {/* Bottom-sheet chat drawer */}
-        {chatOpen && (
-          <div className="fixed inset-0 z-50 flex flex-col">
-            <button
-              aria-label="Close chat"
-              className="flex-1 bg-black/50 backdrop-blur-sm"
-              onClick={() => setChatOpen(false)}
-            />
-            <div className="h-[85vh] w-full bg-sidebar border-t border-white/10 rounded-t-2xl flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-3 h-10 border-b border-white/5">
-                <div className="mx-auto h-1 w-10 rounded-full bg-white/15" />
-                <button
-                  onClick={() => setChatOpen(false)}
-                  className="absolute right-3 mt-0 text-muted-foreground hover:text-foreground"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="flex-1 min-h-0">{right}</div>
-            </div>
-          </div>
-        )}
-      </div>
+      <MobileChatLayout
+        left={left}
+        right={right}
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+      />
     );
   }
 
@@ -139,6 +106,113 @@ export function SplitPane({
         </div>
       </div>
       <div style={{ width: rightWidth }} className="shrink-0 h-full min-w-0">{right}</div>
+    </div>
+  );
+}
+
+/* ----------------------------- Mobile layout ----------------------------- */
+
+function MobileChatLayout({
+  left, right, open, onOpenChange,
+}: {
+  left: React.ReactNode;
+  right: React.ReactNode;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const [dragY, setDragY] = useState(0);
+  const startYRef = useRef<number | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Lock body scroll when sheet is open.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
+  // Reset drag offset when reopening.
+  useEffect(() => { if (open) setDragY(0); }, [open]);
+
+  const onDragStart = (e: React.PointerEvent) => {
+    startYRef.current = e.clientY;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onDragMove = (e: React.PointerEvent) => {
+    if (startYRef.current == null) return;
+    const dy = e.clientY - startYRef.current;
+    setDragY(Math.max(0, dy));
+  };
+  const onDragEnd = (e: React.PointerEvent) => {
+    if (startYRef.current == null) return;
+    const dy = e.clientY - startYRef.current;
+    startYRef.current = null;
+    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    const sheetH = sheetRef.current?.offsetHeight ?? 600;
+    // Dismiss if dragged > 30% of sheet height OR fast flick (>120px).
+    if (dy > sheetH * 0.3 || dy > 120) {
+      onOpenChange(false);
+    }
+    setDragY(0);
+  };
+
+  return (
+    <div className="relative h-full w-full">
+      <div className="absolute inset-0">{left}</div>
+
+      {/* Persistent floating chat button — always visible on mobile/tablet */}
+      <button
+        type="button"
+        onClick={() => onOpenChange(true)}
+        className={cn(
+          "fixed bottom-5 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-4 py-3 text-[13px] font-medium text-primary-foreground shadow-glow transition-opacity",
+          open && "opacity-0 pointer-events-none",
+        )}
+        aria-label="Open yawB chat"
+        aria-expanded={open}
+      >
+        <MessageSquare className="h-4 w-4" /> Chat
+      </button>
+
+      {/* Bottom-sheet chat drawer with swipe-to-dismiss */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="yawB chat">
+          <button
+            aria-label="Close chat"
+            className="flex-1 bg-black/50 backdrop-blur-sm"
+            onClick={() => onOpenChange(false)}
+          />
+          <div
+            ref={sheetRef}
+            className="relative h-[85vh] w-full bg-sidebar border-t border-white/10 rounded-t-2xl flex flex-col overflow-hidden shadow-elevated"
+            style={{
+              transform: `translateY(${dragY}px)`,
+              transition: dragY === 0 ? "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+            }}
+          >
+            {/* Drag handle area — large hit target for swipe-down */}
+            <div
+              onPointerDown={onDragStart}
+              onPointerMove={onDragMove}
+              onPointerUp={onDragEnd}
+              onPointerCancel={onDragEnd}
+              className="relative h-9 flex items-center justify-center border-b border-white/5 cursor-grab active:cursor-grabbing touch-none"
+              style={{ touchAction: "none" }}
+            >
+              <div className="h-1 w-10 rounded-full bg-white/20" />
+              <button
+                onClick={() => onOpenChange(false)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-white/5"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">{right}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -172,7 +172,7 @@ function DeployPane() {
   ]);
 
   const onConnected = (name: string) => {
-    setDomains((d) => [{ name, primary: false, status: "Active", ssl: true, dns: true }, ...d]);
+    setDomains((d) => [{ name, primary: false, status: "Pending verification", ssl: false, dns: false }, ...d]);
   };
 
   return (

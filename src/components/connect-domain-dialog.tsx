@@ -93,10 +93,17 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-primary" /> Connect a custom domain
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9.5px] font-medium uppercase tracking-wider text-warning">
+              Preview workflow
+            </span>
           </DialogTitle>
           <DialogDescription>
             We'll verify DNS, provision SSL, and keep polling until your domain is live.
           </DialogDescription>
+          <div className="mt-1 rounded-md border border-warning/20 bg-warning/5 px-2.5 py-1.5 text-[11px] text-warning/90 flex items-start gap-1.5">
+            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+            <span>Simulation — backend DNS &amp; SSL verification not connected yet. Records and statuses below are illustrative.</span>
+          </div>
         </DialogHeader>
 
         {/* Stepper */}
@@ -179,17 +186,25 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
 
         {step === "active" && (
           <div className="mt-2 space-y-3">
-            <div className="rounded-xl border border-success/20 bg-success/5 p-4">
-              <div className="flex items-center gap-2 text-[13px] font-medium text-success">
-                <Check className="h-4 w-4" /> {domain} is live
+            <div className="rounded-xl border border-warning/20 bg-warning/5 p-4">
+              <div className="flex items-center gap-2 text-[13px] font-medium text-warning">
+                <AlertTriangle className="h-4 w-4" /> Simulated success for {domain}
               </div>
               <div className="text-[11.5px] text-muted-foreground mt-1">
-                DNS verified · SSL active · Ready to deploy.
+                This is a preview of what the live state will look like. We have <span className="text-foreground">not</span> actually verified DNS or issued an SSL certificate yet — that needs a real backend verification function.
               </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Close</Button>
-              <Button variant="hero" size="sm" onClick={() => { onConnected?.(domain); onOpenChange(false); toast.success(`${domain} connected`); }}>
+              <Button
+                variant="hero"
+                size="sm"
+                onClick={() => {
+                  toast("Coming next: real DNS + SSL verification.");
+                  onConnected?.(domain);
+                  onOpenChange(false);
+                }}
+              >
                 Use as primary
               </Button>
             </div>
