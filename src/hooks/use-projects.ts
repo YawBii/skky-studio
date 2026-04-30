@@ -16,7 +16,7 @@ function writeCurrent(workspaceId: string | null | undefined, id: string | null)
 }
 
 export function useProjects(workspaceId: string | null | undefined) {
-  const [result, setResult] = useState<ProjectsResult>({ projects: [], source: "demo-empty" });
+  const [result, setResult] = useState<ProjectsResult>({ projects: [], source: "no-workspace" });
   const [loading, setLoading] = useState(true);
   const [currentId, setCurrentId] = useState<string | null>(readCurrent(workspaceId));
 
@@ -25,6 +25,10 @@ export function useProjects(workspaceId: string | null | undefined) {
     const r = await listProjects(workspaceId ?? null);
     setResult(r);
     setLoading(false);
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.info("[yawb] projects source:", r.source, `count=${r.projects.length}`, r.error ?? "");
+    }
     return r;
   }, [workspaceId]);
 
@@ -54,8 +58,10 @@ export function useProjects(workspaceId: string | null | undefined) {
     projects: result.projects,
     current,
     source: result.source,
+    error: result.error,
     isReal: result.source === "supabase",
-    isEmpty: result.source === "demo-empty" && result.projects.length === 0,
+    isEmpty: result.source === "empty",
+    isError: result.source === "error",
     loading,
     select,
     refresh,
