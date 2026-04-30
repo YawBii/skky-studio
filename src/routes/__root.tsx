@@ -1,7 +1,11 @@
-import { Outlet, createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Link, Scripts, useRouterState } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
+import { AssistantPanel } from "@/components/assistant-panel";
+import { WorkspaceTopBar } from "@/components/workspace-top-bar";
 import { AuthProvider } from "@/hooks/use-auth";
+
+const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 function NotFoundComponent() {
   return (
@@ -63,13 +67,35 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isBare = BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+  if (isBare) {
+    return (
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
+    );
+  }
+
   return (
     <AuthProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1 min-w-0">
-          <Outlet />
-        </main>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <WorkspaceTopBar
+            projectName="Skky Customer Portal"
+            environment="production"
+            buildStatus="passing"
+            connections={{ github: "connected", supabase: "connected", vercel: "disconnected" }}
+          />
+          <div className="flex-1 flex min-h-0">
+            <main className="flex-1 min-w-0 overflow-y-auto scrollbar-thin">
+              <Outlet />
+            </main>
+            <AssistantPanel />
+          </div>
+        </div>
       </div>
     </AuthProvider>
   );
