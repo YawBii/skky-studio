@@ -164,6 +164,17 @@ function PreviewPane({ device, setDevice }: { device: Device; setDevice: (d: Dev
 /* ---------- Deploy ---------- */
 
 function DeployPane() {
+  const [domainOpen, setDomainOpen] = useState(false);
+  const [domains, setDomains] = useState([
+    { name: "portal.skky.group",     primary: true,  status: "Active",     ssl: true,  dns: true },
+    { name: "www.portal.skky.group", primary: false, status: "Active",    ssl: true,  dns: true },
+    { name: "staging.skky.group",    primary: false, status: "Verifying", ssl: false, dns: false },
+  ]);
+
+  const onConnected = (name: string) => {
+    setDomains((d) => [{ name, primary: false, status: "Active", ssl: true, dns: true }, ...d]);
+  };
+
   return (
     <div className="h-full overflow-auto">
       <div className="max-w-3xl mx-auto px-6 py-10">
@@ -191,7 +202,7 @@ function DeployPane() {
             <div className="font-medium">1 readiness check pending</div>
             <div className="text-muted-foreground mt-0.5">Custom domain not yet verified.</div>
           </div>
-          <Button size="sm" variant="outline" onClick={() => toast("Coming next: domain verification flow")}>
+          <Button size="sm" variant="outline" onClick={() => setDomainOpen(true)}>
             <Globe className="h-3.5 w-3.5" /> Connect domain
           </Button>
         </div>
@@ -200,16 +211,12 @@ function DeployPane() {
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[14px] font-display font-semibold tracking-tight">Custom domains</h3>
-            <Button size="sm" variant="ghost" onClick={() => toast("Coming next: add a custom domain")}>
+            <Button size="sm" variant="ghost" onClick={() => setDomainOpen(true)}>
               <Plus className="h-3.5 w-3.5" /> Add domain
             </Button>
           </div>
           <div className="rounded-2xl border border-white/5 bg-gradient-card overflow-hidden">
-            {[
-              { name: "portal.skky.group", primary: true,  status: "Active",     ssl: true  },
-              { name: "www.portal.skky.group", primary: false, status: "Active",  ssl: true  },
-              { name: "staging.skky.group",  primary: false, status: "Verifying", ssl: false },
-            ].map((d, i, a) => (
+            {domains.map((d, i, a) => (
               <div key={d.name} className={cn("flex items-center justify-between px-4 py-3", i < a.length - 1 && "border-b border-white/5")}>
                 <div className="flex items-center gap-2 min-w-0">
                   <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -228,6 +235,8 @@ function DeployPane() {
           </div>
         </div>
       </div>
+
+      <ConnectDomainDialog open={domainOpen} onOpenChange={setDomainOpen} onConnected={onConnected} />
     </div>
   );
 }
