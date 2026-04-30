@@ -104,16 +104,24 @@ function WorkspaceShell() {
 
   // Default split: workspace 64% / chat 36%. Chat has a pixel minSize so it
   // is always usable, even if the user previously dragged it small.
-  const initialLayout: Record<string, number> = (prefs.workspaceSplit as Record<string, number> | undefined) ?? {
+  const DEFAULT_LAYOUT: Record<string, number> = {
     "workspace-main": 64,
     "workspace-chat": 36,
   };
 
-  // Avoid render-flash before prefs load
-  const layoutRef = useRef(initialLayout);
+  // Validate persisted layout — discard if either pane is below 15% (likely stale/broken).
+  const persisted = prefs.workspaceSplit as Record<string, number> | undefined;
+  const isValid =
+    persisted &&
+    typeof persisted["workspace-main"] === "number" &&
+    typeof persisted["workspace-chat"] === "number" &&
+    persisted["workspace-main"] >= 15 &&
+    persisted["workspace-chat"] >= 15;
+
+  const layoutRef = useRef<Record<string, number>>(isValid ? persisted! : DEFAULT_LAYOUT);
   useEffect(() => {
-    if (loaded && prefs.workspaceSplit) layoutRef.current = prefs.workspaceSplit as Record<string, number>;
-  }, [loaded, prefs.workspaceSplit]);
+    if (loaded && isValid) layoutRef.current = persisted!;
+  }, [loaded, isValid, persisted]);
 
   const collaborators = (isLive ? present : DEMO_PRESENCE).map((p) => ({
     name: p.name, initials: p.initials, color: p.color, role: p.role, status: p.status,
