@@ -40,16 +40,13 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
 
     if (error) return { workspaces: [DEMO_WORKSPACE], source: "demo-fallback" };
 
-    const rows = (data ?? [])
+    type Row = { role: Workspace["role"]; workspaces: { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[] | null };
+    const rows = ((data ?? []) as unknown as Row[])
       .map((r) => {
-        const ws = (r as { workspaces: { id: string; name: string; slug: string } | null }).workspaces;
+        const wsField = r.workspaces;
+        const ws = Array.isArray(wsField) ? wsField[0] : wsField;
         if (!ws) return null;
-        return {
-          id: ws.id,
-          name: ws.name,
-          slug: ws.slug,
-          role: (r as { role: Workspace["role"] }).role,
-        } satisfies Workspace;
+        return { id: ws.id, name: ws.name, slug: ws.slug, role: r.role } satisfies Workspace;
       })
       .filter((x): x is Workspace => !!x);
 
