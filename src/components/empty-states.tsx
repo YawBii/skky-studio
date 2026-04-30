@@ -200,17 +200,20 @@ function ImportGitHubForm({
     if (finalSlug.length < 1) { toast.error("Slug is required"); return; }
 
     setBusy(true);
-    const project = await createProject({
+    const res = await createProject({
       workspaceId,
       name: finalName,
       slug: finalSlug,
       description: description.trim() || `Imported from github.com/${parsed.fullName}`,
     });
-    if (!project) {
+    if (!res.ok) {
       setBusy(false);
-      toast.error("Couldn't create project. Make sure you have member access.");
+      const detail = [res.code && `[${res.code}]`, res.error, res.hint && `Hint: ${res.hint}`]
+        .filter(Boolean).join(" ");
+      toast.error(detail || "Couldn't create project");
       return;
     }
+    const project = res.project;
 
     // Best-effort GitHub metadata. Do NOT claim sync until a real backend exists.
     const conn = await recordGitHubConnection({ projectId: project.id, repo: parsed });
