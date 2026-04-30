@@ -1,6 +1,7 @@
 import { Outlet, createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
+import { AuthProvider } from "@/hooks/use-auth";
 
 function NotFoundComponent() {
   return (
@@ -63,11 +64,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <div className="flex min-h-screen w-full">
-      <AppSidebar />
-      <main className="flex-1 min-w-0">
-        <Outlet />
-      </main>
-    </div>
+    <AuthProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <main className="flex-1 min-w-0">
+          <Outlet />
+        </main>
+      </div>
+    </AuthProvider>
   );
 }
