@@ -111,21 +111,36 @@ export function AssistantPanel() {
     };
   };
 
-  const send = () => {
+  const send = async () => {
     const text = prompt.trim();
     if (!text) return;
+    console.info("[yawb] chat.send.clicked", { len: text.length, projectId: project?.id });
     setMessages((m) => [...m, { role: "user", content: text }]);
     setPrompt("");
-    setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content:
-            "I can plan this, but real execution runs through the Jobs panel. Use “Run job” below to enqueue typecheck, build, deploy, or commit. The Jobs tab on this project shows live progress.",
-        },
-      ]);
-    }, 400);
+    if (!project || !workspace) {
+      toast.error("Select a project first to send a request.");
+      setMessages((m) => [...m, { role: "assistant", content: "No project selected. Open a project, then try again." }]);
+      return;
+    }
+    const r = await enqueueJob({
+      projectId: project.id,
+      workspaceId: workspace.id,
+      type: "ai.plan",
+      title: text.slice(0, 80),
+      input: { prompt: text, source: "chat_send" },
+    });
+    if (!r.ok) {
+      console.error("[yawb] chat.send.enqueue.error", r);
+      const detail = r.tableMissing
+        ? `Job tables missing — run ${r.sqlFile ?? "docs/sql/2026-04-30-project-jobs.sql"}`
+        : r.error;
+      toast.error(`Couldn't queue request: ${detail}`);
+      setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue request: ${detail}` }]);
+      return;
+    }
+    console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
+    toast.success("Request queued");
+    setMessages((m) => [...m, { role: "assistant", content: `Queued ai.plan job. Open the Jobs tab to watch progress.` }]);
   };
 
   const runJob = async (type: JobType, title: string) => {
