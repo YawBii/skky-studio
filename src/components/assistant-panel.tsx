@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2 } from "lucide-react";
+import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2, FileEdit, ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,13 @@ import {
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
-type Msg = { role: "user" | "assistant"; content: string; proof?: ProofItem[] };
+type Handoff = {
+  summary: string;
+  changed: string[];
+  next: string[];
+  verify: string[];
+};
+type Msg = { role: "user" | "assistant"; content: string; proof?: ProofItem[]; handoff?: Handoff };
 
 const DEFAULT_CHECKLIST: { id: string; label: string; enabled: boolean }[] = [
   { id: "typecheck",  label: "TypeScript check",      enabled: true  },
@@ -71,18 +77,49 @@ export function AssistantPanel() {
     }));
   };
 
+  const buildHandoff = (userText: string): Handoff => {
+    const t = userText.toLowerCase();
+    const isFix     = /\b(fix|bug|broken|error|repair)\b/.test(t);
+    const isStyle   = /\b(style|design|color|theme|ui|layout)\b/.test(t);
+    const isDB      = /\b(table|schema|migration|rls|supabase|database)\b/.test(t);
+    const isDeploy  = /\b(deploy|publish|ship|release)\b/.test(t);
+    return {
+      summary: isFix    ? "Applied a targeted fix and re-ran verification."
+             : isStyle  ? "Updated the UI and confirmed the design tokens still match."
+             : isDB     ? "Adjusted the data layer and validated RLS access."
+             : isDeploy ? "Prepared the build for deployment."
+             : "Implemented the requested change end-to-end.",
+      changed: [
+        isStyle  ? "Updated component styling and tokens"  : "Edited the relevant components",
+        isDB     ? "Updated DB queries / migration draft"  : "Wired data + state for the new behavior",
+        "Kept TypeScript and lint clean",
+      ],
+      next: [
+        isDeploy ? "Click Publish to ship to production"   : "Open the preview tab to try the change",
+        "Tell me what to adjust — copy, layout, or behavior",
+        isDB ? "Run the pending SQL in the DB pane if not yet applied" : "Wire any remaining backend bits when ready",
+      ],
+      verify: [
+        "Try the primary user flow in the preview",
+        "Check the Proof report below for failed items",
+        isDB ? "Confirm RLS still blocks unauthorized reads" : "Watch for console / network errors",
+      ],
+    };
+  };
+
   const send = () => {
     const text = prompt.trim();
     if (!text) return;
     setMessages((m) => [...m, { role: "user", content: text }]);
     setPrompt("");
+    const handoff = buildHandoff(text);
     setTimeout(() => {
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content:
-            "Done — I planned the change, applied the edits, and ran the verification pass below.\n\n**Hand-off note**\nReady for your review. Try it in the preview, then click Publish to ship — or tell me what to adjust.",
+          content: `Done — ${handoff.summary}`,
+          handoff,
           proof: buildProof(),
         },
       ]);
@@ -189,8 +226,44 @@ function Message({ msg }: { msg: Msg }) {
         )}
       >
         {msg.content}
+        {msg.handoff && <HandoffNote handoff={msg.handoff} />}
         {msg.proof && msg.proof.length > 0 && <ProofReport items={msg.proof} />}
       </div>
+    </div>
+  );
+}
+
+function HandoffNote({ handoff }: { handoff: Handoff }) {
+  return (
+    <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
+      <div className="px-3 py-2 text-[11px] font-medium flex items-center gap-1.5 text-foreground/90 bg-white/[0.03]">
+        <ShieldCheck className="h-3 w-3 text-primary" /> Hand-off note
+      </div>
+      <div className="divide-y divide-white/5">
+        <HandoffSection icon={FileEdit} label="What changed" items={handoff.changed} />
+        <HandoffSection icon={ArrowRight} label="What's next" items={handoff.next} />
+        <HandoffSection icon={Check} label="Verify" items={handoff.verify} />
+      </div>
+    </div>
+  );
+}
+
+function HandoffSection({
+  icon: Icon, label, items,
+}: { icon: React.ComponentType<{ className?: string }>; label: string; items: string[] }) {
+  return (
+    <div className="px-3 py-2">
+      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">
+        <Icon className="h-3 w-3" /> {label}
+      </div>
+      <ul className="space-y-0.5">
+        {items.map((it, i) => (
+          <li key={i} className="text-[11.5px] text-foreground/85 flex gap-1.5">
+            <span className="text-muted-foreground/60">•</span>
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
