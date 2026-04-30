@@ -123,6 +123,7 @@ function rowToStep(r: Record<string, unknown>): JobStep {
     output: (r.output as Record<string, unknown>) ?? {},
     logs: (r.logs as Array<{ ts: string; msg: string }>) ?? [],
     error: (r.error as string | null) ?? null,
+    attemptNumber: Number(r.attempt_number ?? 1),
     startedAt: (r.started_at as string | null) ?? null,
     finishedAt: (r.finished_at as string | null) ?? null,
   };
