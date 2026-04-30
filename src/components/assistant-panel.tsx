@@ -41,7 +41,7 @@ export function AssistantPanel() {
   };
 
   return (
-    <aside className="hidden lg:flex w-[380px] shrink-0 flex-col border-l border-white/5 bg-sidebar/50 backdrop-blur-xl">
+    <aside className="flex h-full w-full flex-col border-l border-white/5 bg-sidebar/50 backdrop-blur-xl">
       {/* Header */}
       <div className="px-4 h-12 border-b border-white/5 flex items-center gap-2">
         <div className="h-6 w-6 rounded-md bg-gradient-to-br from-white/95 to-white/55 text-[oklch(0.16_0_0)] flex items-center justify-center">
