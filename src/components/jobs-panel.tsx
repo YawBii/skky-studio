@@ -133,6 +133,7 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
                   lastTick={lastTick}
                   providerStatus={diag.state.providerConnectionStatus}
                   lastError={diag.state.lastError}
+                  buildCfg={buildCfg}
                 />
               }
               onToggle={() => toggle(j.id)}
