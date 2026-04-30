@@ -1,7 +1,11 @@
-import { Outlet, createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Link, Scripts, useRouterState } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
+import { AssistantPanel } from "@/components/assistant-panel";
+import { WorkspaceTopBar } from "@/components/workspace-top-bar";
 import { AuthProvider } from "@/hooks/use-auth";
+
+const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 function NotFoundComponent() {
   return (
