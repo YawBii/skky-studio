@@ -74,19 +74,76 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
   }
 }
 
-export async function createWorkspace(input: { name: string; slug: string }): Promise<Workspace | null> {
+export type CreateWorkspaceResult =
+  | { ok: true; workspace: Workspace }
+  | { ok: false; error: string; code?: string; details?: string; hint?: string };
+
+export async function createWorkspace(input: { name: string; slug: string }): Promise<CreateWorkspaceResult> {
+  let uid: string | undefined;
   try {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) return null;
-    const { data, error } = await supabase
-      .from("workspaces")
-      .insert({ name: input.name, slug: input.slug, created_by: uid })
-      .select("id, name, slug")
-      .single();
-    if (error || !data) return null;
-    return { id: data.id, name: data.name, slug: data.slug, role: "owner" };
-  } catch {
-    return null;
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr) {
+      console.error("[yawb] createWorkspace getUser error:", userErr);
+      return { ok: false, error: `Auth error: ${userErr.message}` };
+    }
+    uid = userData.user?.id;
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Auth call failed" };
   }
+  if (!uid) {
+    console.warn("[yawb] createWorkspace: no session");
+    return { ok: false, error: "Not signed in. Please sign in and try again." };
+  }
+
+  const payload = { name: input.name, slug: input.slug, created_by: uid };
+  console.info("[yawb] createWorkspace payload:", { hasSession: true, userId: uid, name: payload.name, slug: payload.slug });
+
+  // Step 1: insert (do NOT chain .select() — RLS may block reading back before
+  // the owner row is seeded by trg_workspace_seed_owner).
+  const { error: insertError } = await supabase.from("workspaces").insert(payload);
+  if (insertError) {
+    console.error("[yawb] workspaceInsertError:", {
+      message: insertError.message,
+      code: insertError.code,
+      details: insertError.details,
+      hint: insertError.hint,
+    });
+    return {
+      ok: false,
+      error: insertError.message,
+      code: insertError.code,
+      details: insertError.details ?? undefined,
+      hint: insertError.hint ?? undefined,
+    };
+  }
+
+  // Step 2: select the workspace via the membership we now own.
+  const { data: rows, error: selectError } = await supabase
+    .from("workspaces")
+    .select("id, name, slug")
+    .eq("slug", input.slug)
+    .eq("created_by", uid)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (selectError) {
+    console.error("[yawb] workspaceSelectError:", {
+      message: selectError.message,
+      code: selectError.code,
+      details: selectError.details,
+      hint: selectError.hint,
+    });
+    return {
+      ok: false,
+      error: `Workspace created but read-back failed: ${selectError.message}`,
+      code: selectError.code,
+      details: selectError.details ?? undefined,
+      hint: selectError.hint ?? undefined,
+    };
+  }
+  const ws = rows?.[0];
+  if (!ws) {
+    return { ok: false, error: "Workspace created but not visible — check RLS / trg_workspace_seed_owner trigger." };
+  }
+  return { ok: true, workspace: { id: ws.id, name: ws.name, slug: ws.slug, role: "owner" } };
 }

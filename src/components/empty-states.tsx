@@ -34,14 +34,16 @@ export function CreateWorkspaceEmpty({
     const finalSlug = slugify(slug || name);
     if (!name.trim() || finalSlug.length < 2) { toast.error("Add a name and a valid slug"); return; }
     setBusy(true);
-    const ws = await createWorkspace({ name: name.trim(), slug: finalSlug });
+    const res = await createWorkspace({ name: name.trim(), slug: finalSlug });
     setBusy(false);
-    if (!ws) {
-      toast.error("Couldn't create workspace. Run the collaboration SQL or check sign-in.");
+    if (!res.ok) {
+      const detail = [res.code && `[${res.code}]`, res.error, res.hint && `Hint: ${res.hint}`]
+        .filter(Boolean).join(" ");
+      toast.error(detail || "Couldn't create workspace");
       return;
     }
-    toast.success(`Workspace "${ws.name}" created`);
-    onCreated(ws);
+    toast.success(`Workspace "${res.workspace.name}" created`);
+    onCreated(res.workspace);
   }
 
   return (
