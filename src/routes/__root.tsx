@@ -1,10 +1,14 @@
 import { Outlet, createRootRoute, HeadContent, Link, Scripts, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AssistantPanel } from "@/components/assistant-panel";
 import { WorkspaceTopBar } from "@/components/workspace-top-bar";
+import { InviteSheet } from "@/components/invite-sheet";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useProjectPresence, DEMO_PRESENCE } from "@/services/presence";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -72,25 +76,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-const COLLABORATORS = [
-  { name: "Yaw",         initials: "YA", color: "bg-[oklch(0.72_0.18_240)]", role: "admin"  as const, status: "editing" as const },
-  { name: "Builder Bot", initials: "BB", color: "bg-[oklch(0.74_0.16_150)]", role: "member" as const, status: "online"  as const },
-  { name: "Reviewer",    initials: "RV", color: "bg-[oklch(0.72_0.16_30)]",  role: "viewer" as const, status: "viewing" as const },
-];
-
-function loadLayout(): Record<string, number> | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const raw = localStorage.getItem("yawb:workspace-split");
-    if (!raw) return undefined;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, number>;
-    }
-  } catch {}
-  return undefined;
-}
-
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBare = BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -106,40 +91,74 @@ function RootComponent() {
 
   return (
     <AuthProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar />
-        <div className="flex-1 min-w-0 flex flex-col">
-          <WorkspaceTopBar
-            projectName="Skky Customer Portal"
-            workspaceName="Skky Group"
-            environment="production"
-            buildStatus="passing"
-            connections={{ github: "connected", supabase: "connected", vercel: "disconnected" }}
-            collaborators={COLLABORATORS}
-          />
-          <div className="flex-1 min-h-0">
-            <ResizablePanelGroup
-              orientation="horizontal"
-              defaultLayout={loadLayout()}
-              onLayoutChange={(layout) => {
-                try { localStorage.setItem("yawb:workspace-split", JSON.stringify(layout)); } catch {}
-              }}
-              className="h-full"
-            >
-              <ResizablePanel id="workspace-main" defaultSize={62} minSize={30} className="min-w-0">
-                <main className="h-full overflow-y-auto scrollbar-thin">
-                  <Outlet />
-                </main>
-              </ResizablePanel>
-              <ResizableHandle withHandle className="bg-white/5 hover:bg-white/20 data-[resize-handle-state=drag]:bg-primary/40 transition-colors w-1.5" />
-              <ResizablePanel id="workspace-chat" defaultSize={38} minSize={22} maxSize={70} className="min-w-[320px]">
-                <AssistantPanel />
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </div>
-        </div>
-      </div>
+      <WorkspaceShell />
       <Toaster />
     </AuthProvider>
+  );
+}
+
+function WorkspaceShell() {
+  const { prefs, loaded, update } = useUserPreferences();
+  const { present, isLive } = useProjectPresence({ projectId: "demo-project" });
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  // Default split: workspace 64% / chat 36%. Chat has a pixel minSize so it
+  // is always usable, even if the user previously dragged it small.
+  const initialLayout: Record<string, number> = (prefs.workspaceSplit as Record<string, number> | undefined) ?? {
+    "workspace-main": 64,
+    "workspace-chat": 36,
+  };
+
+  // Avoid render-flash before prefs load
+  const layoutRef = useRef(initialLayout);
+  useEffect(() => {
+    if (loaded && prefs.workspaceSplit) layoutRef.current = prefs.workspaceSplit as Record<string, number>;
+  }, [loaded, prefs.workspaceSplit]);
+
+  const collaborators = (isLive ? present : DEMO_PRESENCE).map((p) => ({
+    name: p.name, initials: p.initials, color: p.color, role: p.role, status: p.status,
+  }));
+
+  return (
+    <div className="flex h-screen w-full overflow-hidden">
+      <AppSidebar />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <WorkspaceTopBar
+          projectName="Skky Customer Portal"
+          workspaceName="Skky Group"
+          environment="production"
+          buildStatus="passing"
+          connections={{ github: "connected", supabase: "connected", vercel: "disconnected" }}
+          collaborators={collaborators}
+          presenceLive={isLive}
+          onShare={() => setInviteOpen(true)}
+        />
+        <div className="flex-1 min-h-0">
+          <ResizablePanelGroup
+            orientation="horizontal"
+            defaultLayout={layoutRef.current}
+            onLayoutChange={(layout) => update({ workspaceSplit: layout })}
+            className="h-full"
+          >
+            {/* Workspace: must keep enough room for content. Pixel minSize. */}
+            <ResizablePanel id="workspace-main" defaultSize={64} minSize="360px" className="min-w-0">
+              <main className="h-full overflow-y-auto scrollbar-thin">
+                <Outlet />
+              </main>
+            </ResizablePanel>
+            <ResizableHandle withHandle className="bg-white/5 hover:bg-primary/30 transition-colors" />
+            {/* Chat: pixel minSize so it never collapses below usable width. */}
+            <ResizablePanel id="workspace-chat" defaultSize={36} minSize="320px" maxSize="640px">
+              <AssistantPanel />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+      </div>
+      <InviteSheet
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        workspaceName="Skky Group"
+      />
+    </div>
   );
 }
