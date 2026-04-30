@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2, FileEdit, ArrowRight, ShieldCheck, Play } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
-import { enqueueJob, JOB_TYPES, type JobType } from "@/services/jobs";
+import { enqueueJob, retryJob, JOB_TYPES, type JobType } from "@/services/jobs";
+import { useProjectJobs } from "@/hooks/use-project-jobs";
+import { useProjectConnections } from "@/hooks/use-project-connections";
+import { useDiagnostics } from "@/lib/diagnostics";
+import { useSmartSuggestions, type SmartSuggestion } from "@/hooks/use-smart-suggestions";
+import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -57,7 +63,98 @@ export function AssistantPanel() {
   const [checklist, setChecklist] = useState(loadChecklist);
   const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
   const { project, workspace } = useSelectedProject();
+  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Pull live state for smart suggestions. These hooks are no-ops when
+  // there is no project (jobs/connections return empty + a "no-project" source).
+  const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null);
+  const connState = useProjectConnections(project?.id ?? null);
+  const diag = useDiagnostics();
+
+  const suggestions = useSmartSuggestions({
+    workspace: workspace ?? null,
+    project: project ?? null,
+    jobs: jobsState.jobs,
+    connections: connState.connections,
+    connectionsSource: connState.source,
+    jobsSource: jobsState.source,
+    diagnostics: diag.state,
+    hasDeployUrl: false,
+  });
+
+  const dispatchSuggestion = async (s: SmartSuggestion) => {
+    try {
+      const a = s.action;
+      switch (a.kind) {
+        case "navigate":
+          await navigate({ to: a.to as never });
+          break;
+        case "switch_tab":
+          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: a.tab } }));
+          toast(`Open the ${a.tab} tab in the builder header.`);
+          break;
+        case "enqueue_job": {
+          if (!project || !workspace) {
+            toast.error("Select a project first.");
+            return;
+          }
+          const r = await enqueueJob({
+            projectId: project.id,
+            workspaceId: workspace.id,
+            type: a.jobType,
+            title: a.title,
+            input: a.input,
+          });
+          if (!r.ok) {
+            const detail = r.tableMissing
+              ? `Job tables missing — run ${r.sqlFile ?? "docs/sql/2026-04-30-project-jobs.sql"}`
+              : r.error;
+            toast.error(`Couldn't queue job: ${detail}`);
+            console.error("[yawb] suggestion.action.error", { suggestion: s.id, error: detail });
+            return;
+          }
+          toast.success(`Queued ${a.title}`);
+          break;
+        }
+        case "retry_job": {
+          const r = await retryJob(a.jobId);
+          if (!r.ok) {
+            toast.error(`Retry failed: ${r.error}`);
+            console.error("[yawb] suggestion.action.error", { suggestion: s.id, error: r.error });
+            return;
+          }
+          toast.success("Job re-queued");
+          break;
+        }
+        case "answer_question":
+          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "jobs", focusJobId: a.jobId } }));
+          toast("Open the Jobs tab and answer the highlighted question.");
+          break;
+        case "open_diagnostics":
+          window.dispatchEvent(new CustomEvent("yawb:open-diagnostics"));
+          break;
+        case "open_dialog":
+          if (a.dialog === "sql_migrations") {
+            toast("Run the SQL files in docs/sql/ in your Supabase SQL editor.");
+          } else if (a.dialog === "audit_buttons") {
+            toast("Audit: every builder button must do something or say so.");
+          } else if (a.dialog === "create_project") {
+            await navigate({ to: "/projects" });
+          }
+          break;
+        case "noop":
+          toast(s.disabledReason ?? "Not wired yet.");
+          break;
+      }
+      console.info("[yawb] suggestion.action.success", { suggestion: s.id, intent: s.intent });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[yawb] suggestion.action.error", { suggestion: s.id, error: msg });
+      toast.error(`Suggestion failed: ${msg}`);
+    }
+  };
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -208,8 +305,12 @@ export function AssistantPanel() {
       </div>
 
       {/* Composer */}
-      <div className="p-3 border-t border-white/5">
+      <div className="p-3 border-t border-white/5 space-y-2">
+        {suggestions.length > 0 && (
+          <SmartSuggestionChips suggestions={suggestions} onAction={dispatchSuggestion} />
+        )}
         <div className="rounded-2xl border border-white/10 bg-background/50 ring-hairline p-2">
+
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

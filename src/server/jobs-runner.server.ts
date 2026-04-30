@@ -48,19 +48,29 @@ export interface StepResult {
 // ---------- Per-request Supabase client (RLS as the caller) ----------
 
 function buildUserScopedClient(accessToken: string): SupabaseClient {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
+  const url =
+    process.env.SUPABASE_URL ??
+    process.env.VITE_SUPABASE_URL ??
+    process.env.EXTERNAL_SUPABASE_URL ??
+    "";
   const key =
     process.env.SUPABASE_PUBLISHABLE_KEY ??
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.VITE_SUPABASE_ANON_KEY ??
+    process.env.EXTERNAL_SUPABASE_PUBLISHABLE_KEY ??
     "";
   if (!url || !key) {
-    throw new Error("Server Supabase env not configured (SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY).");
+    throw new Error(
+      "Server Supabase env not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY, or EXTERNAL_SUPABASE_URL / EXTERNAL_SUPABASE_PUBLISHABLE_KEY) as server env vars and republish the preview.",
+    );
   }
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
 }
+
 
 // ---------- Server-side secret resolution ----------
 
