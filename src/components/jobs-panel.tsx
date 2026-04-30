@@ -2,7 +2,7 @@
 // failed jobs, their steps, logs, retry/cancel controls, interactive
 // questions (Lovable-style), a strict proof report, runner diagnostics, and
 // quick job-enqueue buttons.
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Loader2, Play, RotateCcw, X, ChevronDown, ChevronRight,
   AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle, Wrench,
@@ -17,6 +17,7 @@ interface JobsPanelProps {
   projectId: string | null;
   workspaceId: string | null;
   className?: string;
+  initialExpandedJobId?: string | null;
 }
 
 const QUICK_JOBS: { type: JobType; title: string }[] = [
@@ -26,7 +27,7 @@ const QUICK_JOBS: { type: JobType; title: string }[] = [
   { type: "github.commit_changes", title: "Commit pending changes" },
 ];
 
-export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps) {
+export function JobsPanel({ projectId, workspaceId, className, initialExpandedJobId }: JobsPanelProps) {
   const {
     jobs, source, error, sqlFile, loading, ticking, lastTick,
     stepsByJob, questionsByJob, attemptsByJob,
@@ -35,6 +36,14 @@ export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps)
   const diag = useDiagnostics();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialExpandedJobId) return;
+    setExpanded((p) => ({ ...p, [initialExpandedJobId]: true }));
+    void refreshSteps(initialExpandedJobId);
+    void refreshQuestions(initialExpandedJobId);
+    void refreshAttempts(initialExpandedJobId);
+  }, [initialExpandedJobId, refreshSteps, refreshQuestions, refreshAttempts]);
 
   const toggle = (id: string) => {
     setExpanded((p) => ({ ...p, [id]: !p[id] }));
