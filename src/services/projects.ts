@@ -1,5 +1,6 @@
 // Projects service — Supabase only. No demo fallback in the authenticated app.
 import { supabase } from "@/integrations/supabase/client";
+import { setDiag, pushDiag } from "@/lib/diagnostics";
 
 export interface Project {
   id: string;
@@ -65,12 +66,14 @@ export async function createProject(input: {
   const log = (label: string, payload: unknown) => {
     // eslint-disable-next-line no-console
     console.info(`[yawb] ${label}`, payload);
+    pushDiag(label, payload);
   };
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const hasSession = !!sessionData.session;
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;
+    setDiag({ hasSession, userId: uid ?? null, workspaceId: input.workspaceId });
     log("project.create diagnostics", { hasSession, userId: uid, workspaceId: input.workspaceId });
 
     if (!uid) {
@@ -84,6 +87,7 @@ export async function createProject(input: {
       description: input.description ?? null,
       created_by: uid,
     };
+    setDiag({ projectInsertPayload, projectInsertError: null, projectSelectError: null });
     log("projectInsertPayload", projectInsertPayload);
 
     const { data: inserted, error: insertError } = await supabase
@@ -93,6 +97,7 @@ export async function createProject(input: {
       .maybeSingle();
 
     if (insertError) {
+      setDiag({ projectInsertError: insertError });
       log("projectInsertError", insertError);
       return {
         ok: false,
@@ -115,6 +120,7 @@ export async function createProject(input: {
       .maybeSingle();
 
     if (selectError || !row) {
+      setDiag({ projectSelectError: selectError ?? { message: "no row returned" } });
       log("projectSelectError", selectError);
       return {
         ok: false,
