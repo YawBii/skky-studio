@@ -106,8 +106,11 @@ function RootComponent() {
           />
           <div className="flex-1 min-h-0">
             <ResizablePanelGroup
-              direction="horizontal"
-              autoSaveId="yawb:workspace-split"
+              orientation="horizontal"
+              defaultLayout={loadLayout()}
+              onLayoutChange={(layout) => {
+                try { localStorage.setItem("yawb:workspace-split", JSON.stringify(layout)); } catch {}
+              }}
               className="h-full"
             >
               <ResizablePanel defaultSize={70} minSize={45} className="min-w-0">
