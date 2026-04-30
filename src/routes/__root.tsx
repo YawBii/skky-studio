@@ -9,11 +9,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useProjectPresence, DEMO_PRESENCE } from "@/services/presence";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+import { SplitPane } from "@/components/split-pane";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
