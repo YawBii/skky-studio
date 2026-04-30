@@ -28,10 +28,11 @@ const QUICK_JOBS: { type: JobType; title: string }[] = [
 
 export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps) {
   const {
-    jobs, source, error, sqlFile, loading, ticking,
-    stepsByJob, questionsByJob,
-    enqueue, cancel, retry, answer, refreshSteps, refreshQuestions,
+    jobs, source, error, sqlFile, loading, ticking, lastTick,
+    stepsByJob, questionsByJob, attemptsByJob,
+    enqueue, cancel, retry, retryStep, answer, refreshSteps, refreshQuestions, refreshAttempts,
   } = useProjectJobs(projectId, workspaceId);
+  const diag = useDiagnostics();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);
 
