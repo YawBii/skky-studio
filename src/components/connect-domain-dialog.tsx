@@ -93,10 +93,17 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-primary" /> Connect a custom domain
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9.5px] font-medium uppercase tracking-wider text-warning">
+              Preview workflow
+            </span>
           </DialogTitle>
           <DialogDescription>
             We'll verify DNS, provision SSL, and keep polling until your domain is live.
           </DialogDescription>
+          <div className="mt-1 rounded-md border border-warning/20 bg-warning/5 px-2.5 py-1.5 text-[11px] text-warning/90 flex items-start gap-1.5">
+            <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+            <span>Simulation — backend DNS &amp; SSL verification not connected yet. Records and statuses below are illustrative.</span>
+          </div>
         </DialogHeader>
 
         {/* Stepper */}
