@@ -168,6 +168,14 @@ export function WorkspaceTopBar({
           <ConnDot icon={Triangle} ok={connections.vercel === "connected"} />
         </Link>
 
+        <Button variant="ghost" size="sm" onClick={() => toast("Opening analytics…")} className="hidden md:inline-flex">
+          <BarChart3 className="h-3.5 w-3.5" /> Analytics
+        </Button>
+
+        <Button variant="ghost" size="sm" onClick={() => toast("Coming next: connect a custom domain")}>
+          <Globe className="h-3.5 w-3.5" /> Domain
+        </Button>
+
         <Button variant="ghost" size="sm" onClick={() => toast("Opening preview…")}>
           <Play className="h-3.5 w-3.5" /> Preview
         </Button>
