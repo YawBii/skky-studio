@@ -135,8 +135,10 @@ function EmptyMissingTable({ error, sqlFile }: { error: string | null; sqlFile: 
       <div className="flex items-center gap-2 text-warning mb-2">
         <AlertTriangle className="h-4 w-4" /> <span className="font-medium">Job tables are not installed yet</span>
       </div>
-      <p className="mb-2">Run the SQL migrations to create <code className="text-foreground">project_jobs</code>, <code className="text-foreground">project_job_steps</code>, <code className="text-foreground">project_secrets</code>, and <code className="text-foreground">project_job_questions</code>.</p>
+      <p className="mb-2">Run the SQL migrations to create <code className="text-foreground">project_jobs</code>, <code className="text-foreground">project_job_steps</code>, <code className="text-foreground">project_secrets</code>, <code className="text-foreground">project_job_questions</code>, and <code className="text-foreground">project_job_step_attempts</code>.</p>
       {sqlFile && <p className="font-mono text-[11px] text-foreground/80">{sqlFile}</p>}
+      <p className="font-mono text-[11px] text-foreground/80">docs/sql/2026-04-30-project-job-questions.sql</p>
+      <p className="font-mono text-[11px] text-foreground/80">docs/sql/2026-04-30-project-job-step-attempts.sql</p>
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
     </div>
   );
