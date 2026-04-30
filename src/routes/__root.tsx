@@ -106,6 +106,9 @@ function WorkspaceShell() {
     current: currentWorkspace,
     isReal: workspaceIsReal,
     isEmpty: workspaceEmpty,
+    isError: workspaceError,
+    error: workspaceErrorMessage,
+    source: workspaceSource,
     refresh: refreshWorkspaces,
     select: selectWorkspace,
   } = useWorkspaces();
