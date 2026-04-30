@@ -129,6 +129,7 @@ export function AssistantPanel() {
   };
 
   const runJob = async (type: JobType, title: string) => {
+    console.info("[yawb] chat.runJob.clicked", { type, title, projectId: project?.id });
     if (!project || !workspace) {
       toast.error("Select a project first to enqueue a job.");
       return;
