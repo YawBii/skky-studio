@@ -200,25 +200,256 @@ const supabaseAdminAdapter: ProviderAdapter = {
   missingConfigReason: () => "Supabase admin access is not configured.",
 };
 
+// ---------- Build runner ----------
+//
+// Two execution modes are supported:
+//
+//   1. External worker (recommended for hosted runtime):
+//        BUILD_RUNNER_URL    — POST endpoint that runs the command
+//        BUILD_RUNNER_TOKEN  — bearer token sent as Authorization
+//      The worker receives `{ command, kind, jobId, stepId, projectId, env }`
+//      and must respond with `{ ok: boolean, exitCode, stdout, stderr,
+//      durationMs, error? }`. The worker is responsible for actually
+//      spawning the process — Lovable's Worker SSR runtime cannot.
+//
+//   2. Local mode (BUILD_RUNNER_MODE=local):
+//        Attempts node:child_process.spawn. This works only on a real Node
+//        host. Inside Lovable's Worker SSR runtime spawn is stubbed and
+//        throws "[unenv] ... is not implemented yet!" — we catch that and
+//        return a clear remediation message instead of pretending to build.
+//
+// In every other case we return the canonical "Build runner is not
+// configured." error. We never fake success.
+
+export interface BuildRunnerExecResult {
+  ok: boolean;
+  exitCode: number | null;
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  error?: string;
+}
+
+function buildRunnerMode(): "external" | "local" | "none" {
+  if (process.env.BUILD_RUNNER_URL) return "external";
+  if ((process.env.BUILD_RUNNER_MODE ?? "").toLowerCase() === "local") return "local";
+  return "none";
+}
+
+function commandFor(stepKey: string, answerEnv?: string): { kind: "typecheck" | "build"; command: string } {
+  if (stepKey === "typecheck") {
+    return { kind: "typecheck", command: process.env.TYPECHECK_COMMAND || "npm run typecheck" };
+  }
+  // build.production "build" step
+  const base = process.env.BUILD_COMMAND || "npm run build";
+  // If user picked "preview" in the question, prefer a preview script when defined.
+  if (answerEnv === "preview" && process.env.BUILD_PREVIEW_COMMAND) {
+    return { kind: "build", command: process.env.BUILD_PREVIEW_COMMAND };
+  }
+  return { kind: "build", command: base };
+}
+
+async function execExternalBuild(payload: {
+  command: string;
+  kind: string;
+  jobId: string;
+  stepId: string;
+  projectId: string;
+}): Promise<BuildRunnerExecResult> {
+  const url = process.env.BUILD_RUNNER_URL!;
+  const token = process.env.BUILD_RUNNER_TOKEN;
+  const startedAt = Date.now();
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    let parsed: Partial<BuildRunnerExecResult> = {};
+    try { parsed = text ? JSON.parse(text) : {}; } catch { /* non-JSON body */ }
+    if (!res.ok) {
+      return {
+        ok: false,
+        exitCode: parsed.exitCode ?? null,
+        stdout: parsed.stdout ?? "",
+        stderr: parsed.stderr ?? text.slice(0, 4000),
+        durationMs: Date.now() - startedAt,
+        error: parsed.error ?? `build runner returned HTTP ${res.status}`,
+      };
+    }
+    return {
+      ok: parsed.ok ?? (parsed.exitCode === 0),
+      exitCode: parsed.exitCode ?? null,
+      stdout: parsed.stdout ?? "",
+      stderr: parsed.stderr ?? "",
+      durationMs: parsed.durationMs ?? (Date.now() - startedAt),
+      error: parsed.error,
+    };
+  } catch (e) {
+    return {
+      ok: false, exitCode: null, stdout: "", stderr: "",
+      durationMs: Date.now() - startedAt,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+async function execLocalBuild(command: string): Promise<BuildRunnerExecResult> {
+  const startedAt = Date.now();
+  try {
+    // Dynamic import so the Worker bundler does not eagerly resolve native bindings.
+    const cp = await import("node:child_process");
+    return await new Promise<BuildRunnerExecResult>((resolve) => {
+      try {
+        const child = cp.spawn(command, { shell: true });
+        let stdout = ""; let stderr = "";
+        child.stdout?.on("data", (d) => { stdout += d.toString(); });
+        child.stderr?.on("data", (d) => { stderr += d.toString(); });
+        child.on("error", (err) => {
+          resolve({
+            ok: false, exitCode: null, stdout, stderr,
+            durationMs: Date.now() - startedAt,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+        child.on("close", (code) => {
+          resolve({
+            ok: code === 0,
+            exitCode: code,
+            stdout: stdout.slice(-16000),
+            stderr: stderr.slice(-16000),
+            durationMs: Date.now() - startedAt,
+          });
+        });
+      } catch (e) {
+        resolve({
+          ok: false, exitCode: null, stdout: "", stderr: "",
+          durationMs: Date.now() - startedAt,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return {
+      ok: false, exitCode: null, stdout: "", stderr: "",
+      durationMs: Date.now() - startedAt,
+      error: /not implemented|unenv/i.test(msg)
+        ? "Build runner requires an external worker. Configure BUILD_RUNNER_URL."
+        : `local build failed: ${msg}`,
+    };
+  }
+}
+
 const buildAdapter: ProviderAdapter = {
   name: "build",
   async isConfigured() {
-    return Boolean(process.env.BUILD_RUNNER_URL || process.env.BUILD_RUNNER_TOKEN);
+    return buildRunnerMode() !== "none";
   },
   async verifyConnection() {
-    if (!(process.env.BUILD_RUNNER_URL || process.env.BUILD_RUNNER_TOKEN)) {
+    if (buildRunnerMode() === "none") {
       return { ok: false, error: "Build runner is not configured." };
     }
     return { ok: true };
   },
-  async runStep(_sb, _job, step) {
-    if (!(process.env.BUILD_RUNNER_URL || process.env.BUILD_RUNNER_TOKEN)) {
+  async runStep(sb, job, step) {
+    const mode = buildRunnerMode();
+    if (mode === "none") {
       return { status: "failed", error: "Build runner is not configured." };
     }
-    return { status: "failed", error: `build.${step.step_key}: provider call is not wired yet.` };
+
+    // Pull most recent answer for this step so build.production can branch
+    // on preview vs production target.
+    let answerEnv: string | undefined;
+    if (job.type === "build.production" && step.step_key === "build") {
+      const { data: qs } = await sb
+        .from("project_job_questions")
+        .select("step_id, answer, answered_at")
+        .eq("job_id", job.id);
+      const ans = (qs ?? []).find((q) => q.step_id === step.id && q.answered_at);
+      const v = (ans?.answer as { value?: string } | null)?.value;
+      if (typeof v === "string") answerEnv = v;
+    }
+
+    const { kind, command } = commandFor(step.step_key, answerEnv);
+    const startedAtIso = new Date().toISOString();
+
+    let exec: BuildRunnerExecResult;
+    if (mode === "external") {
+      exec = await execExternalBuild({
+        command, kind, jobId: job.id, stepId: step.id, projectId: job.project_id,
+      });
+    } else {
+      exec = await execLocalBuild(command);
+    }
+
+    const finishedAtIso = new Date().toISOString();
+    const proof = {
+      command,
+      kind,
+      mode,
+      target: answerEnv ?? null,
+      exitCode: exec.exitCode,
+      durationMs: exec.durationMs,
+      startedAt: startedAtIso,
+      finishedAt: finishedAtIso,
+      stdoutTail: exec.stdout.slice(-4000),
+      stderrTail: exec.stderr.slice(-4000),
+      ok: exec.ok,
+      error: exec.error ?? null,
+    };
+
+    if (exec.ok) {
+      return {
+        status: "succeeded",
+        output: proof,
+        log: `${kind} ok: \`${command}\` exit ${exec.exitCode ?? 0} in ${exec.durationMs}ms`,
+      };
+    }
+    return {
+      status: "failed",
+      output: proof,
+      error: exec.error
+        ? `${kind} failed: ${exec.error}`
+        : `${kind} failed: \`${command}\` exited with ${exec.exitCode ?? "non-zero"}`,
+      log: (exec.stderr || exec.stdout).slice(-1500) || (exec.error ?? "build failed"),
+    };
   },
   missingConfigReason: () => "Build runner is not configured.",
 };
+
+// Server-side build runner config snapshot. Returns booleans only — never
+// values — so the UI can show env presence without leaking secrets.
+export function getBuildRunnerConfigServer(): {
+  mode: "external" | "local" | "none";
+  hasBuildRunnerUrl: boolean;
+  hasBuildRunnerToken: boolean;
+  hasBuildRunnerMode: boolean;
+  hasBuildCommand: boolean;
+  hasTypecheckCommand: boolean;
+  hasBuildPreviewCommand: boolean;
+  reason: string;
+} {
+  const mode = buildRunnerMode();
+  const reason =
+    mode === "external" ? "External build worker configured (BUILD_RUNNER_URL set)."
+      : mode === "local" ? "Local mode set (BUILD_RUNNER_MODE=local). Requires a Node host that supports child_process; will fail on Worker runtimes."
+        : "Build runner is not configured. Set BUILD_RUNNER_URL (recommended) or BUILD_RUNNER_MODE=local.";
+  return {
+    mode,
+    hasBuildRunnerUrl: Boolean(process.env.BUILD_RUNNER_URL),
+    hasBuildRunnerToken: Boolean(process.env.BUILD_RUNNER_TOKEN),
+    hasBuildRunnerMode: Boolean(process.env.BUILD_RUNNER_MODE),
+    hasBuildCommand: Boolean(process.env.BUILD_COMMAND),
+    hasTypecheckCommand: Boolean(process.env.TYPECHECK_COMMAND),
+    hasBuildPreviewCommand: Boolean(process.env.BUILD_PREVIEW_COMMAND),
+    reason,
+  };
+}
 
 const aiAdapter: ProviderAdapter = {
   name: "ai",
