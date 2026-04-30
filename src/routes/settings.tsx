@@ -129,6 +129,20 @@ function WorkspacePane() {
         </select>
       </Field>
       <Button variant="hero" disabled={!isReal}><Save className="h-4 w-4" /> Save changes</Button>
+
+      <Link
+        to="/server-setup"
+        className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 hover:bg-white/[0.05] transition-colors"
+      >
+        <span className="flex items-center gap-3">
+          <Server className="h-4 w-4 text-muted-foreground" />
+          <span>
+            <span className="block text-sm font-medium">Server Setup</span>
+            <span className="block text-xs text-muted-foreground">Check server-side env vars (build runner, Supabase, GitHub, Vercel).</span>
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
     </div>
   );
 }
