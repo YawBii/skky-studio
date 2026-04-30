@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Github, Database, Triangle, Rocket, ChevronDown, Search, Bell, Play, Globe,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -76,11 +77,11 @@ export function WorkspaceTopBar({
           </Link>
         </Button>
 
-        <Button variant="glass" size="sm" className="hidden sm:inline-flex">
+        <Button variant="glass" size="sm" className="hidden sm:inline-flex" onClick={() => toast("Opening preview sandbox…")}>
           <Play className="h-3.5 w-3.5" /> Preview
         </Button>
 
-        <Button variant="hero" size="sm" onClick={onDeploy}>
+        <Button variant="hero" size="sm" onClick={onDeploy ?? (() => toast.success("Deploy queued", { description: "Promoting latest build to production." }))}>
           <Rocket className="h-3.5 w-3.5" /> Deploy
         </Button>
       </div>
