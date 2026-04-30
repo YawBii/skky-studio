@@ -38,7 +38,7 @@ function Workspace() {
   const [logsOpen, setLogsOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)]">
+    <div className="flex flex-col h-full">
       {/* Tab strip */}
       <div className="h-11 border-b border-white/5 px-4 flex items-center gap-1">
         {TABS.map((t) => (
