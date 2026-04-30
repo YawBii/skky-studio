@@ -312,15 +312,24 @@ export async function cancelJob(jobId: string): Promise<{ ok: boolean; error?: s
     const now = new Date().toISOString();
     const { error } = await supabase
       .from("project_jobs")
-      .update({ status: "cancelled", finished_at: now })
+      .update({ status: "cancelled", finished_at: now, error: "Job cancelled by user." })
       .eq("id", jobId)
-      .in("status", ["queued", "running"]);
+      .in("status", ["queued", "running", "waiting_for_input"]);
     if (error) return { ok: false, error: error.message };
-    await supabase
+    // Cancel queued/running/waiting steps; append a log entry too.
+    const { data: liveSteps } = await supabase
       .from("project_job_steps")
-      .update({ status: "cancelled", finished_at: now })
+      .select("id, logs, status")
       .eq("job_id", jobId)
-      .in("status", ["queued", "running"]);
+      .in("status", ["queued", "running", "waiting_for_input"]);
+    for (const s of liveSteps ?? []) {
+      const prevLogs = (s.logs as Array<{ ts: string; msg: string }>) ?? [];
+      await supabase.from("project_job_steps").update({
+        status: "cancelled",
+        finished_at: now,
+        logs: [...prevLogs, { ts: now, msg: "Job cancelled by user." }],
+      }).eq("id", s.id);
+    }
     setDiag({ jobStatus: "cancelled" });
     pushDiag("job.cancel", { jobId });
     return { ok: true };
