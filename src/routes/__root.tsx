@@ -97,6 +97,7 @@ function RootComponent() {
 }
 
 function WorkspaceShell() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
