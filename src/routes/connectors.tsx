@@ -4,6 +4,7 @@ import { Plug, Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { connectors as connectorsSvc } from "@/services";
 import { cn } from "@/lib/utils";
+import { GithubStatusPanel } from "@/components/github-status-panel";
 
 export const Route = createFileRoute("/connectors")({
   head: () => ({ meta: [{ title: "Connectors — yawB" }, { name: "description", content: "GitHub, Vercel, Supabase, Stripe and more." }] }),
