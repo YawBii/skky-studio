@@ -37,6 +37,15 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
   const diag = useDiagnostics();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);
+  const [buildCfg, setBuildCfg] = useState<BuildRunnerConfigSnapshot | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getBuildRunnerConfig()
+      .then((cfg) => { if (!cancelled) setBuildCfg(cfg); })
+      .catch(() => { if (!cancelled) setBuildCfg(null); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!initialExpandedJobId) return;
