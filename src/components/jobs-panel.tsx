@@ -148,7 +148,7 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
   steps: JobStep[];
   questions: JobQuestion[];
   attempts: StepAttempt[];
-  diagBlock: React.ReactNode;
+  diagBlock: ReactNode;
   onToggle: () => void;
   onCancel: () => Promise<unknown>;
   onRetry: () => Promise<unknown>;
