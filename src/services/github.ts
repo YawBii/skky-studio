@@ -46,7 +46,49 @@ export async function createPullRequest(_input: {
   return { number: 143, title: _input.title, state: "open", branch: _input.branch, author: "yawB", url: "#", createdAt: "now" };
 }
 
-export async function importProject(_repoUrl: string): Promise<Project> {
-  // TODO(codex): clone + analyze + persist project record
-  throw new Error("not implemented");
+function normalizeRepoInput(repoUrl: string): string {
+  return repoUrl
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/^github\.com\//, "")
+    .replace(/\.git$/, "")
+    .replace(/^\/+|\/+$/g, "");
+}
+
+function toProjectName(repoFullName: string): string {
+  const repoName = repoFullName.split("/").pop() || "Imported Project";
+  return repoName
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export async function importProject(repoUrl: string): Promise<Project> {
+  const github = normalizeRepoInput(repoUrl);
+
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(github)) {
+    throw new Error("Enter a valid GitHub repository, for example github.com/org/repo.");
+  }
+
+  const id = github
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return {
+    id,
+    name: toProjectName(github),
+    description: "Imported GitHub project queued for yawB analysis and repair.",
+    status: "building",
+    health: 0,
+    lastDeploy: "importing...",
+    framework: "Unknown",
+    url: "#",
+    github,
+    stars: 0,
+    issues: 0,
+    source: "Imported",
+  };
 }
