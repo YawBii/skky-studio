@@ -108,13 +108,13 @@ function WorkspaceShell() {
       ? (prefs.workspaceSplit as Record<string, number>)["chat-width-px"]
       : undefined;
   const initialRightWidth =
-    typeof persistedWidth === "number" && persistedWidth >= 320 && persistedWidth <= 720
+    typeof persistedWidth === "number" && persistedWidth >= 320 && persistedWidth <= 1600
       ? persistedWidth
-      : 420;
+      : 460;
 
   const [rightWidth, setRightWidth] = useState(initialRightWidth);
   useEffect(() => {
-    if (loaded && typeof persistedWidth === "number" && persistedWidth >= 320 && persistedWidth <= 720) {
+    if (loaded && typeof persistedWidth === "number" && persistedWidth >= 320 && persistedWidth <= 1600) {
       setRightWidth(persistedWidth);
     }
   }, [loaded, persistedWidth]);
