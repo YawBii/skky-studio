@@ -152,10 +152,16 @@ export function WorkspaceTopBar({
           </TooltipProvider>
         )}
 
+        {presenceLive && (
+          <span className="hidden lg:inline-flex items-center gap-1.5 text-[10.5px] text-success/90">
+            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> Live
+          </span>
+        )}
+
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => toast("Coming next: workspace invites")}
+          onClick={onShare ?? (() => toast("Coming next: workspace invites"))}
           className="text-[12px]"
         >
           <UserPlus className="h-3.5 w-3.5" /> Share
