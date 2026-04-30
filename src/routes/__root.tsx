@@ -78,13 +78,15 @@ const COLLABORATORS = [
   { name: "Reviewer",    initials: "RV", color: "bg-[oklch(0.72_0.16_30)]",  role: "viewer" as const, status: "viewing" as const },
 ];
 
-function loadLayout(): [number, number] | undefined {
+function loadLayout(): Record<string, number> | undefined {
   if (typeof window === "undefined") return undefined;
   try {
     const raw = localStorage.getItem("yawb:workspace-split");
     if (!raw) return undefined;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length === 2) return parsed as [number, number];
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, number>;
+    }
   } catch {}
   return undefined;
 }
@@ -124,13 +126,13 @@ function RootComponent() {
               }}
               className="h-full"
             >
-              <ResizablePanel defaultSize={70} minSize={45} className="min-w-0">
+              <ResizablePanel id="workspace-main" defaultSize={70} minSize={45} className="min-w-0">
                 <main className="h-full overflow-y-auto scrollbar-thin">
                   <Outlet />
                 </main>
               </ResizablePanel>
               <ResizableHandle className="bg-white/5 hover:bg-white/15 transition-colors" />
-              <ResizablePanel defaultSize={30} minSize={20} maxSize={55} className="min-w-[280px]">
+              <ResizablePanel id="workspace-chat" defaultSize={30} minSize={20} maxSize={55} className="min-w-[280px]">
                 <AssistantPanel />
               </ResizablePanel>
             </ResizablePanelGroup>
