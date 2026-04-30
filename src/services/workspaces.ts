@@ -9,6 +9,7 @@
 //                       applied, RLS blocking). UI MUST show empty state + error,
 //                       not the Skky Group demo, so the user is not lied to.
 import { supabase } from "@/integrations/supabase/client";
+import { setDiag, pushDiag } from "@/lib/diagnostics";
 
 export interface Workspace {
   id: string;
@@ -96,12 +97,16 @@ export async function createWorkspace(input: { name: string; slug: string }): Pr
   }
 
   const payload = { name: input.name, slug: input.slug, created_by: uid };
+  setDiag({ hasSession: true, userId: uid, workspaceInsertPayload: payload, workspaceInsertError: null, workspaceSelectError: null });
+  pushDiag("workspaceInsertPayload", payload);
   console.info("[yawb] createWorkspace payload:", { hasSession: true, userId: uid, name: payload.name, slug: payload.slug });
 
   // Step 1: insert (do NOT chain .select() — RLS may block reading back before
   // the owner row is seeded by trg_workspace_seed_owner).
   const { error: insertError } = await supabase.from("workspaces").insert(payload);
   if (insertError) {
+    setDiag({ workspaceInsertError: insertError });
+    pushDiag("workspaceInsertError", insertError);
     console.error("[yawb] workspaceInsertError:", {
       message: insertError.message,
       code: insertError.code,
@@ -127,6 +132,8 @@ export async function createWorkspace(input: { name: string; slug: string }): Pr
     .limit(1);
 
   if (selectError) {
+    setDiag({ workspaceSelectError: selectError });
+    pushDiag("workspaceSelectError", selectError);
     console.error("[yawb] workspaceSelectError:", {
       message: selectError.message,
       code: selectError.code,
