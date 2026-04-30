@@ -7,10 +7,10 @@
 //
 // Browser MUST NOT execute provider actions, read provider tokens, or read
 // service-role keys. All privileged work lives in src/server/jobs-runner.server.ts
-// and is invoked via the createServerFn wrapper in src/server/jobs.functions.ts.
+// and is invoked via the createServerFn wrapper in src/services/jobs-runner.functions.ts.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
-import { runNextJobStep } from "@/server/jobs.functions";
+import { runNextJobStep } from "@/services/jobs-runner.functions";
 
 export type JobStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "cancelled";
 export type StepStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "skipped" | "cancelled";
