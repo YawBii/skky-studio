@@ -10,12 +10,28 @@ const SUPABASE_PUBLISHABLE_KEY =
   (typeof process !== "undefined" ? process.env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined) ??
   "";
 
+// Detect missing OR placeholder values. Placeholders cause `Failed to fetch`
+// because the browser tries to hit a nonexistent host like YOUR-PROJECT-REF.
+const PLACEHOLDER_URL = /YOUR-PROJECT-REF/i;
+const PLACEHOLDER_KEY = /YOUR-PUBLISHABLE-OR-ANON-KEY/i;
+
+const urlOk = !!SUPABASE_URL && !PLACEHOLDER_URL.test(SUPABASE_URL);
+const keyOk = !!SUPABASE_PUBLISHABLE_KEY && !PLACEHOLDER_KEY.test(SUPABASE_PUBLISHABLE_KEY);
+
+// Temporary diagnostic — booleans only, never the key itself.
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.info("[yawb] supabase env", { hasUrl: urlOk, hasKey: keyOk });
+}
+
+export const SUPABASE_ENV_OK = urlOk && keyOk;
+
 let _client: SupabaseClient | null = null;
 
 function createBrowserClient(): SupabaseClient {
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  if (!SUPABASE_ENV_OK) {
     throw new Error(
-      "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+      "Supabase env vars missing — set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (publishable/anon key only).",
     );
   }
   return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
