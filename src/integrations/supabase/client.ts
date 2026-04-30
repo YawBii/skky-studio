@@ -15,16 +15,49 @@ const SUPABASE_PUBLISHABLE_KEY =
 const PLACEHOLDER_URL = /YOUR-PROJECT-REF/i;
 const PLACEHOLDER_KEY = /YOUR-PUBLISHABLE-OR-ANON-KEY/i;
 
-const urlOk = !!SUPABASE_URL && !PLACEHOLDER_URL.test(SUPABASE_URL);
-const keyOk = !!SUPABASE_PUBLISHABLE_KEY && !PLACEHOLDER_KEY.test(SUPABASE_PUBLISHABLE_KEY);
+const urlIsPlaceholder = !!SUPABASE_URL && PLACEHOLDER_URL.test(SUPABASE_URL);
+const keyIsPlaceholder = !!SUPABASE_PUBLISHABLE_KEY && PLACEHOLDER_KEY.test(SUPABASE_PUBLISHABLE_KEY);
+const urlOk = !!SUPABASE_URL && !urlIsPlaceholder;
+const keyOk = !!SUPABASE_PUBLISHABLE_KEY && !keyIsPlaceholder;
 
-// Temporary diagnostic — booleans only, never the key itself.
-if (typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
-  console.info("[yawb] supabase env", { hasUrl: urlOk, hasKey: keyOk });
+let urlHost = "";
+try {
+  if (SUPABASE_URL) urlHost = new URL(SUPABASE_URL).host;
+} catch {
+  urlHost = "(invalid URL)";
 }
 
-export const SUPABASE_ENV_OK = urlOk && keyOk;
+/** Safe diagnostics for UI — never includes the key itself. */
+export interface SupabaseDiagnostics {
+  hasUrl: boolean;
+  hasKey: boolean;
+  urlHost: string;
+  isPlaceholder: boolean;
+  ok: boolean;
+}
+
+export function getSupabaseDiagnostics(): SupabaseDiagnostics {
+  return {
+    hasUrl: urlOk,
+    hasKey: keyOk,
+    urlHost,
+    isPlaceholder: urlIsPlaceholder || keyIsPlaceholder,
+    ok: urlOk && keyOk && !urlIsPlaceholder && !keyIsPlaceholder,
+  };
+}
+
+// Temporary diagnostic — booleans + host only, never the key itself.
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.info("[yawb] supabase env", {
+    hasUrl: urlOk,
+    hasKey: keyOk,
+    urlHost,
+    isPlaceholder: urlIsPlaceholder || keyIsPlaceholder,
+  });
+}
+
+export const SUPABASE_ENV_OK = urlOk && keyOk && !urlIsPlaceholder && !keyIsPlaceholder;
 
 let _client: SupabaseClient | null = null;
 
