@@ -16,7 +16,7 @@ function HelpPage() {
         {[
           { icon: Book,          title: "Documentation", desc: "Guides, API references and best practices." },
           { icon: MessageCircle, title: "Community",     desc: "Ask questions and share what you build." },
-          { icon: Mail,          title: "Contact us",    desc: "Get in touch with the Skky Group team." },
+          { icon: Mail,          title: "Contact us",    desc: "Get in touch with support." },
         ].map((c) => (
           <a key={c.title} href="#" className="rounded-2xl border border-white/5 bg-gradient-card p-5 hover:border-white/15 transition-colors">
             <c.icon className="h-5 w-5 text-foreground" />
@@ -32,7 +32,7 @@ function HelpPage() {
           { to: "/create",  icon: Sparkles, title: "Create a new app",       desc: "Describe your idea and ship a production app." },
           { to: "/import",  icon: Wrench,   title: "Import an existing project", desc: "Bring in a GitHub or Vercel project to maintain." },
           { to: "/cloud",   icon: Database, title: "Tour Cloud",             desc: "Database, auth, storage, secrets and functions." },
-          { to: "/builder/skky-portal", icon: Rocket, title: "Open the Builder", desc: "Chat, preview, code, database and deploy." },
+          { to: "/",        icon: Rocket,   title: "Open the Workspace",      desc: "Chat, preview, code, database and deploy." },
         ].map((c) => (
           <Link key={c.to} to={c.to} className="rounded-2xl border border-white/5 bg-gradient-card p-5 hover:border-white/15 transition-colors flex items-center gap-4">
             <div className="h-10 w-10 rounded-xl bg-white/10 border border-white/10 grid place-items-center"><c.icon className="h-4 w-4" /></div>

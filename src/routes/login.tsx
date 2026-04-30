@@ -46,7 +46,7 @@ function Login() {
         <div className="text-center mb-8">
           <div className="mx-auto h-11 w-11 rounded-xl bg-white/10 border border-white/10 grid place-items-center font-display font-bold mb-4">y</div>
           <h1 className="text-2xl font-display font-bold tracking-tight">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your Skky Group workspace</p>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to your workspace</p>
         </div>
         <form onSubmit={onSubmit} className="rounded-2xl border border-white/10 bg-gradient-card p-6 shadow-elevated space-y-4">
           <Button type="button" variant="soft" size="lg" className="w-full justify-center" onClick={onGoogle}>
