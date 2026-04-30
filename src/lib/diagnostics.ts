@@ -54,6 +54,11 @@ const initialState: DiagState = {
   providerConnectionStatus: null,
   lastError: null,
   retryCount: null,
+  currentStepId: null,
+  questionId: null,
+  questionKind: null,
+  answerSaved: null,
+  resumeTriggered: null,
 };
 
 let state: DiagState = { ...initialState };
