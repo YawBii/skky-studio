@@ -1,91 +1,84 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, AlertTriangle, XCircle, Wrench, ShieldCheck, Zap, Database } from "lucide-react";
+import { Activity, Github, Triangle, Database, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { healthChecks, projects } from "@/lib/demo-data";
+import { Link } from "@tanstack/react-router";
+import { useSelectedProject } from "@/hooks/use-selected-project";
+import { useProjectConnections } from "@/hooks/use-project-connections";
+import { ProjectScopedEmpty, ProjectSurfaceError, NoProjectSelected } from "@/components/project-empty";
 
 export const Route = createFileRoute("/health")({
   head: () => ({
     meta: [
-      { title: "Project Health — yawB" },
-      { name: "description", content: "Detailed health report: build, dependencies, database, deployment and accessibility." },
+      { title: "Health — yawB" },
+      { name: "description", content: "Project health: builds, dependencies, database and deployment." },
     ],
   }),
   component: HealthPage,
 });
 
-const iconFor = (s: string) =>
-  s === "pass" ? <CheckCircle2 className="h-5 w-5 text-success" /> :
-  s === "warn" ? <AlertTriangle className="h-5 w-5 text-warning" /> :
-                 <XCircle className="h-5 w-5 text-destructive" />;
-
 function HealthPage() {
-  const project = projects.find(p => p.id === "atlas-ops")!;
-  const failing = healthChecks.filter(c => c.status !== "pass").length;
+  const { project, projectIsReal, workspaceIsReal } = useSelectedProject();
+  const { connections, isTableMissing, isError, error, sqlFile, loading } = useProjectConnections(project?.id ?? null);
+
+  if (!workspaceIsReal || !projectIsReal || !project) {
+    return <NoProjectSelected hint="Health is computed for the currently selected real project." />;
+  }
+  if (isError) return <ProjectSurfaceError message={error} />;
+  if (isTableMissing) return <ProjectSurfaceError message="project_connections table missing" sqlFile={sqlFile} />;
+
+  if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading…</div>;
+
+  const hasGithub = connections.some((c) => c.provider === "github" && c.status === "connected");
+  const hasVercel = connections.some((c) => c.provider === "vercel" && c.status === "connected");
+
+  if (connections.length === 0) {
+    return (
+      <ProjectScopedEmpty
+        icon={Activity}
+        eyebrow={project.name}
+        title="No health data yet"
+        hint="Health checks run against your connected GitHub repo and Vercel deployments. Connect at least one provider to start scanning."
+        cta={{ label: "Open Integrations", to: "/connectors" }}
+      />
+    );
+  }
 
   return (
-    <div className="px-6 md:px-10 py-10 max-w-[1200px] mx-auto">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Project Health</div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">{project.name}</h1>
-          <p className="text-muted-foreground mt-1">{project.github} · {project.framework}</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="glass" size="lg"><ShieldCheck /> Re-scan</Button>
-          <Button variant="hero" size="lg"><Wrench /> Auto-repair {failing} issues</Button>
-        </div>
+    <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
+      <div className="mb-8">
+        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Health</div>
+        <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">{project.name}</h1>
+        <p className="text-muted-foreground mt-1">{connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a build happens</p>
       </div>
 
-      {/* Score */}
-      <div className="grid md:grid-cols-3 gap-5 mb-8">
-        <div className="md:col-span-1 rounded-3xl border border-white/5 bg-gradient-card p-6 text-center shadow-elevated">
-          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Overall score</div>
-          <div className="my-4 text-7xl font-display font-bold text-gradient-brand tabular-nums">{project.health}</div>
-          <div className="text-sm text-muted-foreground">out of 100</div>
-          <div className="mt-5 h-2 rounded-full bg-white/5 overflow-hidden">
-            <div className="h-full bg-gradient-brand" style={{ width: `${project.health}%` }} />
-          </div>
-        </div>
-
-        <div className="md:col-span-2 grid grid-cols-3 gap-4">
-          {[
-            { label: "Build", value: "Passing", icon: Zap, tone: "text-success" },
-            { label: "Database", value: "2 missing", icon: Database, tone: "text-destructive" },
-            { label: "Security", value: "1 warn", icon: ShieldCheck, tone: "text-warning" },
-          ].map((c) => (
-            <div key={c.label} className="rounded-2xl border border-white/5 bg-gradient-card p-5">
-              <c.icon className={`h-5 w-5 ${c.tone}`} />
-              <div className="mt-4 text-xs text-muted-foreground">{c.label}</div>
-              <div className="text-lg font-display font-semibold">{c.value}</div>
-            </div>
-          ))}
-          <div className="col-span-3 rounded-2xl border border-warning/20 bg-warning/5 p-4 text-sm">
-            <span className="font-medium text-warning">Heads up:</span>
-            <span className="text-muted-foreground"> Supabase database is missing tables referenced in code. Auto-repair will create them with RLS enabled.</span>
-          </div>
-        </div>
+      <div className="grid sm:grid-cols-3 gap-4">
+        <ProviderCheck label="GitHub" icon={Github} connected={hasGithub} />
+        <ProviderCheck label="Vercel" icon={Triangle} connected={hasVercel} />
+        <ProviderCheck label="Supabase" icon={Database} connected={true} note="Lovable Cloud" />
       </div>
 
-      {/* Checks list */}
-      <div className="rounded-3xl border border-white/5 bg-gradient-card overflow-hidden">
-        <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-          <h2 className="font-display font-semibold">Diagnostic checks</h2>
-          <span className="text-xs text-muted-foreground">{healthChecks.length} checks · last run 2m ago</span>
-        </div>
-        <ul className="divide-y divide-white/5">
-          {healthChecks.map((c) => (
-            <li key={c.id} className="px-6 py-4 flex items-center gap-4 hover:bg-white/[0.02]">
-              {iconFor(c.status)}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium">{c.label}</div>
-                <div className="text-xs text-muted-foreground truncate">{c.detail}</div>
-              </div>
-              {c.status !== "pass" && (
-                <Button variant="soft" size="sm"><Wrench className="h-3.5 w-3.5" /> Repair</Button>
-              )}
-            </li>
-          ))}
-        </ul>
+      <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card p-5">
+        <div className="text-[13px] font-medium">Diagnostic checks</div>
+        <p className="text-[12px] text-muted-foreground mt-1">No build has run for this project yet. The first deploy will populate the health report.</p>
+        <Button variant="hero" size="sm" className="mt-4" asChild>
+          <Link to="/connectors"><Plus className="h-3.5 w-3.5" /> Manage connections</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ProviderCheck({ label, icon: Icon, connected, note }: { label: string; icon: React.ComponentType<{ className?: string }>; connected: boolean; note?: string }) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-gradient-card p-5">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-muted-foreground" />
+        <span className="font-display font-semibold">{label}</span>
+      </div>
+      <div className="mt-3 text-[12px]">
+        {connected
+          ? <span className="text-success">Connected{note ? ` · ${note}` : ""}</span>
+          : <span className="text-muted-foreground">Not connected</span>}
       </div>
     </div>
   );
