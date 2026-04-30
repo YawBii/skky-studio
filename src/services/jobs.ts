@@ -1,15 +1,16 @@
 // yawB job system — Supabase-backed.
-// Jobs and steps are persisted in public.project_jobs / public.project_job_steps.
-// The runner is a "claim and run one step" loop driven from the browser using
-// the user's authenticated Supabase session. RLS enforces project membership.
 //
-// Provider step handlers (github.*, vercel.*, supabase.*) are STUBS in Phase 1:
-// they validate that the required project_connections row exists and otherwise
-// fail cleanly with a clear error. Real provider calls land in Phase 2 via
-// server-side workers; the browser must never receive provider tokens.
+// Browser responsibilities (this file):
+//   - create jobs, plan steps, list jobs/steps/questions
+//   - answer questions, cancel/retry jobs
+//   - poll progress and TRIGGER the server runner
+//
+// Browser MUST NOT execute provider actions, read provider tokens, or read
+// service-role keys. All privileged work lives in src/server/jobs-runner.server.ts
+// and is invoked via the createServerFn wrapper in src/server/jobs.functions.ts.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
-import { providers } from "@/services/providers";
+import { runNextJobStep } from "@/server/jobs.functions";
 
 export type JobStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "cancelled";
 export type StepStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "skipped" | "cancelled";
