@@ -199,7 +199,7 @@ export function WorkspaceTopBar({
 }
 
 function RoleBadge({ role }: { role: CollaboratorRole }) {
-  const Icon = role === "admin" ? Crown : role === "viewer" ? Eye : null;
+  const Icon = role === "owner" || role === "admin" ? Crown : role === "viewer" ? Eye : null;
   return (
     <span className="inline-flex items-center gap-0.5 rounded bg-white/10 px-1 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
       {Icon && <Icon className="h-2.5 w-2.5" />}
