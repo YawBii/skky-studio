@@ -420,23 +420,154 @@ function QuestionHistory({ questions }: { questions: JobQuestion[] }) {
   );
 }
 
-function ProofReport({ steps, jobError }: { steps: JobStep[]; jobError: string | null }) {
-  const ok = steps.filter((s) => s.status === "succeeded").length;
-  const failed = steps.filter((s) => s.status === "failed").length;
-  const skipped = steps.filter((s) => s.status === "skipped").length;
-  const cancelled = steps.filter((s) => s.status === "cancelled").length;
-  const allOk = failed === 0 && cancelled === 0;
+// Strict proof report — refuses to say "done" until every step is terminal,
+// and clearly says "Not done" when anything is in progress or required steps
+// failed. Built directly from persisted DB state.
+const TERMINAL: ReadonlyArray<string> = ["succeeded", "failed", "skipped", "cancelled"];
+
+function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; questions: JobQuestion[] }) {
+  const inProgress = steps.filter((s) => s.status === "queued" || s.status === "running" || s.status === "waiting_for_input");
+  const failed = steps.filter((s) => s.status === "failed");
+  const allTerminal = steps.length > 0 && steps.every((s) => TERMINAL.includes(s.status));
+
+  let verdict: { kind: "done" | "not-done-progress" | "not-done-failed" | "empty"; line: string };
+  if (steps.length === 0) {
+    verdict = { kind: "empty", line: "Not done — no steps recorded." };
+  } else if (inProgress.length > 0) {
+    verdict = { kind: "not-done-progress", line: "Not done — job is still in progress." };
+  } else if (failed.length > 0) {
+    verdict = { kind: "not-done-failed", line: "Not done — required step failed." };
+  } else if (allTerminal && job.status === "succeeded") {
+    verdict = { kind: "done", line: "Done — all required steps terminal." };
+  } else {
+    verdict = { kind: "not-done-progress", line: `Not done — job status is "${job.status}".` };
+  }
+
+  const verdictColor = verdict.kind === "done" ? "text-success" : "text-destructive";
+
   return (
-    <div className="rounded-md border border-white/5 bg-black/20">
-      <div className={cn("px-2.5 py-1.5 text-[11.5px] font-medium flex items-center gap-1.5",
-        allOk ? "text-success" : "text-destructive")}>
-        {allOk ? <CheckCircle2 className="h-3 w-3" /> : <X className="h-3 w-3" />}
-        Proof report — {ok} ok · {failed} failed · {skipped} skipped · {cancelled} cancelled
+    <div className="rounded-md border border-white/10 bg-black/30">
+      <div className={cn("px-2.5 py-1.5 text-[11.5px] font-medium flex items-center gap-1.5", verdictColor)}>
+        {verdict.kind === "done" ? <CheckCircle2 className="h-3 w-3" /> : <X className="h-3 w-3" />}
+        Proof report
       </div>
-      {jobError && <div className="px-2.5 pb-1.5 text-[11px] text-destructive">{jobError}</div>}
+      <div className="px-2.5 pb-2 space-y-1.5">
+        <div className={cn("text-[11.5px]", verdictColor)}>{verdict.line}</div>
+        <div className="text-[10.5px] font-mono text-muted-foreground">
+          job id: {job.id}<br />
+          job type: {job.type}<br />
+          job status: {job.status}<br />
+          retries: {job.retryCount}
+        </div>
+        <ol className="space-y-1.5 mt-1.5">
+          {steps.map((s) => {
+            const q = questions.find((qq) => qq.stepId === s.id);
+            return (
+              <li key={s.id} className="border-l-2 pl-2 border-white/10">
+                <div className="text-[11.5px] flex items-center gap-1.5">
+                  <StatusDot status={s.status} />
+                  <span className="font-medium">{s.title}</span>
+                  <span className="text-muted-foreground font-mono text-[10px]">{s.stepKey}</span>
+                  <span className="text-muted-foreground font-mono text-[10px]">·attempt {s.attemptNumber}</span>
+                </div>
+                <div className="text-[10.5px] font-mono text-muted-foreground/80">
+                  step id: {s.id}
+                </div>
+                {Object.keys(s.input ?? {}).length > 0 && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">input: {JSON.stringify(s.input)}</div>
+                )}
+                {q && (
+                  <div className="text-[10.5px] text-muted-foreground">
+                    Q: {q.question} → {q.answeredAt ? JSON.stringify(q.answer) : <span className="text-warning">(unanswered)</span>}
+                  </div>
+                )}
+                {s.error && <div className="text-[10.5px] text-destructive whitespace-pre-wrap">error: {s.error}</div>}
+                {s.output && Object.keys(s.output).length > 0 && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">output: {JSON.stringify(s.output)}</div>
+                )}
+                {s.logs && s.logs.length > 0 && (
+                  <div className="text-[10.5px] font-mono text-muted-foreground/60 truncate">
+                    last log: {s.logs[s.logs.length - 1].msg}
+                  </div>
+                )}
+                <div className="text-[10px] font-mono text-muted-foreground/60">
+                  {s.startedAt && `started ${new Date(s.startedAt).toLocaleTimeString()}`}
+                  {s.finishedAt && ` · finished ${new Date(s.finishedAt).toLocaleTimeString()}`}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
+
+// Detailed runner diagnostics for the selected job. Surfaces server-side
+// runner state and clearly distinguishes failure causes.
+function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, lastError }: {
+  job: Job;
+  steps: JobStep[];
+  questions: JobQuestion[];
+  lastTick: { advanced: boolean; jobId?: string; stepKey?: string; status?: string; error?: string; questionId?: string; cancelled?: boolean } | null;
+  providerStatus: Record<string, string> | null;
+  lastError: string | null;
+}) {
+  const currentStep = steps.find((s) => s.status === "running")
+    ?? steps.find((s) => s.status === "waiting_for_input")
+    ?? steps.find((s) => s.status === "queued");
+  const openQuestion = questions.find((q) => !q.answeredAt);
+  const tickForThisJob = lastTick && lastTick.jobId === job.id ? lastTick : null;
+  const failureCause = classifyFailure(tickForThisJob?.error ?? lastError ?? job.error);
+  const lastLog = currentStep?.logs?.[currentStep.logs.length - 1] ?? steps.flatMap((s) => s.logs).slice(-1)[0];
+
+  return (
+    <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary mb-1.5">
+        <Wrench className="h-3 w-3" /> Runner diagnostics
+      </div>
+      <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
+        <Row k="job status" v={job.status} />
+        <Row k="current step" v={currentStep ? `${currentStep.title} (${currentStep.stepKey}) · ${currentStep.status}` : "—"} />
+        <Row k="last server tick" v={tickForThisJob
+          ? `${tickForThisJob.advanced ? "advanced" : "no-op"}${tickForThisJob.status ? ` · ${tickForThisJob.status}` : ""}${tickForThisJob.cancelled ? " · cancelled" : ""}`
+          : "—"} />
+        <Row k="server error" v={tickForThisJob?.error ?? lastError ?? "—"} highlight={!!(tickForThisJob?.error ?? lastError)} />
+        <Row k="failure cause" v={failureCause} />
+        <Row k="provider connections" v={providerStatus ? Object.entries(providerStatus).map(([p, s]) => `${p}=${s}`).join(", ") || "none" : "—"} />
+        <Row k="waiting for input" v={openQuestion ? `yes — "${openQuestion.question}"` : "no"} highlight={!!openQuestion} />
+        <Row k="retry count" v={String(job.retryCount)} />
+        <Row k="cancelled" v={job.status === "cancelled" ? "yes" : "no"} />
+        <Row k="last log" v={lastLog ? `${new Date(lastLog.ts).toLocaleTimeString()} — ${lastLog.msg}` : "—"} />
+      </dl>
+    </div>
+  );
+}
+
+function Row({ k, v, highlight }: { k: string; v: string; highlight?: boolean }) {
+  return (
+    <>
+      <dt className="text-muted-foreground font-mono">{k}</dt>
+      <dd className={cn("font-mono break-all", highlight ? "text-warning" : "text-foreground/90")}>{v}</dd>
+    </>
+  );
+}
+
+// Map a server error message to a clear failure category so the user sees
+// WHY a step failed without reading raw provider strings.
+function classifyFailure(err: string | null | undefined): string {
+  if (!err) return "—";
+  const s = err.toLowerCase();
+  if (s.includes("not connected for this project") || s.includes("connection is")) return "missing provider connection";
+  if (s.includes("is not configured")) return "missing server env secret";
+  if (s.includes("provider call is not wired yet")) return "provider API not wired yet";
+  if (s.includes("row-level security") || s.includes("rls") || s.includes("permission denied")) return "RLS/database error";
+  if (s.includes("not authenticated") || s.includes("no bearer")) return "auth missing";
+  if (s.includes("cancelled")) return "job cancelled";
+  if (s.includes("awaiting") || s.includes("waiting_for_input")) return "user input required";
+  return "unknown";
+}
+
 
 function StatusDot({ status }: { status: string }) {
   if (status === "running") return <Loader2 className="h-3 w-3 animate-spin text-primary" />;
