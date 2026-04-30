@@ -5,9 +5,11 @@ import {
   enqueueJob,
   cancelJob,
   retryJob,
+  retryStep,
   listJobs,
   listJobSteps,
   listJobQuestions,
+  listJobStepAttempts,
   answerJobQuestion,
   tickJobs,
   reportProviderConnections,
@@ -16,6 +18,7 @@ import {
   type JobQuestion,
   type JobsSource,
   type JobType,
+  type StepAttempt,
 } from "@/services/jobs";
 
 const TICK_MS = 1500;
@@ -28,6 +31,11 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
   const [loading, setLoading] = useState(false);
   const [stepsByJob, setStepsByJob] = useState<Record<string, JobStep[]>>({});
   const [questionsByJob, setQuestionsByJob] = useState<Record<string, JobQuestion[]>>({});
+  const [attemptsByJob, setAttemptsByJob] = useState<Record<string, StepAttempt[]>>({});
+  const [lastTick, setLastTick] = useState<{
+    advanced: boolean; jobId?: string; stepKey?: string; status?: string;
+    error?: string; questionId?: string; cancelled?: boolean;
+  } | null>(null);
   const [ticking, setTicking] = useState(false);
   const tickingRef = useRef(false);
 
@@ -55,6 +63,11 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
     setQuestionsByJob((prev) => ({ ...prev, [jobId]: r.questions }));
   }, []);
 
+  const refreshAttempts = useCallback(async (jobId: string) => {
+    const r = await listJobStepAttempts(jobId);
+    setAttemptsByJob((prev) => ({ ...prev, [jobId]: r.attempts }));
+  }, []);
+
   // Driver: while there are queued/running jobs, keep ticking.
   useEffect(() => {
     if (!projectId) return;
@@ -69,12 +82,13 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
       tickingRef.current = true;
       setTicking(true);
       const r = await tickJobs(projectId);
+      setLastTick(r);
       tickingRef.current = false;
       if (cancelled) return;
-      // Refresh affected job's steps + questions + the job list.
       if (r.jobId) {
         await refreshSteps(r.jobId);
         await refreshQuestions(r.jobId);
+        await refreshAttempts(r.jobId);
       }
       await refresh();
       timer = setTimeout(loop, TICK_MS);
@@ -82,7 +96,7 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
 
     void loop();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
-  }, [projectId, jobs, refresh, refreshSteps]);
+  }, [projectId, jobs, refresh, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
   useEffect(() => { void refresh(); }, [refresh]);
@@ -101,15 +115,25 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
     const r = await cancelJob(jobId);
     await refresh();
     await refreshSteps(jobId);
+    await refreshAttempts(jobId);
     return r;
-  }, [refresh, refreshSteps]);
+  }, [refresh, refreshSteps, refreshAttempts]);
 
   const retry = useCallback(async (jobId: string) => {
     const r = await retryJob(jobId);
     await refresh();
     await refreshSteps(jobId);
+    await refreshAttempts(jobId);
     return r;
-  }, [refresh, refreshSteps]);
+  }, [refresh, refreshSteps, refreshAttempts]);
+
+  const retryOneStep = useCallback(async (jobId: string, stepId: string) => {
+    const r = await retryStep({ jobId, stepId });
+    await refresh();
+    await refreshSteps(jobId);
+    await refreshAttempts(jobId);
+    return r;
+  }, [refresh, refreshSteps, refreshAttempts]);
 
   const answer = useCallback(async (input: { questionId: string; jobId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => {
     const r = await answerJobQuestion(input);
@@ -120,9 +144,9 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
   }, [refresh, refreshSteps, refreshQuestions]);
 
   return {
-    jobs, source, error, sqlFile, loading, ticking,
-    stepsByJob, questionsByJob,
-    refresh, refreshSteps, refreshQuestions,
-    enqueue, cancel, retry, answer,
+    jobs, source, error, sqlFile, loading, ticking, lastTick,
+    stepsByJob, questionsByJob, attemptsByJob,
+    refresh, refreshSteps, refreshQuestions, refreshAttempts,
+    enqueue, cancel, retry, retryStep: retryOneStep, answer,
   };
 }
