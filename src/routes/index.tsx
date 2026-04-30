@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone,
-  ExternalLink, CheckCircle2, AlertTriangle, Play,
+  ExternalLink, CheckCircle2, AlertTriangle, Play, History, GitCommit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Workspace,
 });
 
-type Tab = "preview" | "code" | "database" | "deploy";
+type Tab = "preview" | "code" | "database" | "deploy" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -29,6 +29,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "code",     label: "Code",     icon: Code2 },
   { id: "database", label: "Database", icon: Database },
   { id: "deploy",   label: "Deploy",   icon: Rocket },
+  { id: "history",  label: "History",  icon: History },
 ];
 
 function Workspace() {
@@ -37,7 +38,7 @@ function Workspace() {
   const [logsOpen, setLogsOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)]">
+    <div className="flex flex-col h-full">
       {/* Tab strip */}
       <div className="h-11 border-b border-white/5 px-4 flex items-center gap-1">
         {TABS.map((t) => (
@@ -72,6 +73,7 @@ function Workspace() {
         {tab === "code"     && <ComingSoon title="Code editor" hint="Open the in-app code editor." />}
         {tab === "database" && <ComingSoon title="Database" hint="Browse tables, RLS, and schema." />}
         {tab === "deploy"   && <DeployPane />}
+        {tab === "history"  && <HistoryPane />}
       </div>
 
       {/* Build logs drawer */}
@@ -204,6 +206,52 @@ function ComingSoon({ title, hint }: { title: string; hint: string }) {
         <p className="mt-4 text-[11.5px] text-muted-foreground">
           Ask yawB in the chat to start working on this surface.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- History ---------- */
+
+function HistoryPane() {
+  const versions = [
+    { sha: "a4f2c91", msg: "Promote build #248 to production",     who: "Yaw",         when: "2h ago",  status: "deployed" as const },
+    { sha: "9d1e7b3", msg: "Add Supabase RLS policies for orders", who: "Builder Bot", when: "5h ago",  status: "merged"   as const },
+    { sha: "7c3a0f2", msg: "Refactor checkout flow",               who: "Yaw",         when: "1d ago",  status: "merged"   as const },
+    { sha: "5b2e9c4", msg: "Fix mobile preview layout",            who: "Reviewer",    when: "2d ago",  status: "merged"   as const },
+    { sha: "3a1d8e5", msg: "Initial workspace scaffold",           who: "Builder Bot", when: "5d ago",  status: "merged"   as const },
+  ];
+  return (
+    <div className="h-full overflow-auto">
+      <div className="max-w-3xl mx-auto px-6 py-10">
+        <h2 className="text-[20px] font-display font-semibold tracking-tight">History</h2>
+        <p className="text-[12.5px] text-muted-foreground mt-1">Every commit, build and deploy across the team.</p>
+        <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card overflow-hidden">
+          {versions.map((v, i) => (
+            <div key={v.sha} className={cn(
+              "flex items-start gap-3 px-4 py-3.5",
+              i < versions.length - 1 && "border-b border-white/5",
+            )}>
+              <div className="mt-0.5 h-7 w-7 rounded-lg bg-white/5 flex items-center justify-center">
+                <GitCommit className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium truncate">{v.msg}</span>
+                  {v.status === "deployed" && (
+                    <span className="text-[10px] uppercase tracking-wider text-success bg-success/10 px-1.5 py-0.5 rounded">live</span>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  <span className="font-mono">{v.sha}</span> · {v.who} · {v.when}
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="text-[11px]" onClick={() => toast(`Viewing ${v.sha}`)}>
+                View
+              </Button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

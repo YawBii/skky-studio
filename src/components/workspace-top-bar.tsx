@@ -1,8 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { Github, Database, Triangle, Rocket, ChevronDown, Play } from "lucide-react";
+import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface ConnectionStatus {
   github: "connected" | "disconnected";
@@ -10,36 +16,60 @@ export interface ConnectionStatus {
   vercel: "connected" | "disconnected";
 }
 
+export type CollaboratorRole = "admin" | "member" | "viewer";
+export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
+
+export interface Collaborator {
+  name: string;
+  initials: string;
+  color: string;
+  role: CollaboratorRole;
+  status: CollaboratorStatus;
+}
+
 interface WorkspaceTopBarProps {
   projectName: string;
+  workspaceName?: string;
   environment: "production" | "preview" | "development";
   connections: ConnectionStatus;
   buildStatus: "passing" | "failing" | "building";
+  collaborators?: Collaborator[];
   onDeploy?: () => void;
 }
 
 export function WorkspaceTopBar({
   projectName,
+  workspaceName,
   environment,
   connections,
   buildStatus,
+  collaborators = [],
   onDeploy,
 }: WorkspaceTopBarProps) {
+  const visible = collaborators.slice(0, 3);
+  const extra = Math.max(0, collaborators.length - visible.length);
+
   return (
     <header className="sticky top-0 z-30 h-12 border-b border-white/5 bg-background/70 backdrop-blur-xl">
       <div className="h-full px-4 flex items-center gap-3">
-        {/* Project + branch */}
+        {/* Workspace + Project + branch */}
         <button
           type="button"
-          className="group flex items-center gap-2 rounded-lg hover:bg-white/[0.04] px-2 h-8 transition"
+          className="group flex items-center gap-2 rounded-lg hover:bg-white/[0.04] px-2 h-8 transition min-w-0"
         >
+          {workspaceName && (
+            <>
+              <span className="text-[11.5px] text-muted-foreground truncate max-w-[120px]">{workspaceName}</span>
+              <span className="text-muted-foreground/40 text-xs">/</span>
+            </>
+          )}
           <span className="text-[13px] font-medium tracking-tight max-w-[220px] truncate">{projectName}</span>
           <span className="text-muted-foreground/50 text-xs">/</span>
           <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{environment}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
-        {/* Build status — minimal dot + word */}
+        {/* Build status */}
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
           <BuildDot status={buildStatus} />
           <span className="capitalize">{buildStatus}</span>
@@ -47,7 +77,59 @@ export function WorkspaceTopBar({
 
         <div className="flex-1" />
 
-        {/* Connection dots only — click to view */}
+        {/* Collaborators */}
+        {visible.length > 0 && (
+          <TooltipProvider delayDuration={150}>
+            <div className="flex items-center -space-x-1.5 mr-1">
+              {visible.map((c) => (
+                <Tooltip key={c.name}>
+                  <TooltipTrigger asChild>
+                    <span
+                      className={cn(
+                        "relative inline-flex h-7 w-7 rounded-full ring-2 ring-background items-center justify-center text-[10.5px] font-semibold text-white/95",
+                        c.color,
+                      )}
+                    >
+                      {c.initials}
+                      <span
+                        className={cn(
+                          "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-background",
+                          c.status === "editing" ? "bg-success animate-pulse" :
+                          c.status === "viewing" ? "bg-[oklch(0.72_0.18_240)]" :
+                          c.status === "online"  ? "bg-success" :
+                          "bg-muted-foreground/40",
+                        )}
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{c.name}</span>
+                      <RoleBadge role={c.role} />
+                    </div>
+                    <div className="text-muted-foreground capitalize text-[10.5px]">{c.status}</div>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+              {extra > 0 && (
+                <span className="inline-flex h-7 min-w-7 px-1.5 rounded-full ring-2 ring-background bg-white/10 text-[10.5px] font-semibold items-center justify-center">
+                  +{extra}
+                </span>
+              )}
+            </div>
+          </TooltipProvider>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toast("Coming next: workspace invites")}
+          className="text-[12px]"
+        >
+          <UserPlus className="h-3.5 w-3.5" /> Share
+        </Button>
+
+        {/* Connection dots */}
         <Link
           to="/connectors"
           title="Integrations"
@@ -67,6 +149,16 @@ export function WorkspaceTopBar({
         </Button>
       </div>
     </header>
+  );
+}
+
+function RoleBadge({ role }: { role: CollaboratorRole }) {
+  const Icon = role === "admin" ? Crown : role === "viewer" ? Eye : null;
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded bg-white/10 px-1 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
+      {Icon && <Icon className="h-2.5 w-2.5" />}
+      {role}
+    </span>
   );
 }
 
