@@ -7,10 +7,13 @@ import {
   retryJob,
   listJobs,
   listJobSteps,
+  listJobQuestions,
+  answerJobQuestion,
   tickJobs,
   reportProviderConnections,
   type Job,
   type JobStep,
+  type JobQuestion,
   type JobsSource,
   type JobType,
 } from "@/services/jobs";
