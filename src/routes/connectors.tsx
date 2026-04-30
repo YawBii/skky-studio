@@ -24,6 +24,10 @@ function ConnectorsPage() {
         <p className="text-muted-foreground mt-1">Connect your tools so yawB can build, deploy and maintain on your behalf.</p>
       </div>
 
+      <div className="mb-8">
+        <GithubStatusPanel />
+      </div>
+
       <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Connected · {connected.length}</h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
         {connected.map((c) => <ConnectorCard key={c.id} c={c} />)}
