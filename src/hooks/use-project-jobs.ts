@@ -7,10 +7,13 @@ import {
   retryJob,
   listJobs,
   listJobSteps,
+  listJobQuestions,
+  answerJobQuestion,
   tickJobs,
   reportProviderConnections,
   type Job,
   type JobStep,
+  type JobQuestion,
   type JobsSource,
   type JobType,
 } from "@/services/jobs";
@@ -24,6 +27,7 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
   const [sqlFile, setSqlFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [stepsByJob, setStepsByJob] = useState<Record<string, JobStep[]>>({});
+  const [questionsByJob, setQuestionsByJob] = useState<Record<string, JobQuestion[]>>({});
   const [ticking, setTicking] = useState(false);
   const tickingRef = useRef(false);
 
@@ -46,6 +50,11 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
     setStepsByJob((prev) => ({ ...prev, [jobId]: r.steps }));
   }, []);
 
+  const refreshQuestions = useCallback(async (jobId: string) => {
+    const r = await listJobQuestions(jobId);
+    setQuestionsByJob((prev) => ({ ...prev, [jobId]: r.questions }));
+  }, []);
+
   // Driver: while there are queued/running jobs, keep ticking.
   useEffect(() => {
     if (!projectId) return;
@@ -62,8 +71,11 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
       const r = await tickJobs(projectId);
       tickingRef.current = false;
       if (cancelled) return;
-      // Refresh affected job's steps + the job list (for status changes).
-      if (r.jobId) await refreshSteps(r.jobId);
+      // Refresh affected job's steps + questions + the job list.
+      if (r.jobId) {
+        await refreshSteps(r.jobId);
+        await refreshQuestions(r.jobId);
+      }
       await refresh();
       timer = setTimeout(loop, TICK_MS);
     };
@@ -99,9 +111,18 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
     return r;
   }, [refresh, refreshSteps]);
 
+  const answer = useCallback(async (input: { questionId: string; jobId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => {
+    const r = await answerJobQuestion(input);
+    await refresh();
+    await refreshSteps(input.jobId);
+    await refreshQuestions(input.jobId);
+    return r;
+  }, [refresh, refreshSteps, refreshQuestions]);
+
   return {
     jobs, source, error, sqlFile, loading, ticking,
-    stepsByJob, refresh, refreshSteps,
-    enqueue, cancel, retry,
+    stepsByJob, questionsByJob,
+    refresh, refreshSteps, refreshQuestions,
+    enqueue, cancel, retry, answer,
   };
 }

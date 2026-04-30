@@ -9,9 +9,24 @@
 // server-side workers; the browser must never receive provider tokens.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
+import { providers } from "@/services/providers";
 
-export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-export type StepStatus = "queued" | "running" | "succeeded" | "failed" | "skipped" | "cancelled";
+export type JobStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "cancelled";
+export type StepStatus = "queued" | "running" | "waiting_for_input" | "succeeded" | "failed" | "skipped" | "cancelled";
+export type QuestionKind = "single_choice" | "multi_choice" | "text" | "confirm";
+
+export interface JobQuestion {
+  id: string;
+  jobId: string;
+  stepId: string | null;
+  question: string;
+  kind: QuestionKind;
+  options: Array<{ value: string; label: string; description?: string }>;
+  answer: unknown;
+  required: boolean;
+  createdAt: string;
+  answeredAt: string | null;
+}
 
 export const JOB_TYPES = [
   "github.connect_repo",
@@ -344,59 +359,199 @@ interface StepContext {
 }
 
 interface StepResult {
-  status: "succeeded" | "failed" | "skipped";
+  status: "succeeded" | "failed" | "skipped" | "waiting_for_input";
   output?: Record<string, unknown>;
   error?: string;
   log?: string;
+  ask?: AskInput;
 }
 
-async function checkConnection(projectId: string, provider: string): Promise<{ ok: boolean; status?: string; error?: string }> {
-  const { data, error } = await supabase
-    .from("project_connections")
-    .select("id, status")
-    .eq("project_id", projectId)
-    .eq("provider", provider)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) {
-    if (isMissingTable(error)) return { ok: false, error: `${provider} connections table missing — run ${JOBS_SQL_FILE}` };
-    return { ok: false, error: error.message };
-  }
-  if (!data) return { ok: false, error: `${provider} is not connected for this project.` };
-  if (data.status !== "connected") return { ok: false, status: data.status, error: `${provider} connection is "${data.status}", expected "connected".` };
-  return { ok: true, status: data.status };
+export interface AskInput {
+  question: string;
+  kind: QuestionKind;
+  options?: Array<{ value: string; label: string; description?: string }>;
+  required?: boolean;
 }
+
+function rowToQuestion(r: Record<string, unknown>): JobQuestion {
+  return {
+    id: String(r.id),
+    jobId: String(r.job_id),
+    stepId: (r.step_id as string | null) ?? null,
+    question: String(r.question),
+    kind: r.kind as QuestionKind,
+    options: (r.options as JobQuestion["options"]) ?? [],
+    answer: r.answer ?? null,
+    required: Boolean(r.required),
+    createdAt: String(r.created_at),
+    answeredAt: (r.answered_at as string | null) ?? null,
+  };
+}
+
+export async function listJobQuestions(jobId: string): Promise<{ questions: JobQuestion[]; error?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from("project_job_questions")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: true });
+    if (error) return { questions: [], error: error.message };
+    return { questions: (data ?? []).map(rowToQuestion) };
+  } catch (e) {
+    return { questions: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function answerJobQuestion(input: {
+  questionId: string;
+  jobId: string;
+  stepId: string | null;
+  answer: unknown;
+  skipped?: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const now = new Date().toISOString();
+    setDiag({ questionId: input.questionId, answerSaved: false, resumeTriggered: false });
+
+    // Look up the question to enforce required-vs-skipped policy.
+    const { data: qRow, error: qErr } = await supabase
+      .from("project_job_questions")
+      .select("required, answered_at")
+      .eq("id", input.questionId)
+      .maybeSingle();
+    if (qErr) return { ok: false, error: qErr.message };
+    if (!qRow) return { ok: false, error: "Question not found" };
+    if (qRow.answered_at) return { ok: false, error: "Question already answered" };
+    if (input.skipped && qRow.required) {
+      return { ok: false, error: "Question is required and cannot be skipped." };
+    }
+
+    const { error: aErr } = await supabase
+      .from("project_job_questions")
+      .update({ answer: input.skipped ? { skipped: true } : { value: input.answer }, answered_at: now })
+      .eq("id", input.questionId);
+    if (aErr) return { ok: false, error: aErr.message };
+
+    setDiag({ answerSaved: true });
+    pushDiag("job.question.answered", { questionId: input.questionId, jobId: input.jobId, skipped: !!input.skipped });
+
+    // Resume: re-queue the waiting step and put job back to running.
+    if (input.stepId) {
+      const { error: sErr } = await supabase
+        .from("project_job_steps")
+        .update({ status: "queued", error: null, started_at: null, finished_at: null })
+        .eq("id", input.stepId)
+        .eq("status", "waiting_for_input");
+      if (sErr) return { ok: false, error: `step resume failed: ${sErr.message}` };
+    }
+    const { error: jErr } = await supabase
+      .from("project_jobs")
+      .update({ status: "running", error: null, finished_at: null })
+      .eq("id", input.jobId)
+      .eq("status", "waiting_for_input");
+    if (jErr) return { ok: false, error: `job resume failed: ${jErr.message}` };
+
+    setDiag({ resumeTriggered: true, jobStatus: "running", lastError: null });
+    pushDiag("job.resume", { jobId: input.jobId });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+interface StepContext { job: Job; step: JobStep }
 
 async function runStep(ctx: StepContext): Promise<StepResult> {
   const { job, step } = ctx;
-  // Provider verify steps
+
+  // Provider verify steps — use adapters which check project_connections.
   if (step.stepKey === "verify_connection") {
     const provider = job.type.startsWith("github.") ? "github"
       : job.type.startsWith("vercel.") ? "vercel"
       : job.type.startsWith("supabase.") ? "supabase"
       : null;
     if (!provider) return { status: "skipped", log: "no provider verification needed" };
-    const res = await checkConnection(job.projectId, provider);
-    if (!res.ok) return { status: "failed", error: res.error ?? "connection check failed" };
-    return { status: "succeeded", output: { provider, status: res.status }, log: `${provider} connection ok` };
+    const verifier = provider === "github" ? providers.github.verify
+      : provider === "vercel" ? providers.vercel.verify
+      : providers.supabase.verify;
+    const res = await verifier(job.projectId);
+    if (!res.ok) return { status: "failed", error: res.error };
+    return { status: "succeeded", output: res.data as Record<string, unknown>, log: `${provider} connection ok` };
   }
 
-  // Provider action steps — Phase 1 stubs. They require the connection to be
-  // verified earlier, and they explicitly do not pretend to succeed.
-  if (job.type.startsWith("github.") || job.type.startsWith("vercel.") || job.type.startsWith("supabase.")) {
-    return {
-      status: "failed",
-      error: `${job.type}:${step.stepKey} is not executable yet — server-side worker is not wired in this build. Required connection is verified; Phase 2 will perform the real provider call.`,
-    };
+  // Demo: build.production asks the user a target environment question if
+  // none has been answered yet for this step. This proves the
+  // waiting_for_input round-trip end-to-end.
+  if (job.type === "build.production" && step.stepKey === "build") {
+    const open = await listJobQuestions(job.id);
+    const answeredForStep = open.questions.find((q) => q.stepId === step.id && q.answeredAt);
+    if (!answeredForStep) {
+      return {
+        status: "waiting_for_input",
+        ask: {
+          question: "Which environment should this build target?",
+          kind: "single_choice",
+          required: true,
+          options: [
+            { value: "preview",    label: "Preview",    description: "Run a preview build only." },
+            { value: "production", label: "Production", description: "Run a production build." },
+          ],
+        },
+      };
+    }
+    // Once answered, the build provider would run. It isn't wired yet.
+    const r = await providers.build.productionBuild(job.projectId);
+    if (!r.ok) return { status: "failed", error: r.error };
+    return { status: "succeeded", output: { output: r.data.output }, log: "build complete" };
   }
 
-  // Build / typecheck / AI steps — same posture: fail cleanly until wired.
-  if (job.type === "build.typecheck" || job.type === "build.production") {
-    return { status: "failed", error: `${job.type} requires a server-side build runner. Not wired yet.` };
+  // Build / typecheck — call the provider; placeholder fails cleanly.
+  if (job.type === "build.typecheck") {
+    const r = await providers.build.typecheck(job.projectId);
+    if (!r.ok) return { status: "failed", error: r.error };
+    return { status: "succeeded", output: { output: r.data.output } };
   }
+
+  // GitHub / Vercel / Supabase action steps go through their adapters. The
+  // placeholders re-check the connection and otherwise return the not-wired
+  // error so we never report fake success.
+  if (job.type.startsWith("github.")) {
+    const op = step.stepKey;
+    const i = (step.input ?? {}) as Record<string, unknown>;
+    const r = op === "create_repo"   ? await providers.github.createRepo(job.projectId, { name: String(i.name ?? job.title) })
+            : op === "create_branch" ? await providers.github.createBranch(job.projectId, { branch: String(i.branch ?? "main") })
+            : op === "commit"        ? await providers.github.commitChanges(job.projectId, { branch: String(i.branch ?? "main"), message: String(i.message ?? job.title) })
+            : op === "open_pr"       ? await providers.github.openPR(job.projectId, { branch: String(i.branch ?? "main"), title: String(i.title ?? job.title) })
+            : op === "link_repo"     ? await providers.github.createRepo(job.projectId, { name: String(i.name ?? job.title) })
+            : { ok: false as const, error: `Unknown github step: ${op}` };
+    return r.ok ? { status: "succeeded", output: r.data as Record<string, unknown> } : { status: "failed", error: r.error };
+  }
+  if (job.type.startsWith("vercel.")) {
+    const op = step.stepKey;
+    const i = (step.input ?? {}) as Record<string, unknown>;
+    const r = op === "link_project"   ? await providers.vercel.linkProject(job.projectId, { vercelProjectId: String(i.vercelProjectId ?? "") })
+            : op === "set_env"        ? await providers.vercel.setEnv(job.projectId, { vars: (i.vars as Record<string, string>) ?? {} })
+            : op === "trigger_deploy" ? await providers.vercel.createPreviewDeploy(job.projectId, { ref: i.ref as string | undefined })
+            : op === "promote"        ? await providers.vercel.promoteProduction(job.projectId, { deploymentId: String(i.deploymentId ?? "") })
+            : { ok: false as const, error: `Unknown vercel step: ${op}` };
+    return r.ok ? { status: "succeeded", output: r.data as Record<string, unknown> } : { status: "failed", error: r.error };
+  }
+  if (job.type.startsWith("supabase.")) {
+    const op = step.stepKey;
+    const i = (step.input ?? {}) as Record<string, unknown>;
+    const r = op === "apply"      ? await providers.supabase.applyMigration(job.projectId, { sql: String(i.sql ?? ""), name: i.name as string | undefined })
+            : op === "verify_rls" ? await providers.supabase.verifyRLS(job.projectId, { table: String(i.table ?? "") })
+            : { ok: false as const, error: `Unknown supabase step: ${op}` };
+    return r.ok ? { status: "succeeded", output: r.data as Record<string, unknown> } : { status: "failed", error: r.error };
+  }
+
   if (job.type.startsWith("ai.")) {
-    return { status: "failed", error: `${job.type} requires the AI gateway worker. Not wired yet.` };
+    const i = (step.input ?? {}) as Record<string, unknown>;
+    const r = job.type === "ai.plan"            ? await providers.ai.plan(job.projectId, { goal: String(i.goal ?? job.title) })
+            : job.type === "ai.generate_changes"? await providers.ai.generateChanges(job.projectId, { goal: String(i.goal ?? job.title) })
+            : job.type === "ai.repair_failure"  ? await providers.ai.repairFailure(job.projectId, { jobId: job.id, error: String(i.error ?? "") })
+            : { ok: false as const, error: `Unknown ai step: ${job.type}` };
+    return r.ok ? { status: "succeeded", output: r.data as Record<string, unknown> } : { status: "failed", error: r.error };
   }
 
   return { status: "failed", error: `Unknown job type: ${job.type}` };
@@ -413,7 +568,8 @@ export async function tickJobs(projectId: string): Promise<{
   error?: string;
 }> {
   try {
-    // Find a queued or running job for this project.
+    // Find a queued or running job for this project. waiting_for_input jobs
+    // are paused — they only resume once a question is answered.
     const { data: jobRows, error: jErr } = await supabase
       .from("project_jobs")
       .select("*")
@@ -448,7 +604,8 @@ export async function tickJobs(projectId: string): Promise<{
     if (!next) {
       // No queued step left — finalize job based on step outcomes.
       const anyFailed = steps.some((s) => s.status === "failed");
-      const allDone = steps.every((s) => s.status === "succeeded" || s.status === "skipped" || s.status === "failed" || s.status === "cancelled");
+      const anyWaiting = steps.some((s) => s.status === "waiting_for_input");
+      const allDone = !anyWaiting && steps.every((s) => s.status === "succeeded" || s.status === "skipped" || s.status === "failed" || s.status === "cancelled");
       if (allDone) {
         const finalStatus: JobStatus = anyFailed ? "failed" : "succeeded";
         const errorMsg = anyFailed ? (steps.find((s) => s.status === "failed")?.error ?? "step failed") : null;
@@ -463,7 +620,7 @@ export async function tickJobs(projectId: string): Promise<{
     }
 
     // Run the step.
-    setDiag({ jobId: job.id, jobType: job.type, jobStatus: "running", currentStep: next.stepKey });
+    setDiag({ jobId: job.id, jobType: job.type, jobStatus: "running", currentStepId: next.id, currentStep: next.stepKey });
     pushDiag("job.step.start", { jobId: job.id, stepKey: next.stepKey });
     await supabase
       .from("project_job_steps")
@@ -473,6 +630,43 @@ export async function tickJobs(projectId: string): Promise<{
     const result = await runStep({ job, step: next });
 
     const logEntry = { ts: new Date().toISOString(), msg: result.log ?? result.error ?? `step ${result.status}` };
+
+    if (result.status === "waiting_for_input" && result.ask) {
+      // Pause: write the question, mark step + job waiting_for_input, stop.
+      const { data: qRow, error: qErr } = await supabase
+        .from("project_job_questions")
+        .insert({
+          job_id: job.id,
+          step_id: next.id,
+          question: result.ask.question,
+          kind: result.ask.kind,
+          options: result.ask.options ?? [],
+          required: result.ask.required ?? true,
+        })
+        .select("id, kind")
+        .maybeSingle();
+      if (qErr) {
+        await supabase.from("project_job_steps").update({
+          status: "failed", error: `question insert failed: ${qErr.message}`, finished_at: new Date().toISOString(),
+        }).eq("id", next.id);
+        return { advanced: true, jobId: job.id, stepKey: next.stepKey, result: { status: "failed", error: qErr.message } };
+      }
+      await supabase.from("project_job_steps").update({
+        status: "waiting_for_input",
+        logs: [...next.logs, { ts: new Date().toISOString(), msg: `awaiting answer: ${result.ask.question}` }],
+      }).eq("id", next.id);
+      await supabase.from("project_jobs").update({ status: "waiting_for_input" }).eq("id", job.id);
+      setDiag({
+        jobStatus: "waiting_for_input",
+        questionId: qRow?.id ?? null,
+        questionKind: (qRow?.kind ?? result.ask.kind) as string,
+        answerSaved: false,
+        resumeTriggered: false,
+      });
+      pushDiag("job.question.asked", { jobId: job.id, stepKey: next.stepKey, questionId: qRow?.id });
+      return { advanced: true, jobId: job.id, stepKey: next.stepKey, result };
+    }
+
     await supabase
       .from("project_job_steps")
       .update({

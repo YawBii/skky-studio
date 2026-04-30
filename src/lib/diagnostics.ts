@@ -21,9 +21,15 @@ export type DiagState = {
   jobType: string | null;
   jobStatus: string | null;
   currentStep: string | null;
+  currentStepId: string | null;
   providerConnectionStatus: Record<string, string> | null;
   lastError: string | null;
   retryCount: number | null;
+  // Interactive job questions
+  questionId: string | null;
+  questionKind: string | null;
+  answerSaved: boolean | null;
+  resumeTriggered: boolean | null;
 };
 
 export type DiagEvent = { ts: string; label: string; data: unknown };
@@ -48,6 +54,11 @@ const initialState: DiagState = {
   providerConnectionStatus: null,
   lastError: null,
   retryCount: null,
+  currentStepId: null,
+  questionId: null,
+  questionKind: null,
+  answerSaved: null,
+  resumeTriggered: null,
 };
 
 let state: DiagState = { ...initialState };
