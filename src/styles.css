@@ -141,6 +141,12 @@
   }
   h1 { font-weight: 700; }
   ::selection { background: oklch(1 0 0 / 0.16); }
+  /* Snappy taps on touchscreen + hybrid devices (Surface Pro, iPad).
+     Removes the 300ms click delay and prevents the browser from treating
+     taps on buttons/links/inputs as the start of a pan/zoom gesture. */
+  button, a, [role="button"], input, textarea, select, label, summary {
+    touch-action: manipulation;
+  }
 }
 
 @layer utilities {
