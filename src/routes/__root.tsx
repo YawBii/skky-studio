@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AssistantPanel } from "@/components/assistant-panel";
 import { WorkspaceTopBar } from "@/components/workspace-top-bar";
 import { AuthProvider } from "@/hooks/use-auth";
+import { Toaster } from "@/components/ui/sonner";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -74,6 +75,7 @@ function RootComponent() {
     return (
       <AuthProvider>
         <Outlet />
+        <Toaster />
       </AuthProvider>
     );
   }
@@ -97,6 +99,7 @@ function RootComponent() {
           </div>
         </div>
       </div>
+      <Toaster />
     </AuthProvider>
   );
 }
