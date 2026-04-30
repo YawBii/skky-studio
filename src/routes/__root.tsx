@@ -78,6 +78,17 @@ const COLLABORATORS = [
   { name: "Reviewer",    initials: "RV", color: "bg-[oklch(0.72_0.16_30)]",  role: "viewer" as const, status: "viewing" as const },
 ];
 
+function loadLayout(): [number, number] | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = localStorage.getItem("yawb:workspace-split");
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length === 2) return parsed as [number, number];
+  } catch {}
+  return undefined;
+}
+
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBare = BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
