@@ -37,16 +37,19 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
     if (workspaceId) {
       const res = await createInvite({ workspaceId, email: trimmed, role });
       if (res.ok) {
+        setPending((p) => [{ email: trimmed, role }, ...p]);
+        setEmail("");
         toast.success(`Invite sent to ${trimmed}`);
       } else {
-        // Fall through to local pending list — backend not ready yet
-        toast(`Invite queued locally (backend: ${res.reason})`);
+        // Real workspace, real failure — surface it instead of pretending.
+        toast.error(`Couldn't send invite: ${res.reason}`);
       }
     } else {
-      toast.success(`Invite queued for ${trimmed}`);
+      // No real workspace yet — make this explicit so users don't think it shipped.
+      setPending((p) => [{ email: trimmed, role }, ...p]);
+      setEmail("");
+      toast("Queued locally · create a workspace to send real invites.");
     }
-    setPending((p) => [{ email: trimmed, role }, ...p]);
-    setEmail("");
     setBusy(false);
   }
 
