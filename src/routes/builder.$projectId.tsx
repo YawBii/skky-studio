@@ -74,6 +74,17 @@ function Builder() {
     return () => { cancelled = true; };
   }, [projectId]);
 
+  // Listen for cross-component tab switches (e.g. from chat smart suggestions).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ tab?: Tab; focusJobId?: string }>).detail;
+      if (detail?.tab) setTab(detail.tab);
+      if (detail?.focusJobId) setFocusJobId(detail.focusJobId);
+    };
+    window.addEventListener("yawb:switch-tab", handler as EventListener);
+    return () => window.removeEventListener("yawb:switch-tab", handler as EventListener);
+  }, []);
+
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
     throw notFound();
