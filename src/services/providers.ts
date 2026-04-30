@@ -39,17 +39,25 @@ export interface GitHubProvider {
   openPR(projectId: string, input: { branch: string; base?: string; title: string; body?: string }): Promise<AdapterResult<{ url: string }>>;
 }
 
-const notWiredGithub = (op: string): AdapterResult => ({
-  ok: false,
-  error: `github.${op}: connection verified, but the server-side worker is not wired in this build (Phase 2).`,
-});
+function notWired(provider: "github" | "vercel", op: string): AdapterResult<never> {
+  return {
+    ok: false,
+    error: `${provider}.${op}: connection verified, but the server-side worker is not wired in this build (Phase 2).`,
+  };
+}
+
+async function gateThen<T>(projectId: string, provider: "github" | "vercel", op: string): Promise<AdapterResult<T>> {
+  const gate = await requireConnection(projectId, provider);
+  if (!gate.ok) return gate as AdapterResult<T>;
+  return notWired(provider, op) as AdapterResult<T>;
+}
 
 export const placeholderGitHub: GitHubProvider = {
   verify: (projectId) => requireConnection(projectId, "github"),
-  createRepo: async (projectId) => (await requireConnection(projectId, "github")).ok ? notWiredGithub("createRepo") as AdapterResult<never> : await requireConnection(projectId, "github") as AdapterResult<never>,
-  createBranch: async (projectId) => (await requireConnection(projectId, "github")).ok ? notWiredGithub("createBranch") as AdapterResult<never> : await requireConnection(projectId, "github") as AdapterResult<never>,
-  commitChanges: async (projectId) => (await requireConnection(projectId, "github")).ok ? notWiredGithub("commitChanges") as AdapterResult<never> : await requireConnection(projectId, "github") as AdapterResult<never>,
-  openPR: async (projectId) => (await requireConnection(projectId, "github")).ok ? notWiredGithub("openPR") as AdapterResult<never> : await requireConnection(projectId, "github") as AdapterResult<never>,
+  createRepo: (projectId) => gateThen(projectId, "github", "createRepo"),
+  createBranch: (projectId) => gateThen(projectId, "github", "createBranch"),
+  commitChanges: (projectId) => gateThen(projectId, "github", "commitChanges"),
+  openPR: (projectId) => gateThen(projectId, "github", "openPR"),
 };
 
 // ---------- Vercel ----------
