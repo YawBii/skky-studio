@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { listWorkspaces, type Workspace, type WorkspacesResult } from "@/services/workspaces";
 import { useAuth } from "@/hooks/use-auth";
+import { setDiag } from "@/lib/diagnostics";
 
 const LS_CURRENT = "yawb:current-workspace-id";
 
