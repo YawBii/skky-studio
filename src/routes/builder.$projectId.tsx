@@ -1,11 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus } from "lucide-react";
+import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/services/projects";
+import { JobsPanel } from "@/components/jobs-panel";
 
 export const Route = createFileRoute("/builder/$projectId")({
   head: ({ params }) => ({
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/builder/$projectId")({
   component: Builder,
 });
 
-type Tab = "preview" | "code" | "database" | "deploy" | "history";
+type Tab = "preview" | "code" | "database" | "deploy" | "jobs" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -32,6 +33,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "code",     label: "Code",     icon: Code2 },
   { id: "database", label: "Database", icon: Database },
   { id: "deploy",   label: "Deploy",   icon: Rocket },
+  { id: "jobs",     label: "Jobs",     icon: Activity },
   { id: "history",  label: "History",  icon: HistoryIcon },
 ];
 
@@ -105,6 +107,7 @@ function Builder() {
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
         {tab === "database" && <NotConnected title="Database" hint="Connect Supabase from Integrations to inspect this project's tables." cta={{ label: "Open Integrations", to: "/connectors" }} />}
         {tab === "deploy"   && <NotConnected title="Deploys" hint="Connect Vercel from Integrations to deploy this project." cta={{ label: "Open Integrations", to: "/connectors" }} />}
+        {tab === "jobs"     && <JobsPanel projectId={project.id} workspaceId={project.workspaceId} />}
         {tab === "history"  && <NotConnected title="History" hint="Connect a Git provider to see commit history." cta={{ label: "Open Integrations", to: "/connectors" }} />}
       </div>
     </div>

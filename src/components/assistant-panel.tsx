@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2, FileEdit, ArrowRight, ShieldCheck } from "lucide-react";
+import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2, FileEdit, ArrowRight, ShieldCheck, Play } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
+import { useSelectedProject } from "@/hooks/use-selected-project";
+import { enqueueJob, JOB_TYPES, type JobType } from "@/services/jobs";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -53,6 +55,8 @@ export function AssistantPanel() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Msg[]>(INITIAL);
   const [checklist, setChecklist] = useState(loadChecklist);
+  const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
+  const { project, workspace } = useSelectedProject();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -112,18 +116,32 @@ export function AssistantPanel() {
     if (!text) return;
     setMessages((m) => [...m, { role: "user", content: text }]);
     setPrompt("");
-    const handoff = buildHandoff(text);
     setTimeout(() => {
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content: `Done — ${handoff.summary}`,
-          handoff,
-          proof: buildProof(),
+          content:
+            "I can plan this, but real execution runs through the Jobs panel. Use “Run job” below to enqueue typecheck, build, deploy, or commit. The Jobs tab on this project shows live progress.",
         },
       ]);
-    }, 600);
+    }, 400);
+  };
+
+  const runJob = async (type: JobType, title: string) => {
+    if (!project || !workspace) {
+      toast.error("Select a project first to enqueue a job.");
+      return;
+    }
+    setEnqueuingType(type);
+    const r = await enqueueJob({ projectId: project.id, workspaceId: workspace.id, type, title });
+    setEnqueuingType(null);
+    if (!r.ok) {
+      toast.error(`Couldn't queue job: ${r.error}`);
+      setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue ${type}: ${r.error}` }]);
+      return;
+    }
+    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). Open the Jobs tab to watch progress.` }]);
   };
 
   return (
@@ -190,13 +208,45 @@ export function AssistantPanel() {
             className="w-full resize-none bg-transparent px-2 py-1.5 text-[13px] leading-relaxed placeholder:text-muted-foreground/70 outline-none"
           />
           <div className="flex items-center justify-between pt-1">
-            <button
-              type="button"
-              onClick={() => toast("Coming next: file & screenshot attachments.")}
-              className="inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              <Paperclip className="h-3.5 w-3.5" /> Attach
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => toast("Coming next: file & screenshot attachments.")}
+                className="inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                <Paperclip className="h-3.5 w-3.5" /> Attach
+              </button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={!project}
+                    className="inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    title={project ? "Queue a real job" : "Select a project to queue jobs"}
+                  >
+                    <Play className="h-3.5 w-3.5" /> Run job
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-72 bg-background/95 backdrop-blur-xl border-white/10 p-2">
+                  <div className="text-[11px] text-muted-foreground px-2 py-1.5">
+                    Enqueue against {project?.name ?? "—"}. Watch progress in the Jobs tab.
+                  </div>
+                  <div className="max-h-72 overflow-y-auto scrollbar-thin">
+                    {JOB_TYPES.map((t) => (
+                      <button
+                        key={t}
+                        disabled={enqueuingType === t || !project}
+                        onClick={() => runJob(t, t)}
+                        className="w-full flex items-center gap-2 text-left text-[12px] rounded-md px-2 py-1.5 hover:bg-white/5 disabled:opacity-50"
+                      >
+                        {enqueuingType === t ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 text-primary" />}
+                        <span className="font-mono">{t}</span>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send}>
               <Send className="h-3.5 w-3.5" /> Send
             </Button>

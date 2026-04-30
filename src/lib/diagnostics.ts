@@ -16,6 +16,14 @@ export type DiagState = {
   projectInsertPayload: unknown;
   projectInsertError: unknown;
   projectSelectError: unknown;
+  // Job runner
+  jobId: string | null;
+  jobType: string | null;
+  jobStatus: string | null;
+  currentStep: string | null;
+  providerConnectionStatus: Record<string, string> | null;
+  lastError: string | null;
+  retryCount: number | null;
 };
 
 export type DiagEvent = { ts: string; label: string; data: unknown };
@@ -33,6 +41,13 @@ const initialState: DiagState = {
   projectInsertPayload: undefined,
   projectInsertError: undefined,
   projectSelectError: undefined,
+  jobId: null,
+  jobType: null,
+  jobStatus: null,
+  currentStep: null,
+  providerConnectionStatus: null,
+  lastError: null,
+  retryCount: null,
 };
 
 let state: DiagState = { ...initialState };
