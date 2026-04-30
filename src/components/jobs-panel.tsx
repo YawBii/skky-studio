@@ -2,7 +2,7 @@
 // failed jobs, their steps, logs, retry/cancel controls, interactive
 // questions (Lovable-style), a strict proof report, runner diagnostics, and
 // quick job-enqueue buttons.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Loader2, Play, RotateCcw, X, ChevronDown, ChevronRight,
   AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle, Wrench,
