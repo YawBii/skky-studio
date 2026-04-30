@@ -29,6 +29,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VersionsProjectIdRouteImport } from './routes/versions.$projectId'
 import { Route as PublishProjectIdRouteImport } from './routes/publish.$projectId'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
+import { Route as ApiPublicBuildRunnerRouteImport } from './routes/api/public/build-runner'
 
 const TeamRoute = TeamRouteImport.update({
   id: '/team',
@@ -130,6 +131,11 @@ const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
   path: '/builder/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBuildRunnerRoute = ApiPublicBuildRunnerRouteImport.update({
+  id: '/api/public/build-runner',
+  path: '/api/public/build-runner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
+  '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
+  '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
+  '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/builder/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
+    | '/api/public/build-runner'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/builder/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
+    | '/api/public/build-runner'
   id:
     | '__root__'
     | '/'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/builder/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
+    | '/api/public/build-runner'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   BuilderProjectIdRoute: typeof BuilderProjectIdRoute
   PublishProjectIdRoute: typeof PublishProjectIdRoute
   VersionsProjectIdRoute: typeof VersionsProjectIdRoute
+  ApiPublicBuildRunnerRoute: typeof ApiPublicBuildRunnerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuilderProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/build-runner': {
+      id: '/api/public/build-runner'
+      path: '/api/public/build-runner'
+      fullPath: '/api/public/build-runner'
+      preLoaderRoute: typeof ApiPublicBuildRunnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -456,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuilderProjectIdRoute: BuilderProjectIdRoute,
   PublishProjectIdRoute: PublishProjectIdRoute,
   VersionsProjectIdRoute: VersionsProjectIdRoute,
+  ApiPublicBuildRunnerRoute: ApiPublicBuildRunnerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
