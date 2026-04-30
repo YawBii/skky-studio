@@ -233,6 +233,7 @@ function WorkspaceShell() {
         workspaceId={workspaceIsReal ? currentWorkspace?.id : undefined}
         workspaceName={workspaceName}
       />
+      <DiagnosticsPanel />
     </div>
   );
 }
