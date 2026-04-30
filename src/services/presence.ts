@@ -16,11 +16,10 @@ export interface PresentUser {
   pagePath?: string;
 }
 
-/** Demo collaborators used as fallback when realtime is not connected. */
+/** Demo collaborators — only used for the signed-out marketing preview. */
 export const DEMO_PRESENCE: PresentUser[] = [
-  { userId: "demo-ya", name: "Yaw",         initials: "YA", color: "bg-[oklch(0.72_0.18_240)]", role: "owner",  status: "editing" },
-  { userId: "demo-bb", name: "Builder Bot", initials: "BB", color: "bg-[oklch(0.74_0.16_150)]", role: "member", status: "online"  },
-  { userId: "demo-rv", name: "Reviewer",    initials: "RV", color: "bg-[oklch(0.72_0.16_30)]",  role: "viewer", status: "viewing" },
+  { userId: "demo-ya", name: "Demo · Yaw",     initials: "YA", color: "bg-[oklch(0.72_0.18_240)]", role: "owner",  status: "editing" },
+  { userId: "demo-bb", name: "Demo · Builder", initials: "BB", color: "bg-[oklch(0.74_0.16_150)]", role: "member", status: "online"  },
 ];
 
 const COLORS = [
@@ -55,7 +54,9 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    if (forceFallback || !projectId) { setIsLive(false); setPresent(DEMO_PRESENCE); return; }
+    // No demo collaborators in the authenticated app. Empty until a real
+    // presence channel reports users.
+    if (forceFallback || !projectId) { setIsLive(false); setPresent([]); return; }
 
     let cancelled = false;
     let cleanup: (() => void) | null = null;
@@ -63,7 +64,7 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const me = userData.user;
-      if (!me) { setIsLive(false); setPresent(DEMO_PRESENCE); return; }
+      if (!me) { setIsLive(false); setPresent([]); return; }
 
       const channel = supabase.channel(`presence:project:${projectId}`, {
         config: { presence: { key: me.id } },
@@ -87,7 +88,7 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
               pagePath: meta.pagePath as string | undefined,
             };
           });
-          setPresent(users.length ? users : DEMO_PRESENCE);
+          setPresent(users);
           setIsLive(users.length > 0);
         })
         .subscribe(async (s) => {

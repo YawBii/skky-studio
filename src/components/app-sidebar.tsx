@@ -8,7 +8,7 @@ import { signOut } from "@/services/auth";
 
 const nav = [
   { to: "/projects",   label: "Projects",     icon: FolderKanban },
-  { to: "/health",     label: "Issues",       icon: AlertTriangle, badge: "3" },
+  { to: "/health",     label: "Health",       icon: AlertTriangle },
   { to: "/deploys",    label: "Deploys",      icon: Rocket },
   { to: "/connectors", label: "Integrations", icon: Plug },
   { to: "/settings",   label: "Settings",     icon: Settings },
@@ -21,7 +21,7 @@ export function AppSidebar() {
 
   const initials = session?.displayName
     ? session.displayName.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
-    : "SG";
+    : "y";
 
   async function handleSignOut() {
     try { await signOut(); } catch {}
@@ -56,9 +56,9 @@ export function AppSidebar() {
             >
               {active && <span className="absolute -left-[7px] top-2 bottom-2 w-0.5 rounded-r bg-foreground/80" />}
               <item.icon className="h-4 w-4" />
-              {item.badge && (
+              {("badge" in item) && (item as { badge?: string }).badge && (
                 <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-warning text-[9px] font-semibold text-background flex items-center justify-center">
-                  {item.badge}
+                  {(item as { badge?: string }).badge}
                 </span>
               )}
             </Link>
@@ -74,7 +74,7 @@ export function AppSidebar() {
         <LogOut className="h-4 w-4" />
       </button>
       <div
-        title={session?.email ?? "workspace@skky.group"}
+        title={session?.email ?? "Not signed in"}
         className="h-8 w-8 rounded-full bg-gradient-to-br from-white/90 to-white/40 text-[oklch(0.16_0_0)] flex items-center justify-center text-[11px] font-bold"
       >
         {initials}

@@ -1,5 +1,5 @@
 import { Outlet, createRootRoute, HeadContent, Link, Scripts, useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AssistantPanel } from "@/components/assistant-panel";
@@ -8,10 +8,11 @@ import { InviteSheet } from "@/components/invite-sheet";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
-import { useProjectPresence, DEMO_PRESENCE } from "@/services/presence";
+import { useProjectPresence } from "@/services/presence";
 import { SplitPane } from "@/components/split-pane";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useProjects } from "@/hooks/use-projects";
+import { useProjectConnections } from "@/hooks/use-project-connections";
 import { CreateWorkspaceEmpty, CreateProjectEmpty } from "@/components/empty-states";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
@@ -109,7 +110,6 @@ function WorkspaceShell() {
     isEmpty: workspaceEmpty,
     isError: workspaceError,
     error: workspaceErrorMessage,
-    source: workspaceSource,
     refresh: refreshWorkspaces,
     select: selectWorkspace,
   } = useWorkspaces();
@@ -120,8 +120,9 @@ function WorkspaceShell() {
     refresh: refreshProjects,
     select: selectProject,
   } = useProjects(currentWorkspace?.id);
-  const presenceProjectId = currentProject?.id ?? "demo-project";
+  const presenceProjectId = currentProject?.id ?? null;
   const { present, isLive } = useProjectPresence({ projectId: presenceProjectId });
+  const { connections } = useProjectConnections(currentProject?.id ?? null);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   // Persisted right (chat) width in pixels.
@@ -141,16 +142,25 @@ function WorkspaceShell() {
     }
   }, [loaded, persistedWidth]);
 
-  const collaborators = (isLive ? present : DEMO_PRESENCE).map((p) => ({
+  // Real collaborators only — no demo fallback in the authenticated app.
+  const collaborators = present.map((p) => ({
     name: p.name, initials: p.initials, color: p.color, role: p.role, status: p.status,
   }));
 
-  // Only show a real workspace name. If we're on demo-fallback (signed-out)
-  // or error, show neutral text so the UI doesn't pretend Skky Group exists.
+  // Only show real workspace/project names. No demo fallback.
   const workspaceName = workspaceIsReal && currentWorkspace ? currentWorkspace.name : "yawB";
-  const projectName = currentProject && (workspaceIsReal || workspaceSource === "demo-fallback")
-    ? currentProject.name
-    : "No project selected";
+  const projectName = projectIsReal && currentProject ? currentProject.name : "No project selected";
+
+  // Diagnostics for selection state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // eslint-disable-next-line no-console
+    console.info("[yawb] selection:", {
+      selectedWorkspaceId: currentWorkspace?.id ?? null,
+      selectedProjectId: currentProject?.id ?? null,
+      projectConnectionsCount: connections.length,
+    });
+  }, [currentWorkspace?.id, currentProject?.id, connections.length]);
 
   // Only show the empty-state takeover on the home/projects routes. On any
   // other route (settings, connectors, deploys, …) always render the route so
@@ -190,12 +200,8 @@ function WorkspaceShell() {
           projectName={projectName}
           workspaceName={workspaceName}
           environment="production"
-          buildStatus="passing"
-          connections={{
-            github: "connected",
-            supabase: workspaceIsReal || projectIsReal ? "connected" : "connected",
-            vercel: "disconnected",
-          }}
+          buildStatus="unknown"
+          connections={connections}
           collaborators={collaborators}
           presenceLive={isLive}
           onShare={() => setInviteOpen(true)}

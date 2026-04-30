@@ -206,7 +206,7 @@ function DangerPane() {
       <div className="rounded-xl border border-destructive/30 p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">Delete workspace</div>
-          <div className="text-xs text-muted-foreground">This permanently deletes Skky Group and all its projects.</div>
+          <div className="text-xs text-muted-foreground">This permanently deletes the current workspace and all its projects.</div>
         </div>
         <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /> Delete</Button>
       </div>

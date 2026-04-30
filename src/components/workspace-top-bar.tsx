@@ -1,9 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye, FileText, Globe, BarChart3 } from "lucide-react";
-import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye, Globe, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,12 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-export interface ConnectionStatus {
-  github: "connected" | "disconnected";
-  supabase: "connected" | "disconnected";
-  vercel: "connected" | "disconnected";
-}
+import type { ConnectionProvider, ConnectionStatus, ProjectConnection } from "@/services/project-connections";
 
 export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
 export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
@@ -35,20 +26,29 @@ interface WorkspaceTopBarProps {
   projectName: string;
   workspaceName?: string;
   environment: "production" | "preview" | "development";
-  connections: ConnectionStatus;
-  buildStatus: "passing" | "failing" | "building";
+  buildStatus?: "passing" | "failing" | "building" | "unknown";
+  /** Real connection rows for the selected project. When empty, no chips render. */
+  connections: ProjectConnection[];
   collaborators?: Collaborator[];
   presenceLive?: boolean;
   onDeploy?: () => void;
   onShare?: () => void;
 }
 
+const PROVIDER_ICONS: Partial<Record<ConnectionProvider, React.ComponentType<{ className?: string }>>> = {
+  github: Github,
+  vercel: Triangle,
+  netlify: Triangle,
+  gitlab: Github,
+  bitbucket: Github,
+};
+
 export function WorkspaceTopBar({
   projectName,
   workspaceName,
   environment,
+  buildStatus = "unknown",
   connections,
-  buildStatus,
   collaborators = [],
   presenceLive = false,
   onDeploy,
@@ -60,7 +60,7 @@ export function WorkspaceTopBar({
   return (
     <header className="sticky top-0 z-30 h-12 border-b border-white/5 bg-background/70 backdrop-blur-xl">
       <div className="h-full px-4 flex items-center gap-3">
-        {/* Workspace + Project + branch */}
+        {/* Workspace + Project */}
         <button
           type="button"
           className="group flex items-center gap-2 rounded-lg hover:bg-white/[0.04] px-2 h-8 transition min-w-0"
@@ -77,35 +77,13 @@ export function WorkspaceTopBar({
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
-        {/* Page selector */}
-        <DropdownMenu>
-          <DropdownMenuTrigger className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11.5px] text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition">
-            <FileText className="h-3.5 w-3.5" />
-            <span>Page:</span>
-            <span className="text-foreground font-medium">/dashboard</span>
-            <ChevronDown className="h-3 w-3" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuLabel className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Project pages</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {["/", "/dashboard", "/settings", "/billing", "/team"].map((p) => (
-              <DropdownMenuItem key={p} onClick={() => toast(`Opened ${p}`)} className="text-[12px]">
-                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-mono">{p}</span>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast("Coming next: add a new page from chat")} className="text-[12px] text-muted-foreground">
-              + New page
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {/* Build status */}
-        <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-          <BuildDot status={buildStatus} />
-          <span className="capitalize">{buildStatus}</span>
-        </span>
+        {buildStatus !== "unknown" && (
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <BuildDot status={buildStatus} />
+            <span className="capitalize">{buildStatus}</span>
+          </span>
+        )}
 
         <div className="flex-1" />
 
@@ -167,16 +145,19 @@ export function WorkspaceTopBar({
           <UserPlus className="h-3.5 w-3.5" /> Share
         </Button>
 
-        {/* Connection dots */}
-        <Link
-          to="/connectors"
-          title="Integrations"
-          className="hidden sm:inline-flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-white/[0.04] transition"
-        >
-          <ConnDot icon={Github}   ok={connections.github === "connected"} />
-          <ConnDot icon={Database} ok={connections.supabase === "connected"} />
-          <ConnDot icon={Triangle} ok={connections.vercel === "connected"} />
-        </Link>
+        {/* Connection chips — only render when there are real rows */}
+        {connections.length > 0 && (
+          <Link
+            to="/connectors"
+            title="Integrations"
+            className="hidden sm:inline-flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-white/[0.04] transition"
+          >
+            {connections.map((c) => {
+              const Icon = PROVIDER_ICONS[c.provider] ?? Database;
+              return <ConnDot key={c.id} icon={Icon} status={c.status} title={`${c.provider}: ${c.status}`} />;
+            })}
+          </Link>
+        )}
 
         <Button variant="ghost" size="sm" onClick={() => toast("Opening analytics…")} className="hidden md:inline-flex">
           <BarChart3 className="h-3.5 w-3.5" /> Analytics
@@ -217,15 +198,17 @@ function BuildDot({ status }: { status: "passing" | "failing" | "building" }) {
 }
 
 function ConnDot({
-  icon: Icon, ok,
-}: { icon: React.ComponentType<{ className?: string }>; ok: boolean }) {
+  icon: Icon, status, title,
+}: { icon: React.ComponentType<{ className?: string }>; status: ConnectionStatus; title?: string }) {
+  const dot =
+    status === "connected" ? "bg-success" :
+    status === "pending" ? "bg-warning animate-pulse" :
+    status === "error" ? "bg-destructive" :
+    "bg-muted-foreground/40";
   return (
-    <span className="relative inline-flex">
-      <Icon className={cn("h-3.5 w-3.5", ok ? "text-foreground/80" : "text-muted-foreground/50")} />
-      <span className={cn(
-        "absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-background",
-        ok ? "bg-success" : "bg-muted-foreground/40",
-      )} />
+    <span className="relative inline-flex" title={title}>
+      <Icon className={cn("h-3.5 w-3.5", status === "connected" ? "text-foreground/80" : "text-muted-foreground/60")} />
+      <span className={cn("absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-background", dot)} />
     </span>
   );
 }

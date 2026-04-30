@@ -1,8 +1,5 @@
-// Projects service: reads from Supabase `projects`.
-// Falls back to demo projects when the workspace is the demo one, the table is
-// unavailable, or the query fails.
+// Projects service — Supabase only. No demo fallback in the authenticated app.
 import { supabase } from "@/integrations/supabase/client";
-import { projects as DEMO_PROJECTS, type Project as DemoProject } from "@/lib/demo-data";
 
 export interface Project {
   id: string;
@@ -11,32 +8,18 @@ export interface Project {
   slug: string;
   description: string | null;
   createdAt?: string;
-  isDemo?: boolean;
 }
+
+export type ProjectsSource = "supabase" | "empty" | "error" | "no-workspace";
 
 export type ProjectsResult = {
   projects: Project[];
-  source: "supabase" | "demo-fallback" | "demo-empty";
+  source: ProjectsSource;
+  error?: string;
 };
 
-function demoToProject(p: DemoProject, workspaceId: string): Project {
-  return {
-    id: p.id,
-    workspaceId,
-    name: p.name,
-    slug: p.id,
-    description: p.description,
-    isDemo: true,
-  };
-}
-
 export async function listProjects(workspaceId: string | null | undefined): Promise<ProjectsResult> {
-  if (!workspaceId || workspaceId === "demo-workspace") {
-    return {
-      projects: DEMO_PROJECTS.map((p) => demoToProject(p, workspaceId ?? "demo-workspace")),
-      source: "demo-fallback",
-    };
-  }
+  if (!workspaceId) return { projects: [], source: "no-workspace" };
 
   try {
     const { data, error } = await supabase
@@ -46,13 +29,12 @@ export async function listProjects(workspaceId: string | null | undefined): Prom
       .order("created_at", { ascending: false });
 
     if (error) {
-      return {
-        projects: DEMO_PROJECTS.map((p) => demoToProject(p, workspaceId)),
-        source: "demo-fallback",
-      };
+      // eslint-disable-next-line no-console
+      console.warn("[yawb] projects.list error", error);
+      return { projects: [], source: "error", error: error.message };
     }
     if (!data || data.length === 0) {
-      return { projects: [], source: "demo-empty" };
+      return { projects: [], source: "empty" };
     }
     return {
       projects: data.map((r) => ({
@@ -65,11 +47,8 @@ export async function listProjects(workspaceId: string | null | undefined): Prom
       })),
       source: "supabase",
     };
-  } catch {
-    return {
-      projects: DEMO_PROJECTS.map((p) => demoToProject(p, workspaceId)),
-      source: "demo-fallback",
-    };
+  } catch (e) {
+    return { projects: [], source: "error", error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -107,7 +86,6 @@ export async function createProject(input: {
     };
     log("projectInsertPayload", projectInsertPayload);
 
-    // Step 1: insert (no select, to avoid RLS race on the read-back).
     const { data: inserted, error: insertError } = await supabase
       .from("projects")
       .insert(projectInsertPayload)
@@ -125,8 +103,6 @@ export async function createProject(input: {
       };
     }
 
-    // Step 2: select the new row separately. If RLS blocks the read-back,
-    // surface a clear error rather than silently failing.
     const projectId = inserted?.id;
     if (!projectId) {
       return { ok: false, error: "Project insert returned no id.", code: "NO_ID" };
