@@ -51,6 +51,16 @@ export function CreateWorkspaceEmpty({
       title="Create your first workspace"
       hint="A workspace holds your projects, your team, and your settings."
     >
+      {errorMessage && (
+        <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive flex items-start gap-2">
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <div>
+            <div className="font-medium">Couldn't load workspaces from Lovable Cloud.</div>
+            <div className="opacity-80 mt-0.5 break-words">{errorMessage}</div>
+            <div className="opacity-80 mt-1">Run <code className="font-mono">docs/sql/2026-04-30-collaboration.sql</code> in the Cloud SQL editor, then reload.</div>
+          </div>
+        </div>
+      )}
       <div className="space-y-3">
         <Field label="Workspace name">
           <Input value={name} onChange={(e) => onName(e.target.value)} placeholder="Acme Inc." autoFocus />
