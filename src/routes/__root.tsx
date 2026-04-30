@@ -126,13 +126,13 @@ function RootComponent() {
               }}
               className="h-full"
             >
-              <ResizablePanel id="workspace-main" defaultSize={70} minSize={45} className="min-w-0">
+              <ResizablePanel id="workspace-main" defaultSize={62} minSize={30} className="min-w-0">
                 <main className="h-full overflow-y-auto scrollbar-thin">
                   <Outlet />
                 </main>
               </ResizablePanel>
-              <ResizableHandle className="bg-white/5 hover:bg-white/15 transition-colors" />
-              <ResizablePanel id="workspace-chat" defaultSize={30} minSize={20} maxSize={55} className="min-w-[280px]">
+              <ResizableHandle withHandle className="bg-white/5 hover:bg-white/20 data-[resize-handle-state=drag]:bg-primary/40 transition-colors w-1.5" />
+              <ResizablePanel id="workspace-chat" defaultSize={38} minSize={22} maxSize={70} className="min-w-[320px]">
                 <AssistantPanel />
               </ResizablePanel>
             </ResizablePanelGroup>

@@ -1,5 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye } from "lucide-react";
+import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye, FileText, Globe, BarChart3 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -68,6 +72,30 @@ export function WorkspaceTopBar({
           <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{environment}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
+
+        {/* Page selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11.5px] text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition">
+            <FileText className="h-3.5 w-3.5" />
+            <span>Page:</span>
+            <span className="text-foreground font-medium">/dashboard</span>
+            <ChevronDown className="h-3 w-3" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Project pages</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {["/", "/dashboard", "/settings", "/billing", "/team"].map((p) => (
+              <DropdownMenuItem key={p} onClick={() => toast(`Opened ${p}`)} className="text-[12px]">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-mono">{p}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => toast("Coming next: add a new page from chat")} className="text-[12px] text-muted-foreground">
+              + New page
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Build status */}
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
@@ -139,6 +167,14 @@ export function WorkspaceTopBar({
           <ConnDot icon={Database} ok={connections.supabase === "connected"} />
           <ConnDot icon={Triangle} ok={connections.vercel === "connected"} />
         </Link>
+
+        <Button variant="ghost" size="sm" onClick={() => toast("Opening analytics…")} className="hidden md:inline-flex">
+          <BarChart3 className="h-3.5 w-3.5" /> Analytics
+        </Button>
+
+        <Button variant="ghost" size="sm" onClick={() => toast("Coming next: connect a custom domain")}>
+          <Globe className="h-3.5 w-3.5" /> Domain
+        </Button>
 
         <Button variant="ghost" size="sm" onClick={() => toast("Opening preview…")}>
           <Play className="h-3.5 w-3.5" /> Preview

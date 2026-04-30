@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone,
-  ExternalLink, CheckCircle2, AlertTriangle, Play, History, GitCommit,
+  ExternalLink, CheckCircle2, AlertTriangle, Play, History, GitCommit, BarChart3, Globe, Plus, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,15 +21,16 @@ export const Route = createFileRoute("/")({
   component: Workspace,
 });
 
-type Tab = "preview" | "code" | "database" | "deploy" | "history";
+type Tab = "preview" | "code" | "database" | "analytics" | "deploy" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "preview",  label: "Preview",  icon: Eye },
-  { id: "code",     label: "Code",     icon: Code2 },
-  { id: "database", label: "Database", icon: Database },
-  { id: "deploy",   label: "Deploy",   icon: Rocket },
-  { id: "history",  label: "History",  icon: History },
+  { id: "preview",   label: "Preview",   icon: Eye },
+  { id: "code",      label: "Code",      icon: Code2 },
+  { id: "database",  label: "Database",  icon: Database },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "deploy",    label: "Deploy",    icon: Rocket },
+  { id: "history",   label: "History",   icon: History },
 ];
 
 function Workspace() {
@@ -69,11 +70,12 @@ function Workspace() {
 
       {/* Pane */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {tab === "preview"  && <PreviewPane device={device} setDevice={setDevice} />}
-        {tab === "code"     && <ComingSoon title="Code editor" hint="Open the in-app code editor." />}
-        {tab === "database" && <ComingSoon title="Database" hint="Browse tables, RLS, and schema." />}
-        {tab === "deploy"   && <DeployPane />}
-        {tab === "history"  && <HistoryPane />}
+        {tab === "preview"   && <PreviewPane device={device} setDevice={setDevice} />}
+        {tab === "code"      && <ComingSoon title="Code editor" hint="Open the in-app code editor." />}
+        {tab === "database"  && <ComingSoon title="Database" hint="Browse tables, RLS, and schema." />}
+        {tab === "analytics" && <AnalyticsPane />}
+        {tab === "deploy"    && <DeployPane />}
+        {tab === "history"   && <HistoryPane />}
       </div>
 
       {/* Build logs drawer */}
@@ -184,10 +186,101 @@ function DeployPane() {
 
         <div className="mt-4 rounded-2xl border border-warning/20 bg-warning/5 p-4 flex items-start gap-3">
           <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-          <div className="text-[12.5px]">
+          <div className="text-[12.5px] flex-1">
             <div className="font-medium">1 readiness check pending</div>
-            <div className="text-muted-foreground mt-0.5">Custom domain not yet verified. Open in Settings → Domains.</div>
+            <div className="text-muted-foreground mt-0.5">Custom domain not yet verified.</div>
           </div>
+          <Button size="sm" variant="outline" onClick={() => toast("Coming next: domain verification flow")}>
+            <Globe className="h-3.5 w-3.5" /> Connect domain
+          </Button>
+        </div>
+
+        {/* Domains list */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[14px] font-display font-semibold tracking-tight">Custom domains</h3>
+            <Button size="sm" variant="ghost" onClick={() => toast("Coming next: add a custom domain")}>
+              <Plus className="h-3.5 w-3.5" /> Add domain
+            </Button>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-gradient-card overflow-hidden">
+            {[
+              { name: "portal.skky.group", primary: true,  status: "Active",     ssl: true  },
+              { name: "www.portal.skky.group", primary: false, status: "Active",  ssl: true  },
+              { name: "staging.skky.group",  primary: false, status: "Verifying", ssl: false },
+            ].map((d, i, a) => (
+              <div key={d.name} className={cn("flex items-center justify-between px-4 py-3", i < a.length - 1 && "border-b border-white/5")}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="font-mono text-[12px] truncate">{d.name}</span>
+                  {d.primary && <span className="text-[9.5px] uppercase tracking-wider text-foreground bg-white/10 px-1.5 py-0.5 rounded">primary</span>}
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className={cn("inline-flex items-center gap-1", d.status === "Active" ? "text-success" : "text-warning")}>
+                    {d.status === "Active" ? <Check className="h-3 w-3" /> : <RefreshCw className="h-3 w-3 animate-spin" />}
+                    {d.status}
+                  </span>
+                  <span className="text-muted-foreground">{d.ssl ? "SSL ✓" : "SSL issuing"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Analytics ---------- */
+
+function AnalyticsPane() {
+  const stats = [
+    { label: "Visitors (24h)",   value: "2,481", delta: "+12.4%" },
+    { label: "Page views",       value: "9,317", delta: "+8.1%" },
+    { label: "Avg session",      value: "3m 42s", delta: "+0.6%" },
+    { label: "Conversion",       value: "4.2%",  delta: "+0.3pt" },
+  ];
+  const top = [
+    { path: "/",          views: 3812, share: 41 },
+    { path: "/dashboard", views: 2104, share: 23 },
+    { path: "/billing",   views: 1188, share: 13 },
+    { path: "/settings",  views:  942, share: 10 },
+    { path: "/team",      views:  611, share: 7  },
+  ];
+  return (
+    <div className="h-full overflow-auto">
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-[20px] font-display font-semibold tracking-tight">Analytics</h2>
+            <p className="text-[12.5px] text-muted-foreground mt-1">Live production traffic · last 24 hours</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => toast("Refreshing analytics…")}>
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-2xl border border-white/5 bg-gradient-card p-4">
+              <div className="text-[11px] text-muted-foreground">{s.label}</div>
+              <div className="mt-1 text-[20px] font-display font-semibold tabular-nums tracking-tight">{s.value}</div>
+              <div className="text-[11px] text-success mt-0.5">{s.delta}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card p-5">
+          <div className="text-[13px] font-medium mb-3">Top pages</div>
+          {top.map((p) => (
+            <div key={p.path} className="flex items-center gap-3 py-2">
+              <div className="font-mono text-[12px] w-32 truncate">{p.path}</div>
+              <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div className="h-full bg-gradient-brand" style={{ width: `${p.share * 2.4}%` }} />
+              </div>
+              <div className="text-[11px] text-muted-foreground tabular-nums w-16 text-right">{p.views.toLocaleString()}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
