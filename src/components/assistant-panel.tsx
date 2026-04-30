@@ -34,7 +34,8 @@ export function AssistantPanel() {
         {
           role: "assistant",
           content:
-            "Got it. I'll plan the change, implement it, and run a verification pass before reporting back.",
+            "Done — I planned the change, applied the edits, and ran a verification pass.\n\n**What I did**\n• Updated the affected components and routes\n• Re-ran typecheck and a smoke build\n• Confirmed no console errors in preview\n\n**Hand-off note**\nReady for your review. Try it in the preview on the left, then click Publish to ship — or tell me what to adjust.",
+          proof: true,
         },
       ]);
     }, 600);
