@@ -27,6 +27,8 @@ function friendlyError(message: string | undefined): string {
   if (m.includes("password should be at least")) return "Password must be at least 6 characters.";
   if (m.includes("rate limit")) return "Too many attempts. Please wait a moment and try again.";
   if (m.includes("not configured")) return "Authentication is not configured. Please contact support.";
+  if (m.includes("env vars missing")) return "Supabase env vars missing — check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.";
+  if (m.includes("failed to fetch")) return "Can't reach Supabase. Check VITE_SUPABASE_URL and your network.";
   return message;
 }
 
