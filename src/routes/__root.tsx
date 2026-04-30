@@ -10,6 +10,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import { useProjectPresence, DEMO_PRESENCE } from "@/services/presence";
 import { SplitPane } from "@/components/split-pane";
+import { useWorkspaces } from "@/hooks/use-workspaces";
+import { useProjects } from "@/hooks/use-projects";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -99,7 +101,10 @@ function WorkspaceShell() {
     try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
   }, []);
   const { prefs, loaded, update } = useUserPreferences();
-  const { present, isLive } = useProjectPresence({ projectId: "demo-project" });
+  const { current: currentWorkspace, isReal: workspaceIsReal } = useWorkspaces();
+  const { current: currentProject, isReal: projectIsReal } = useProjects(currentWorkspace?.id);
+  const presenceProjectId = currentProject?.id ?? "demo-project";
+  const { present, isLive } = useProjectPresence({ projectId: presenceProjectId });
   const [inviteOpen, setInviteOpen] = useState(false);
 
   // Persisted right (chat) width in pixels.
@@ -123,16 +128,23 @@ function WorkspaceShell() {
     name: p.name, initials: p.initials, color: p.color, role: p.role, status: p.status,
   }));
 
+  const workspaceName = currentWorkspace?.name ?? "Skky Group";
+  const projectName = currentProject?.name ?? "Skky Customer Portal";
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         <WorkspaceTopBar
-          projectName="Skky Customer Portal"
-          workspaceName="Skky Group"
+          projectName={projectName}
+          workspaceName={workspaceName}
           environment="production"
           buildStatus="passing"
-          connections={{ github: "connected", supabase: "connected", vercel: "disconnected" }}
+          connections={{
+            github: "connected",
+            supabase: workspaceIsReal || projectIsReal ? "connected" : "connected",
+            vercel: "disconnected",
+          }}
           collaborators={collaborators}
           presenceLive={isLive}
           onShare={() => setInviteOpen(true)}
@@ -155,7 +167,7 @@ function WorkspaceShell() {
       <InviteSheet
         open={inviteOpen}
         onOpenChange={setInviteOpen}
-        workspaceName="Skky Group"
+        workspaceName={workspaceName}
       />
     </div>
   );
