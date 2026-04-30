@@ -37,11 +37,12 @@ export function DiagnosticsPanel() {
   }
 
   if (!open) {
-    const hasError =
+    const hasError = Boolean(
       state.workspaceInsertError ||
       state.workspaceSelectError ||
       state.projectInsertError ||
-      state.projectSelectError;
+      state.projectSelectError
+    );
     return (
       <button
         type="button"
