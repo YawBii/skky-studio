@@ -97,6 +97,7 @@ function RootComponent() {
 }
 
 function WorkspaceShell() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
@@ -151,8 +152,12 @@ function WorkspaceShell() {
     ? currentProject.name
     : "No project selected";
 
+  // Only show the empty-state takeover on the home/projects routes. On any
+  // other route (settings, connectors, deploys, …) always render the route so
+  // navigation isn't "stuck" on the create-workspace screen.
+  const isHomeRoute = pathname === "/" || pathname === "/projects";
   let mainContent: React.ReactNode;
-  if (workspaceEmpty) {
+  if (isHomeRoute && workspaceEmpty) {
     mainContent = (
       <CreateWorkspaceEmpty
         errorMessage={workspaceError ? workspaceErrorMessage : undefined}
@@ -162,7 +167,7 @@ function WorkspaceShell() {
         }}
       />
     );
-  } else if (currentWorkspace && workspaceIsReal && projectEmpty) {
+  } else if (isHomeRoute && currentWorkspace && workspaceIsReal && projectEmpty) {
     mainContent = (
       <CreateProjectEmpty
         workspaceId={currentWorkspace.id}
