@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signUp, signInWithProvider } from "@/services/auth";
+import { getSupabaseDiagnostics } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign up — yawB" }, { name: "description", content: "Create your yawB workspace." }] }),
@@ -56,6 +57,7 @@ function Signup() {
           <h1 className="text-2xl font-display font-bold tracking-tight">Create your workspace</h1>
           <p className="text-sm text-muted-foreground mt-1">Free to start. No credit card required.</p>
         </div>
+        <SupabaseConfigBanner forceShow={!!error && /fetch|supabase|env vars/i.test(error)} />
         <form onSubmit={onSubmit} className="rounded-2xl border border-white/10 bg-gradient-card p-6 shadow-elevated space-y-4">
           <Button type="button" variant="soft" size="lg" className="w-full justify-center" onClick={onGoogle}>
             <span className="text-xs font-bold">G</span> Continue with Google
@@ -88,6 +90,38 @@ function Field({ icon: Icon, type, placeholder, value, onChange, autoComplete }:
       <Icon className="h-4 w-4 text-muted-foreground" />
       <input type={type} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete}
         className="flex-1 bg-transparent text-sm focus:outline-none" />
+    </div>
+  );
+}
+
+function SupabaseConfigBanner({ forceShow }: { forceShow?: boolean }) {
+  const d = getSupabaseDiagnostics();
+  if (d.ok && !forceShow) return null;
+  const tone = d.ok
+    ? "border-warning/40 bg-warning/10 text-warning-foreground"
+    : "border-destructive/40 bg-destructive/10 text-destructive-foreground";
+  return (
+    <div className={`mb-4 rounded-xl border p-3 text-xs ${tone}`} role="alert">
+      <div className="flex items-center gap-2 font-medium">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        Supabase config diagnostics
+      </div>
+      <ul className="mt-2 space-y-0.5 font-mono text-[11px] leading-relaxed">
+        <li>hasUrl: {String(d.hasUrl)}</li>
+        <li>hasKey: {String(d.hasKey)}</li>
+        <li>urlHost: {d.urlHost || "(empty)"}</li>
+        <li>isPlaceholder: {String(d.isPlaceholder)}</li>
+      </ul>
+      {d.isPlaceholder && (
+        <p className="mt-2 text-[11px] opacity-80">
+          The deployed bundle was built with placeholder values. Republish so the new VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY get baked in.
+        </p>
+      )}
+      {!d.isPlaceholder && !d.ok && (
+        <p className="mt-2 text-[11px] opacity-80">
+          Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY in the build env.
+        </p>
+      )}
     </div>
   );
 }
