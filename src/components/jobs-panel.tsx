@@ -1,15 +1,17 @@
 // Per-project Jobs / Activity panel. Shows queued/running/waiting/succeeded/
 // failed jobs, their steps, logs, retry/cancel controls, interactive
-// questions (Lovable-style), a proof report, and quick job-enqueue buttons.
+// questions (Lovable-style), a strict proof report, runner diagnostics, and
+// quick job-enqueue buttons.
 import { useState } from "react";
 import {
   Loader2, Play, RotateCcw, X, ChevronDown, ChevronRight,
-  AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle,
+  AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
-import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType } from "@/services/jobs";
+import { useDiagnostics } from "@/lib/diagnostics";
+import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
 
 interface JobsPanelProps {
   projectId: string | null;
