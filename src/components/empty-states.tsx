@@ -106,19 +106,21 @@ export function CreateProjectEmpty({
     const finalSlug = slugify(slug || name);
     if (!name.trim() || finalSlug.length < 1) { toast.error("Add a name and a valid slug"); return; }
     setBusy(true);
-    const p = await createProject({
+    const res = await createProject({
       workspaceId,
       name: name.trim(),
       slug: finalSlug,
       description: description.trim() || undefined,
     });
     setBusy(false);
-    if (!p) {
-      toast.error("Couldn't create project. Make sure you have member access in this workspace.");
+    if (!res.ok) {
+      const detail = [res.code && `[${res.code}]`, res.error, res.hint && `Hint: ${res.hint}`]
+        .filter(Boolean).join(" ");
+      toast.error(detail || "Couldn't create project");
       return;
     }
-    toast.success(`Project "${p.name}" created`);
-    onCreated(p);
+    toast.success(`Project "${res.project.name}" created`);
+    onCreated(res.project);
   }
 
   return (
