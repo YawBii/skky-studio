@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2, FileEdit, ArrowRight, ShieldCheck, Play } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
-import { enqueueJob, JOB_TYPES, type JobType } from "@/services/jobs";
+import { enqueueJob, retryJob, JOB_TYPES, type JobType } from "@/services/jobs";
+import { useProjectJobs } from "@/hooks/use-project-jobs";
+import { useProjectConnections } from "@/hooks/use-project-connections";
+import { useDiagnostics } from "@/lib/diagnostics";
+import { useSmartSuggestions, type SmartSuggestion } from "@/hooks/use-smart-suggestions";
+import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
