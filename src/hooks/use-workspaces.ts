@@ -28,13 +28,17 @@ export function useWorkspaces() {
     const r = await listWorkspaces();
     setResult(r);
     setLoading(false);
+    setDiag({
+      hasSession: !!session,
+      userId: session?.userId ?? null,
+      workspacesCount: r.workspaces.length,
+    });
     if (typeof window !== "undefined") {
-      // Dev-visible signal so users can verify "real vs demo" in console.
       // eslint-disable-next-line no-console
       console.info("[yawb] workspaces source:", r.source, r.error ? `(${r.error})` : "", `count=${r.workspaces.length}`);
     }
     return r;
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     if (authLoading) return;
