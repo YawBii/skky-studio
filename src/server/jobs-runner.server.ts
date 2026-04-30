@@ -27,6 +27,7 @@ interface StepRow {
   id: string; job_id: string; step_key: string; title: string;
   status: StepStatus; position: number; input: Record<string, unknown>;
   output: Record<string, unknown>; logs: Array<{ ts: string; msg: string }>;
+  error?: string | null;
   attempt_number?: number;
 }
 
