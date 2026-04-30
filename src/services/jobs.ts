@@ -77,6 +77,7 @@ export interface JobStep {
   output: Record<string, unknown>;
   logs: Array<{ ts: string; msg: string }>;
   error: string | null;
+  attemptNumber: number;
   startedAt: string | null;
   finishedAt: string | null;
 }
