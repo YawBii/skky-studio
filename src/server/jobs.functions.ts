@@ -1,12 +1,11 @@
 // Client-callable server function. Runs server-side; verifies the caller's
 // auth via the bearer token they send. Browser never executes provider work.
 //
-// NOTE: the runner is imported dynamically inside the handler so the
-// `.server.ts` module never appears as a static import in the client bundle
-// (TanStack import-protection forbids `.server.*` imports from client-reachable
-// modules, even when the handler body is stripped).
+// NOTE: both the server runtime util and the runner are imported dynamically
+// inside the handler so neither `@tanstack/react-start/server` nor any
+// `.server.ts` module appears as a static import in the client bundle —
+// TanStack import-protection forbids both from client-reachable modules.
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader } from "@tanstack/react-start/server";
 
 export interface TickResult {
   advanced: boolean;
@@ -25,6 +24,7 @@ export const runNextJobStep = createServerFn({ method: "POST" })
     return { projectId: data.projectId };
   })
   .handler(async ({ data }): Promise<TickResult> => {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
     const auth = getRequestHeader("authorization") ?? getRequestHeader("Authorization");
     const token = auth?.toLowerCase().startsWith("bearer ")
       ? auth.slice(7).trim()
