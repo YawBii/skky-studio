@@ -105,9 +105,21 @@ export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps)
               expanded={!!expanded[j.id]}
               steps={stepsByJob[j.id] ?? []}
               questions={questionsByJob[j.id] ?? []}
+              attempts={attemptsByJob[j.id] ?? []}
+              diagBlock={
+                <RunnerDiagnostics
+                  job={j}
+                  steps={stepsByJob[j.id] ?? []}
+                  questions={questionsByJob[j.id] ?? []}
+                  lastTick={lastTick}
+                  providerStatus={diag.state.providerConnectionStatus}
+                  lastError={diag.state.lastError}
+                />
+              }
               onToggle={() => toggle(j.id)}
               onCancel={() => cancel(j.id)}
               onRetry={() => retry(j.id)}
+              onRetryStep={(stepId) => retryStep(j.id, stepId)}
               onAnswer={(input) => answer({ ...input, jobId: j.id })}
             />
           ))}
