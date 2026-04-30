@@ -99,8 +99,12 @@ export function SplitPane({
         style={{ touchAction: "none" }}
         title="Drag to resize · double-click to reset"
       >
-        {/* Larger invisible hit area for easier grabbing */}
-        <div className="absolute inset-y-0 -left-2 -right-2" />
+        {/* Larger invisible hit area for easier grabbing — kept inside the
+            separator only. Previously this overflowed -left-2 / -right-2 into
+            both panes and swallowed taps near the divider on touch devices
+            (Surface Pro, iPad). pointer-events-none keeps it visual-only;
+            the parent separator div already handles pointer capture. */}
+        <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex h-12 w-3.5 items-center justify-center rounded-md border border-white/15 bg-white/15 backdrop-blur-sm opacity-80 group-hover:opacity-100 group-active:bg-primary/40 pointer-events-none">
           <GripVertical className="h-3.5 w-3.5 text-foreground/90" />
         </div>
