@@ -40,6 +40,7 @@ export function JobsPanel({ projectId, workspaceId, className }: JobsPanelProps)
     setExpanded((p) => ({ ...p, [id]: !p[id] }));
     if (!stepsByJob[id]) void refreshSteps(id);
     if (!questionsByJob[id]) void refreshQuestions(id);
+    if (!attemptsByJob[id]) void refreshAttempts(id);
   };
 
   const onQuick = async (q: { type: JobType; title: string }) => {
