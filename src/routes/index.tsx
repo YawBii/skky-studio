@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone,
-  ExternalLink, CheckCircle2, AlertTriangle, Play,
+  ExternalLink, CheckCircle2, AlertTriangle, Play, History, GitCommit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
