@@ -4,6 +4,7 @@ import { Plug, Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { connectors as connectorsSvc } from "@/services";
 import { cn } from "@/lib/utils";
+import { GithubStatusPanel } from "@/components/github-status-panel";
 
 export const Route = createFileRoute("/connectors")({
   head: () => ({ meta: [{ title: "Connectors — yawB" }, { name: "description", content: "GitHub, Vercel, Supabase, Stripe and more." }] }),
@@ -21,6 +22,10 @@ function ConnectorsPage() {
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Connectors</h1>
         <p className="text-muted-foreground mt-1">Connect your tools so yawB can build, deploy and maintain on your behalf.</p>
+      </div>
+
+      <div className="mb-8">
+        <GithubStatusPanel />
       </div>
 
       <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-3">Connected · {connected.length}</h2>

@@ -19,6 +19,40 @@ export interface PullRequest {
   createdAt: string;
 }
 
+export interface GithubStatus {
+  connected: boolean;
+  account?: string;
+  repo?: string;
+  targetBranch?: string;
+  lastSyncAt?: string;
+  lastSyncRelative?: string;
+  lastCommitSha?: string;
+  lastCommitMessage?: string;
+  pendingChanges?: number;
+  syncDirection?: "two-way" | "push-only" | "pull-only";
+}
+
+// TODO(codex): replace with GET /repos/{owner}/{repo} + last workflow run timestamp.
+export async function getStatus(): Promise<GithubStatus> {
+  return {
+    connected: true,
+    account: "skky-group",
+    repo: "skky-group/portal",
+    targetBranch: "main",
+    lastSyncAt: new Date(Date.now() - 1000 * 60 * 7).toISOString(),
+    lastSyncRelative: "7m ago",
+    lastCommitSha: "a4f2c91",
+    lastCommitMessage: "feat(settings): add billing tab",
+    pendingChanges: 0,
+    syncDirection: "two-way",
+  };
+}
+
+// TODO(codex): trigger a manual push from Lovable workspace to GitHub default branch.
+export async function syncNow(): Promise<{ ok: true; at: string }> {
+  return { ok: true, at: new Date().toISOString() };
+}
+
 export async function listRepos(): Promise<Repo[]> {
   return [
     { fullName: "skky-group/portal", defaultBranch: "main", private: true, stars: 42, openIssues: 0,
