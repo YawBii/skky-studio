@@ -14,6 +14,8 @@ import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { CreateWorkspaceEmpty, CreateProjectEmpty } from "@/components/empty-states";
+import { DiagnosticsPanel } from "@/components/diagnostics-panel";
+import { setDiag } from "@/lib/diagnostics";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -154,6 +156,10 @@ function WorkspaceShell() {
   // Diagnostics for selection state.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    setDiag({
+      workspaceId: currentWorkspace?.id ?? null,
+      projectId: currentProject?.id ?? null,
+    });
     // eslint-disable-next-line no-console
     console.info("[yawb] selection:", {
       selectedWorkspaceId: currentWorkspace?.id ?? null,
