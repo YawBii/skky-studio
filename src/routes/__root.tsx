@@ -12,6 +12,7 @@ import { useProjectPresence, DEMO_PRESENCE } from "@/services/presence";
 import { SplitPane } from "@/components/split-pane";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useProjects } from "@/hooks/use-projects";
+import { CreateWorkspaceEmpty, CreateProjectEmpty } from "@/components/empty-states";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -101,8 +102,20 @@ function WorkspaceShell() {
     try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
   }, []);
   const { prefs, loaded, update } = useUserPreferences();
-  const { current: currentWorkspace, isReal: workspaceIsReal } = useWorkspaces();
-  const { current: currentProject, isReal: projectIsReal } = useProjects(currentWorkspace?.id);
+  const {
+    current: currentWorkspace,
+    isReal: workspaceIsReal,
+    isEmpty: workspaceEmpty,
+    refresh: refreshWorkspaces,
+    select: selectWorkspace,
+  } = useWorkspaces();
+  const {
+    current: currentProject,
+    isReal: projectIsReal,
+    isEmpty: projectEmpty,
+    refresh: refreshProjects,
+    select: selectProject,
+  } = useProjects(currentWorkspace?.id);
   const presenceProjectId = currentProject?.id ?? "demo-project";
   const { present, isLive } = useProjectPresence({ projectId: presenceProjectId });
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -131,6 +144,33 @@ function WorkspaceShell() {
   const workspaceName = currentWorkspace?.name ?? "Skky Group";
   const projectName = currentProject?.name ?? "Skky Customer Portal";
 
+  // Empty-state overlay: only when the real DB returned 0 rows. Query failures
+  // fall back to demo so we never block on a missing migration.
+  let mainContent: React.ReactNode;
+  if (workspaceEmpty) {
+    mainContent = (
+      <CreateWorkspaceEmpty
+        onCreated={async (w) => {
+          await refreshWorkspaces();
+          selectWorkspace(w.id);
+        }}
+      />
+    );
+  } else if (currentWorkspace && workspaceIsReal && projectEmpty) {
+    mainContent = (
+      <CreateProjectEmpty
+        workspaceId={currentWorkspace.id}
+        workspaceName={currentWorkspace.name}
+        onCreated={async (p) => {
+          await refreshProjects();
+          selectProject(p.id);
+        }}
+      />
+    );
+  } else {
+    mainContent = <Outlet />;
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <AppSidebar />
@@ -157,7 +197,7 @@ function WorkspaceShell() {
             onChange={(w) => { setRightWidth(w); update({ workspaceSplit: { "chat-width-px": w } }); }}
             left={
               <main className="h-full overflow-y-auto scrollbar-thin">
-                <Outlet />
+                {mainContent}
               </main>
             }
             right={<AssistantPanel />}
@@ -167,6 +207,7 @@ function WorkspaceShell() {
       <InviteSheet
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+        workspaceId={workspaceIsReal ? currentWorkspace?.id : undefined}
         workspaceName={workspaceName}
       />
     </div>
