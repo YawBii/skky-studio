@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TeamRouteImport } from './routes/team'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ServerSetupRouteImport } from './routes/server-setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as LoginRouteImport } from './routes/login'
@@ -44,6 +45,11 @@ const SignupRoute = SignupRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServerSetupRoute = ServerSetupRouteImport.update({
+  id: '/server-setup',
+  path: '/server-setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/server-setup': typeof ServerSetupRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/server-setup': typeof ServerSetupRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/server-setup': typeof ServerSetupRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/team': typeof TeamRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/projects'
     | '/reset-password'
+    | '/server-setup'
     | '/settings'
     | '/signup'
     | '/team'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/projects'
     | '/reset-password'
+    | '/server-setup'
     | '/settings'
     | '/signup'
     | '/team'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/projects'
     | '/reset-password'
+    | '/server-setup'
     | '/settings'
     | '/signup'
     | '/team'
@@ -294,6 +306,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ServerSetupRoute: typeof ServerSetupRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   TeamRoute: typeof TeamRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/server-setup': {
+      id: '/server-setup'
+      path: '/server-setup'
+      fullPath: '/server-setup'
+      preLoaderRoute: typeof ServerSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -470,6 +490,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ServerSetupRoute: ServerSetupRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   TeamRoute: TeamRoute,
