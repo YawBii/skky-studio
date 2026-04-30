@@ -57,6 +57,7 @@ function Signup() {
           <h1 className="text-2xl font-display font-bold tracking-tight">Create your workspace</h1>
           <p className="text-sm text-muted-foreground mt-1">Free to start. No credit card required.</p>
         </div>
+        <SupabaseConfigBanner forceShow={!!error && /fetch|supabase|env vars/i.test(error)} />
         <form onSubmit={onSubmit} className="rounded-2xl border border-white/10 bg-gradient-card p-6 shadow-elevated space-y-4">
           <Button type="button" variant="soft" size="lg" className="w-full justify-center" onClick={onGoogle}>
             <span className="text-xs font-bold">G</span> Continue with Google
