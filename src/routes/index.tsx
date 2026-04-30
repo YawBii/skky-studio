@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Workspace,
 });
 
-type Tab = "preview" | "code" | "database" | "deploy";
+type Tab = "preview" | "code" | "database" | "deploy" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -29,6 +29,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "code",     label: "Code",     icon: Code2 },
   { id: "database", label: "Database", icon: Database },
   { id: "deploy",   label: "Deploy",   icon: Rocket },
+  { id: "history",  label: "History",  icon: History },
 ];
 
 function Workspace() {
