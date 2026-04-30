@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Loader2, Plus, Sparkles, Github, Building2 } from "lucide-react";
+import { Loader2, Plus, Sparkles, Github, Building2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createWorkspace, type Workspace } from "@/services/workspaces";
 import { createProject, type Project } from "@/services/projects";
+import { parseRepoInput, recordGitHubConnection, type ParsedRepo } from "@/services/github-import";
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -141,16 +142,129 @@ export function CreateProjectEmpty({
           </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-white/10 px-4 py-6 text-center text-[12px] text-muted-foreground">
-          GitHub import is coming next.
-          <div className="mt-3">
-            <Button variant="outline" size="sm" onClick={() => setMode("describe")}>
-              Describe an app instead
-            </Button>
-          </div>
-        </div>
+        <ImportGitHubForm
+          workspaceId={workspaceId}
+          onCreated={onCreated}
+        />
       )}
     </Shell>
+  );
+}
+
+/* -------- GitHub import sub-form -------- */
+
+function ImportGitHubForm({
+  workspaceId, onCreated,
+}: { workspaceId: string; onCreated: (p: Project) => void }) {
+  const [repoInput, setRepoInput] = useState("");
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [touchedName, setTouchedName] = useState(false);
+  const [touchedSlug, setTouchedSlug] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const parsed: ParsedRepo | null = parseRepoInput(repoInput);
+  const repoError = repoInput.trim().length > 0 && !parsed
+    ? "Use https://github.com/owner/repo or owner/repo"
+    : null;
+
+  // Auto-fill name + slug from parsed repo, until the user edits them.
+  const effectiveName = touchedName ? name : parsed?.repo ?? "";
+  const effectiveSlug = touchedSlug ? slug : (parsed ? slugify(parsed.repo) : "");
+
+  async function submit() {
+    if (!parsed) { toast.error("Enter a valid GitHub repo"); return; }
+    const finalName = effectiveName.trim() || parsed.repo;
+    const finalSlug = slugify(effectiveSlug || parsed.repo);
+    if (finalSlug.length < 1) { toast.error("Slug is required"); return; }
+
+    setBusy(true);
+    const project = await createProject({
+      workspaceId,
+      name: finalName,
+      slug: finalSlug,
+      description: description.trim() || `Imported from github.com/${parsed.fullName}`,
+    });
+    if (!project) {
+      setBusy(false);
+      toast.error("Couldn't create project. Make sure you have member access.");
+      return;
+    }
+
+    // Best-effort GitHub metadata. Do NOT claim sync until a real backend exists.
+    const conn = await recordGitHubConnection({ projectId: project.id, repo: parsed });
+    setBusy(false);
+
+    if (conn.ok) {
+      toast.success(`Project created from ${parsed.fullName} · GitHub link queued`);
+    } else if (conn.reason === "table-missing") {
+      toast.success(`Project "${project.name}" created. GitHub sync will be connected next.`);
+    } else {
+      toast(`Project created. GitHub link failed: ${conn.message ?? conn.reason}`);
+    }
+    onCreated(project);
+  }
+
+  return (
+    <div className="space-y-3">
+      <Field label="GitHub repo" hint="Paste a GitHub URL or owner/repo. We'll never read private code without your token.">
+        <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-background/40 px-3">
+          <Github className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <input
+            value={repoInput}
+            onChange={(e) => setRepoInput(e.target.value)}
+            placeholder="https://github.com/acme/customer-portal"
+            className="flex-1 bg-transparent py-2 text-[13px] outline-none"
+            autoFocus
+          />
+        </div>
+        {repoError && (
+          <p className="mt-1 text-[11px] text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> {repoError}
+          </p>
+        )}
+        {parsed && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Parsed as <span className="font-mono text-foreground/80">{parsed.fullName}</span>
+          </p>
+        )}
+      </Field>
+
+      <Field label="Project name">
+        <Input
+          value={effectiveName}
+          onChange={(e) => { setTouchedName(true); setName(e.target.value); }}
+          placeholder={parsed?.repo ?? "customer-portal"}
+        />
+      </Field>
+
+      <Field label="Slug">
+        <Input
+          value={effectiveSlug}
+          onChange={(e) => { setTouchedSlug(true); setSlug(e.target.value); }}
+          placeholder={parsed ? slugify(parsed.repo) : "customer-portal"}
+        />
+      </Field>
+
+      <Field label="Description (optional)">
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          placeholder="Imported from GitHub. Add context for your team…"
+          className="w-full rounded-lg bg-background/40 border border-white/10 px-3 py-2 text-[13px] outline-none focus:border-primary/50 resize-none"
+        />
+      </Field>
+
+      <Button onClick={submit} variant="hero" className="w-full" disabled={busy || !parsed}>
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
+        Import repository
+      </Button>
+      <p className="text-[10.5px] text-muted-foreground text-center">
+        Real GitHub sync (OAuth, branches, commits) connects in the next pass.
+      </p>
+    </div>
   );
 }
 
