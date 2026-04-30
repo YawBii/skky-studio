@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Trash2, Save } from "lucide-react";
+import { Trash2, Save, Database, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useWorkspaces } from "@/hooks/use-workspaces";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — yawB" }, { name: "description", content: "Workspace preferences and account settings." }] }),
