@@ -527,13 +527,14 @@ function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; qu
 
 // Detailed runner diagnostics for the selected job. Surfaces server-side
 // runner state and clearly distinguishes failure causes.
-function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, lastError }: {
+function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, lastError, buildCfg }: {
   job: Job;
   steps: JobStep[];
   questions: JobQuestion[];
   lastTick: { advanced: boolean; jobId?: string; stepKey?: string; status?: string; error?: string; questionId?: string; cancelled?: boolean } | null;
   providerStatus: Record<string, string> | null;
   lastError: string | null;
+  buildCfg: BuildRunnerConfigSnapshot | null;
 }) {
   const currentStep = steps.find((s) => s.status === "running")
     ?? steps.find((s) => s.status === "waiting_for_input")
@@ -542,26 +543,53 @@ function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, la
   const tickForThisJob = lastTick && lastTick.jobId === job.id ? lastTick : null;
   const failureCause = classifyFailure(tickForThisJob?.error ?? lastError ?? job.error);
   const lastLog = currentStep?.logs?.[currentStep.logs.length - 1] ?? steps.flatMap((s) => s.logs).slice(-1)[0];
+  const isBuildJob = job.type === "build.typecheck" || job.type === "build.production";
 
   return (
-    <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
-      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary mb-1.5">
-        <Wrench className="h-3 w-3" /> Runner diagnostics
+    <div className="space-y-2">
+      <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5">
+        <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-primary mb-1.5">
+          <Wrench className="h-3 w-3" /> Runner diagnostics
+        </div>
+        <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
+          <Row k="job status" v={job.status} />
+          <Row k="current step" v={currentStep ? `${currentStep.title} (${currentStep.stepKey}) · ${currentStep.status}` : "—"} />
+          <Row k="last server tick" v={tickForThisJob
+            ? `${tickForThisJob.advanced ? "advanced" : "no-op"}${tickForThisJob.status ? ` · ${tickForThisJob.status}` : ""}${tickForThisJob.cancelled ? " · cancelled" : ""}`
+            : "—"} />
+          <Row k="server error" v={tickForThisJob?.error ?? lastError ?? "—"} highlight={!!(tickForThisJob?.error ?? lastError)} />
+          <Row k="failure cause" v={failureCause} />
+          <Row k="provider connections" v={providerStatus ? Object.entries(providerStatus).map(([p, s]) => `${p}=${s}`).join(", ") || "none" : "—"} />
+          <Row k="waiting for input" v={openQuestion ? `yes — "${openQuestion.question}"` : "no"} highlight={!!openQuestion} />
+          <Row k="retry count" v={String(job.retryCount)} />
+          <Row k="cancelled" v={job.status === "cancelled" ? "yes" : "no"} />
+          <Row k="last log" v={lastLog ? `${new Date(lastLog.ts).toLocaleTimeString()} — ${lastLog.msg}` : "—"} />
+        </dl>
       </div>
-      <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
-        <Row k="job status" v={job.status} />
-        <Row k="current step" v={currentStep ? `${currentStep.title} (${currentStep.stepKey}) · ${currentStep.status}` : "—"} />
-        <Row k="last server tick" v={tickForThisJob
-          ? `${tickForThisJob.advanced ? "advanced" : "no-op"}${tickForThisJob.status ? ` · ${tickForThisJob.status}` : ""}${tickForThisJob.cancelled ? " · cancelled" : ""}`
-          : "—"} />
-        <Row k="server error" v={tickForThisJob?.error ?? lastError ?? "—"} highlight={!!(tickForThisJob?.error ?? lastError)} />
-        <Row k="failure cause" v={failureCause} />
-        <Row k="provider connections" v={providerStatus ? Object.entries(providerStatus).map(([p, s]) => `${p}=${s}`).join(", ") || "none" : "—"} />
-        <Row k="waiting for input" v={openQuestion ? `yes — "${openQuestion.question}"` : "no"} highlight={!!openQuestion} />
-        <Row k="retry count" v={String(job.retryCount)} />
-        <Row k="cancelled" v={job.status === "cancelled" ? "yes" : "no"} />
-        <Row k="last log" v={lastLog ? `${new Date(lastLog.ts).toLocaleTimeString()} — ${lastLog.msg}` : "—"} />
-      </dl>
+
+      {isBuildJob && (
+        <div className="rounded-md border border-warning/20 bg-warning/5 p-2.5">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-warning mb-1.5">
+            <Wrench className="h-3 w-3" /> Build runner config
+          </div>
+          {buildCfg ? (
+            <>
+              <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
+                <Row k="mode" v={buildCfg.mode} highlight={buildCfg.mode === "none"} />
+                <Row k="BUILD_RUNNER_URL" v={buildCfg.hasBuildRunnerUrl ? "set" : "missing"} highlight={!buildCfg.hasBuildRunnerUrl && buildCfg.mode !== "local"} />
+                <Row k="BUILD_RUNNER_TOKEN" v={buildCfg.hasBuildRunnerToken ? "set" : "missing"} />
+                <Row k="BUILD_RUNNER_MODE" v={buildCfg.hasBuildRunnerMode ? "set" : "missing"} />
+                <Row k="BUILD_COMMAND" v={buildCfg.hasBuildCommand ? "set (override)" : "default: npm run build"} />
+                <Row k="TYPECHECK_COMMAND" v={buildCfg.hasTypecheckCommand ? "set (override)" : "default: npm run typecheck"} />
+                <Row k="BUILD_PREVIEW_COMMAND" v={buildCfg.hasBuildPreviewCommand ? "set (override)" : "—"} />
+              </dl>
+              <div className="text-[10.5px] text-muted-foreground/80 mt-1.5">{buildCfg.reason}</div>
+            </>
+          ) : (
+            <div className="text-[11px] text-muted-foreground">Loading build runner config…</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
