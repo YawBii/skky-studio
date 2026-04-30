@@ -20,7 +20,7 @@ export interface ConnectionStatus {
   vercel: "connected" | "disconnected";
 }
 
-export type CollaboratorRole = "admin" | "member" | "viewer";
+export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
 export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
 
 export interface Collaborator {
@@ -38,7 +38,9 @@ interface WorkspaceTopBarProps {
   connections: ConnectionStatus;
   buildStatus: "passing" | "failing" | "building";
   collaborators?: Collaborator[];
+  presenceLive?: boolean;
   onDeploy?: () => void;
+  onShare?: () => void;
 }
 
 export function WorkspaceTopBar({
@@ -48,7 +50,9 @@ export function WorkspaceTopBar({
   connections,
   buildStatus,
   collaborators = [],
+  presenceLive = false,
   onDeploy,
+  onShare,
 }: WorkspaceTopBarProps) {
   const visible = collaborators.slice(0, 3);
   const extra = Math.max(0, collaborators.length - visible.length);
