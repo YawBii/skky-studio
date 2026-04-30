@@ -141,7 +141,6 @@ function WorkspaceShell() {
           <SplitPane
             initialRightWidth={rightWidth}
             minRightWidth={320}
-            maxRightWidth={720}
             minLeftWidth={320}
             onChange={(w) => { setRightWidth(w); update({ workspaceSplit: { "chat-width-px": w } }); }}
             left={
