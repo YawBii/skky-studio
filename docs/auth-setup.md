@@ -1,8 +1,21 @@
-# Auth bootstrap SQL — external Supabase project
+# Auth setup — external Supabase project
 
-This project authenticates against an **external Supabase project** (not Lovable Cloud). Schema changes here are NOT applied automatically. Run the SQL below in your external project's **SQL Editor** once.
+This project authenticates against an **external Supabase project**. The browser uses only the publishable/anon key — never the service-role key.
 
-The script is idempotent — safe to re-run.
+## 1. Configure environment variables
+
+Edit the project's `.env` file:
+
+```
+VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<your-publishable-or-anon-key>
+```
+
+These are build-time, browser-safe values (RLS enforces all access). Restart the dev server after editing.
+
+## 2. Run the SQL below
+
+Schema changes are NOT applied automatically. Open your external project's **SQL Editor** and run the script once. It is idempotent — safe to re-run.
 
 ## What it creates
 
