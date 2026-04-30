@@ -305,8 +305,12 @@ export function AssistantPanel() {
       </div>
 
       {/* Composer */}
-      <div className="p-3 border-t border-white/5">
+      <div className="p-3 border-t border-white/5 space-y-2">
+        {suggestions.length > 0 && (
+          <SmartSuggestionChips suggestions={suggestions} onAction={dispatchSuggestion} />
+        )}
         <div className="rounded-2xl border border-white/10 bg-background/50 ring-hairline p-2">
+
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
