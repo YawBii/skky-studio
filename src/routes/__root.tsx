@@ -98,6 +98,10 @@ function RootComponent() {
 }
 
 function WorkspaceShell() {
+  // One-time cleanup of the legacy split key from earlier builds.
+  useEffect(() => {
+    try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
+  }, []);
   const { prefs, loaded, update } = useUserPreferences();
   const { present, isLive } = useProjectPresence({ projectId: "demo-project" });
   const [inviteOpen, setInviteOpen] = useState(false);
