@@ -142,14 +142,17 @@ function EmptyMissingTable({ error, sqlFile }: { error: string | null; sqlFile: 
   );
 }
 
-function JobRow({ job, expanded, steps, questions, onToggle, onCancel, onRetry, onAnswer }: {
+function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle, onCancel, onRetry, onRetryStep, onAnswer }: {
   job: Job;
   expanded: boolean;
   steps: JobStep[];
   questions: JobQuestion[];
+  attempts: StepAttempt[];
+  diagBlock: React.ReactNode;
   onToggle: () => void;
   onCancel: () => Promise<unknown>;
   onRetry: () => Promise<unknown>;
+  onRetryStep: (stepId: string) => Promise<unknown>;
   onAnswer: (input: { questionId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => Promise<unknown>;
 }) {
   const canCancel = job.status === "queued" || job.status === "running" || job.status === "waiting_for_input";
@@ -173,12 +176,12 @@ function JobRow({ job, expanded, steps, questions, onToggle, onCancel, onRetry, 
         </div>
         <div className="flex items-center gap-1">
           {canCancel && (
-            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onCancel()} title="Cancel">
+            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onCancel()} title="Cancel job">
               <X className="h-3 w-3" />
             </Button>
           )}
           {canRetry && (
-            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onRetry()} title="Retry">
+            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onRetry()} title="Retry whole job">
               <RotateCcw className="h-3 w-3" />
             </Button>
           )}
@@ -200,24 +203,43 @@ function JobRow({ job, expanded, steps, questions, onToggle, onCancel, onRetry, 
           {steps.length === 0 && (
             <div className="text-[11px] text-muted-foreground">No steps recorded.</div>
           )}
-          {steps.map((s) => <StepRow key={s.id} step={s} />)}
+          {steps.map((s) => (
+            <StepRow
+              key={s.id}
+              step={s}
+              attempts={attempts.filter((a) => a.stepId === s.id)}
+              onRetryStep={() => onRetryStep(s.id)}
+            />
+          ))}
           {questions.length > 0 && <QuestionHistory questions={questions} />}
-          {(job.status === "succeeded" || job.status === "failed") && steps.length > 0 && (
-            <ProofReport steps={steps} jobError={job.error} />
-          )}
+          <ProofReport job={job} steps={steps} questions={questions} />
+          {diagBlock}
         </div>
       )}
     </li>
   );
 }
 
-function StepRow({ step }: { step: JobStep }) {
+function StepRow({ step, attempts, onRetryStep }: {
+  step: JobStep;
+  attempts: StepAttempt[];
+  onRetryStep: () => Promise<unknown>;
+}) {
+  const canRetryStep = step.status === "failed" || step.status === "cancelled";
   return (
     <div className="rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5">
       <div className="flex items-center gap-2">
         <StatusDot status={step.status} />
         <div className="text-[12px] flex-1 truncate">{step.title}</div>
         <span className="text-[10px] text-muted-foreground font-mono">{step.stepKey}</span>
+        {step.attemptNumber > 1 && (
+          <span className="text-[10px] text-muted-foreground font-mono">·attempt {step.attemptNumber}</span>
+        )}
+        {canRetryStep && (
+          <Button size="sm" variant="ghost" className="h-5 px-1" onClick={() => void onRetryStep()} title="Retry this step only">
+            <RotateCcw className="h-3 w-3" /> <span className="text-[10px] ml-0.5">step</span>
+          </Button>
+        )}
       </div>
       {step.error && <div className="mt-1 text-[11px] text-destructive whitespace-pre-wrap">{step.error}</div>}
       {step.logs && step.logs.length > 0 && (
@@ -234,6 +256,29 @@ function StepRow({ step }: { step: JobStep }) {
           {step.startedAt && `start ${new Date(step.startedAt).toLocaleTimeString()}`}
           {step.finishedAt && ` · end ${new Date(step.finishedAt).toLocaleTimeString()}`}
         </div>
+      )}
+      {attempts.length > 1 && (
+        <details className="mt-1.5">
+          <summary className="text-[10.5px] text-muted-foreground cursor-pointer hover:text-foreground">
+            Attempt history ({attempts.length})
+          </summary>
+          <ul className="mt-1 space-y-1 pl-3 border-l border-white/10">
+            {attempts.map((a) => (
+              <li key={a.id} className="text-[10.5px] font-mono">
+                <span className="text-muted-foreground">#{a.attemptNumber}</span>{" "}
+                <span className={cn(
+                  a.status === "succeeded" && "text-success",
+                  a.status === "failed" && "text-destructive",
+                )}>{a.status}</span>
+                {a.error && <span className="text-destructive"> — {a.error}</span>}
+                {" · "}<span className="text-muted-foreground/70">
+                  {new Date(a.startedAt).toLocaleTimeString()}
+                  {a.finishedAt && ` → ${new Date(a.finishedAt).toLocaleTimeString()}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
     </div>
   );
