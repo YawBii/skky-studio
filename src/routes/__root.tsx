@@ -106,6 +106,9 @@ function WorkspaceShell() {
     current: currentWorkspace,
     isReal: workspaceIsReal,
     isEmpty: workspaceEmpty,
+    isError: workspaceError,
+    error: workspaceErrorMessage,
+    source: workspaceSource,
     refresh: refreshWorkspaces,
     select: selectWorkspace,
   } = useWorkspaces();
@@ -141,15 +144,18 @@ function WorkspaceShell() {
     name: p.name, initials: p.initials, color: p.color, role: p.role, status: p.status,
   }));
 
-  const workspaceName = currentWorkspace?.name ?? "Skky Group";
-  const projectName = currentProject?.name ?? "Skky Customer Portal";
+  // Only show a real workspace name. If we're on demo-fallback (signed-out)
+  // or error, show neutral text so the UI doesn't pretend Skky Group exists.
+  const workspaceName = workspaceIsReal && currentWorkspace ? currentWorkspace.name : "yawB";
+  const projectName = currentProject && (workspaceIsReal || workspaceSource === "demo-fallback")
+    ? currentProject.name
+    : "No project selected";
 
-  // Empty-state overlay: only when the real DB returned 0 rows. Query failures
-  // fall back to demo so we never block on a missing migration.
   let mainContent: React.ReactNode;
   if (workspaceEmpty) {
     mainContent = (
       <CreateWorkspaceEmpty
+        errorMessage={workspaceError ? workspaceErrorMessage : undefined}
         onCreated={async (w) => {
           await refreshWorkspaces();
           selectWorkspace(w.id);

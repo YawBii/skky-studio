@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Trash2, Save } from "lucide-react";
+import { Trash2, Save, Database, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useWorkspaces } from "@/hooks/use-workspaces";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — yawB" }, { name: "description", content: "Workspace preferences and account settings." }] }),
@@ -71,17 +73,62 @@ function ProfilePane() {
   );
 }
 function WorkspacePane() {
+  const { current, source, error, isReal, loading } = useWorkspaces();
+  const { session } = useAuth();
+
+  const sourceLabel =
+    source === "supabase" ? { text: "Live · Lovable Cloud", tone: "ok" as const }
+    : source === "demo-empty" ? { text: "No workspace yet", tone: "warn" as const }
+    : source === "error" ? { text: "Cloud query failed", tone: "err" as const }
+    : { text: "Demo (signed-out preview)", tone: "warn" as const };
+
   return (
     <div className="space-y-5">
-      <h2 className="font-display font-semibold">Workspace</h2>
-      <Field label="Workspace name"><Input defaultValue="Skky Group" /></Field>
-      <Field label="Workspace URL"><Input defaultValue="skky-group" /></Field>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display font-semibold">Workspace</h2>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] uppercase tracking-[0.16em] border",
+            sourceLabel.tone === "ok" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+            sourceLabel.tone === "warn" && "border-amber-500/30 bg-amber-500/10 text-amber-300",
+            sourceLabel.tone === "err" && "border-destructive/40 bg-destructive/10 text-destructive",
+          )}
+        >
+          <Database className="h-3 w-3" /> {sourceLabel.text}
+        </span>
+      </div>
+
+      {!isReal && (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[12px] text-muted-foreground flex items-start gap-2">
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <div>
+            {source === "demo-fallback" && <>You're not signed in, so this shows demo data. Sign in to see your real workspace.</>}
+            {source === "demo-empty" && <>No workspace exists yet for <span className="font-mono">{session?.userId ?? "this user"}</span>. Create one from the home screen.</>}
+            {source === "error" && (
+              <>Couldn't read from Lovable Cloud. {error && <span className="block mt-1 break-words">{error}</span>}<span className="block mt-1">Run <code className="font-mono">docs/sql/2026-04-30-collaboration.sql</code> in the Cloud SQL editor.</span></>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Field label="Workspace name">
+        <Input value={loading ? "Loading…" : (current?.name ?? "")} readOnly placeholder="No workspace" />
+      </Field>
+      <Field label="Workspace slug">
+        <Input value={loading ? "" : (current?.slug ?? "")} readOnly placeholder="no-workspace" />
+      </Field>
+      <Field label="Workspace ID">
+        <Input value={current?.id ?? ""} readOnly placeholder="—" />
+      </Field>
+      <Field label="Your role">
+        <Input value={current?.role ?? "—"} readOnly />
+      </Field>
       <Field label="Default region">
         <select className="w-full rounded-lg border border-white/10 bg-background/50 px-3 h-10 text-sm focus:outline-none">
           <option>eu-west-1 (Ireland)</option><option>us-east-1 (Virginia)</option><option>ap-south-1 (Mumbai)</option>
         </select>
       </Field>
-      <Button variant="hero"><Save className="h-4 w-4" /> Save changes</Button>
+      <Button variant="hero" disabled={!isReal}><Save className="h-4 w-4" /> Save changes</Button>
     </div>
   );
 }
