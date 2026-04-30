@@ -5,6 +5,11 @@ import { AssistantPanel } from "@/components/assistant-panel";
 import { WorkspaceTopBar } from "@/components/workspace-top-bar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -67,6 +72,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+const COLLABORATORS = [
+  { name: "Yaw",         initials: "YA", color: "bg-[oklch(0.72_0.18_240)]", role: "admin"  as const, status: "editing" as const },
+  { name: "Builder Bot", initials: "BB", color: "bg-[oklch(0.74_0.16_150)]", role: "member" as const, status: "online"  as const },
+  { name: "Reviewer",    initials: "RV", color: "bg-[oklch(0.72_0.16_30)]",  role: "viewer" as const, status: "viewing" as const },
+];
+
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBare = BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -82,20 +93,33 @@ function RootComponent() {
 
   return (
     <AuthProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
         <div className="flex-1 min-w-0 flex flex-col">
           <WorkspaceTopBar
             projectName="Skky Customer Portal"
+            workspaceName="Skky Group"
             environment="production"
             buildStatus="passing"
             connections={{ github: "connected", supabase: "connected", vercel: "disconnected" }}
+            collaborators={COLLABORATORS}
           />
-          <div className="flex-1 flex min-h-0">
-            <main className="flex-1 min-w-0 overflow-y-auto scrollbar-thin">
-              <Outlet />
-            </main>
-            <AssistantPanel />
+          <div className="flex-1 min-h-0">
+            <ResizablePanelGroup
+              direction="horizontal"
+              autoSaveId="yawb:workspace-split"
+              className="h-full"
+            >
+              <ResizablePanel defaultSize={70} minSize={45} className="min-w-0">
+                <main className="h-full overflow-y-auto scrollbar-thin">
+                  <Outlet />
+                </main>
+              </ResizablePanel>
+              <ResizableHandle className="bg-white/5 hover:bg-white/15 transition-colors" />
+              <ResizablePanel defaultSize={30} minSize={20} maxSize={55} className="min-w-[280px]">
+                <AssistantPanel />
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
         </div>
       </div>
