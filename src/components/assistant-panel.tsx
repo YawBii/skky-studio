@@ -55,6 +55,8 @@ export function AssistantPanel() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Msg[]>(INITIAL);
   const [checklist, setChecklist] = useState(loadChecklist);
+  const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
+  const { project, workspace } = useSelectedProject();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -114,18 +116,32 @@ export function AssistantPanel() {
     if (!text) return;
     setMessages((m) => [...m, { role: "user", content: text }]);
     setPrompt("");
-    const handoff = buildHandoff(text);
     setTimeout(() => {
       setMessages((m) => [
         ...m,
         {
           role: "assistant",
-          content: `Done — ${handoff.summary}`,
-          handoff,
-          proof: buildProof(),
+          content:
+            "I can plan this, but real execution runs through the Jobs panel. Use “Run job” below to enqueue typecheck, build, deploy, or commit. The Jobs tab on this project shows live progress.",
         },
       ]);
-    }, 600);
+    }, 400);
+  };
+
+  const runJob = async (type: JobType, title: string) => {
+    if (!project || !workspace) {
+      toast.error("Select a project first to enqueue a job.");
+      return;
+    }
+    setEnqueuingType(type);
+    const r = await enqueueJob({ projectId: project.id, workspaceId: workspace.id, type, title });
+    setEnqueuingType(null);
+    if (!r.ok) {
+      toast.error(`Couldn't queue job: ${r.error}`);
+      setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue ${type}: ${r.error}` }]);
+      return;
+    }
+    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). Open the Jobs tab to watch progress.` }]);
   };
 
   return (
