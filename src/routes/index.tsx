@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone,
-  ExternalLink, CheckCircle2, AlertTriangle, Play, History, GitCommit,
+  ExternalLink, CheckCircle2, AlertTriangle, Play, History, GitCommit, BarChart3, Globe, Plus, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,15 +21,16 @@ export const Route = createFileRoute("/")({
   component: Workspace,
 });
 
-type Tab = "preview" | "code" | "database" | "deploy" | "history";
+type Tab = "preview" | "code" | "database" | "analytics" | "deploy" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "preview",  label: "Preview",  icon: Eye },
-  { id: "code",     label: "Code",     icon: Code2 },
-  { id: "database", label: "Database", icon: Database },
-  { id: "deploy",   label: "Deploy",   icon: Rocket },
-  { id: "history",  label: "History",  icon: History },
+  { id: "preview",   label: "Preview",   icon: Eye },
+  { id: "code",      label: "Code",      icon: Code2 },
+  { id: "database",  label: "Database",  icon: Database },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "deploy",    label: "Deploy",    icon: Rocket },
+  { id: "history",   label: "History",   icon: History },
 ];
 
 function Workspace() {
@@ -69,11 +70,12 @@ function Workspace() {
 
       {/* Pane */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {tab === "preview"  && <PreviewPane device={device} setDevice={setDevice} />}
-        {tab === "code"     && <ComingSoon title="Code editor" hint="Open the in-app code editor." />}
-        {tab === "database" && <ComingSoon title="Database" hint="Browse tables, RLS, and schema." />}
-        {tab === "deploy"   && <DeployPane />}
-        {tab === "history"  && <HistoryPane />}
+        {tab === "preview"   && <PreviewPane device={device} setDevice={setDevice} />}
+        {tab === "code"      && <ComingSoon title="Code editor" hint="Open the in-app code editor." />}
+        {tab === "database"  && <ComingSoon title="Database" hint="Browse tables, RLS, and schema." />}
+        {tab === "analytics" && <AnalyticsPane />}
+        {tab === "deploy"    && <DeployPane />}
+        {tab === "history"   && <HistoryPane />}
       </div>
 
       {/* Build logs drawer */}
