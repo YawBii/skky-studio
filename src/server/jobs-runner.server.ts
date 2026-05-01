@@ -19,9 +19,12 @@ export type StepStatus =
   | "succeeded" | "failed" | "skipped" | "cancelled";
 export type QuestionKind = "single_choice" | "multi_choice" | "text" | "confirm";
 
-interface JobRow {
+export interface JobRow {
   id: string; project_id: string; workspace_id: string; type: string;
   status: JobStatus; title: string; input: Record<string, unknown>;
+}
+export interface ProjectFilesSupabaseLike {
+  from: (table: string) => any;
 }
 interface StepRow {
   id: string; job_id: string; step_key: string; title: string;
@@ -620,17 +623,17 @@ import {
  * `monsterGenerate` call for an async generator with the same return shape —
  * PreviewPane/project_files do not need to change.
  */
-async function generateAndPersistProjectFiles(
-  sb: SupabaseClient,
+export async function generateAndPersistProjectFiles(
+  sb: ProjectFilesSupabaseLike,
   job: JobRow,
-): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string }> {
+): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string; generator: "monster-brain-v1"; previewReady: boolean }> {
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
     .eq("id", job.project_id)
     .maybeSingle();
   if (pErr || !proj) {
-    return { ok: false, written: [], error: pErr?.message ?? "project not found" };
+    return { ok: false, written: [], error: pErr?.message ?? "project not found", generator: "monster-brain-v1", previewReady: false };
   }
   const input = (job.input ?? {}) as Record<string, unknown>;
   const chatRequest = typeof input.chatRequest === "string"
@@ -648,11 +651,12 @@ async function generateAndPersistProjectFiles(
         { onConflict: "project_id,path" },
       );
     if (error) {
-      return { ok: false, written, error: error.message, archetype, designSignature: monsterSignature(projectInput, archetype) };
+      return { ok: false, written, error: error.message, archetype, designSignature: monsterSignature(projectInput, archetype), generator: "monster-brain-v1", previewReady: false };
     }
     written.push(f.path);
   }
-  return { ok: true, written, archetype, designSignature: monsterSignature(projectInput, archetype) };
+  const sortedWritten = [...written].sort();
+  return { ok: true, written: sortedWritten, archetype, designSignature: monsterSignature(projectInput, archetype), generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html") };
 }
 
 const aiAdapter: ProviderAdapter = {
@@ -672,14 +676,14 @@ const aiAdapter: ProviderAdapter = {
     if (job.type === "ai.generate_changes") {
       const r = await generateAndPersistProjectFiles(sb, job);
       if (!r.ok) {
-        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
+        return { status: "failed", error: r.error ?? "generate failed", output: { generator: r.generator, filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
       }
       const output = {
+        generator: r.generator,
         filesWritten: r.written,
         archetype: r.archetype,
         designSignature: r.designSignature,
-        previewReady: r.written.includes("index.html"),
-        generator: "monster-brain-v1",
+        previewReady: r.previewReady,
       };
       try {
         await sb.from("project_jobs").update({ output }).eq("id", job.id);
@@ -781,12 +785,15 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
         const out = (result.output ?? {}) as Record<string, unknown>;
         result.output = {
           ...out,
+          generator: gen.generator,
           filesWritten: gen.written,
           archetype: gen.archetype,
           designSignature: gen.designSignature,
-          previewReady: gen.written.includes("index.html"),
-          generator: "monster-brain-v1",
+          previewReady: gen.previewReady,
         };
+        try {
+          await sb.from("project_jobs").update({ output: result.output }).eq("id", job.id);
+        } catch { /* best-effort mirror */ }
         result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
       } catch { /* best-effort */ }
     }

@@ -50,7 +50,8 @@ describe("resolvePreviewSource", () => {
     expect(r.kind).toBe("local");
     expect(r.url).toBeUndefined();
     expect(r.srcDoc).toBeUndefined();
-    expect(r.label).toBe("Local preview");
+    expect(r.label).toBe("fallback:placeholder");
+    expect(r.source).toBe("fallback:placeholder");
     expect(r.externalOpenable).toBe(false);
   });
 
@@ -62,7 +63,9 @@ describe("resolvePreviewSource", () => {
     });
     expect(r.kind).toBe("local");
     expect(r.srcDoc).toContain("<!doctype html>");
-    expect(r.url).toBeUndefined();
+    expect(r.url).toBe("project_files/index.html");
+    expect(r.source).toBe("project_files/index.html");
+    expect(r.label).toBe("project_files/index.html");
     expect(r.externalOpenable).toBe(false);
   });
 

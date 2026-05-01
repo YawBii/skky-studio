@@ -217,6 +217,8 @@ describe("PreviewPane — local preview", () => {
     ) as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     expect(iframe!.getAttribute("srcdoc")).toContain("Hello yawB");
+    expect(container.querySelector('[data-testid="preview-url-bar"]')!.textContent).toContain("project_files/index.html");
+    expect(container.querySelector('[data-testid="preview-url-bar"]')!.textContent).not.toContain("in-memory");
   });
 
   it("does not show 'No deploy URL yet' as the main state when local is rendering", () => {

@@ -47,6 +47,8 @@ describe("PreviewPane — generated project_files integration", () => {
     // The iframe should embed the project-specific HTML, not the generic placeholder.
     expect(html).toContain("Goodhand");
     expect(html).toContain("scanner"); // category meta
+    expect(html).toContain("project_files/index.html");
+    expect(html).not.toContain("in-memory");
     expect(html).not.toContain("No generated screens yet");
   });
 
@@ -64,5 +66,6 @@ describe("PreviewPane — generated project_files integration", () => {
       />,
     );
     expect(html).toContain("No generated screens yet");
+    expect(html).toContain("fallback:placeholder");
   });
 });
