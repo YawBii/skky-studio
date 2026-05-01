@@ -779,8 +779,15 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
       try {
         const gen = await generateAndPersistProjectFiles(sb, job);
         const out = (result.output ?? {}) as Record<string, unknown>;
-        result.output = { ...out, filesWritten: gen.written, generator: "deterministic" };
-        result.log = `${result.log ?? "build ok"}; wrote ${gen.written.join(", ") || "<no files>"}`;
+        result.output = {
+          ...out,
+          filesWritten: gen.written,
+          archetype: gen.archetype,
+          designSignature: gen.designSignature,
+          previewReady: gen.written.includes("index.html"),
+          generator: "monster-brain-v1",
+        };
+        result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
       } catch { /* best-effort */ }
     }
     return result;
