@@ -244,8 +244,7 @@ export function getSupabaseStatus(): ProviderStatus {
 
 export async function pingSupabase(): Promise<ProviderStatus> {
   const base = getSupabaseStatus();
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const { url, anon } = readSupabaseEnv();
   if (!url || !anon) return base;
   try {
     const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/health`, {
