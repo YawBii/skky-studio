@@ -4,8 +4,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/services/projects";
+import type { ProjectConnection } from "@/services/project-connections";
+import {
+  resolvePreviewSource,
+  hasLocalPreview,
+  type GeneratedFiles,
+  type ResolvedPreviewSource,
+} from "@/lib/preview-source";
 
 export type PreviewDevice = "desktop" | "tablet" | "mobile";
+export type PreviewMode = "live" | "local";
 
 export interface PreviewPaneProps {
   device: PreviewDevice;
@@ -14,13 +22,19 @@ export interface PreviewPaneProps {
   onStartBuild: () => void;
   starting: boolean;
   selectedPage: string;
+  /** Live (Vercel) deploy URL when available. */
   activeDeployUrl: string | null;
+  /** Project connections — used to resolve the preview source. */
+  connections?: ProjectConnection[] | null;
+  /** Optional generated-files blob for in-browser local preview via srcDoc. */
+  generated?: GeneratedFiles | null;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
 
 const IFRAME_LOAD_TIMEOUT_MS = 8000;
 const IFRAME_SOFT_HINT_MS = 3000;
+const TOGGLE_KEY = (projectId: string) => `yawb:preview:mode:${projectId}`;
 
 export function PreviewPane({
   device,
@@ -30,6 +44,8 @@ export function PreviewPane({
   starting,
   selectedPage,
   activeDeployUrl,
+  connections,
+  generated,
 }: PreviewPaneProps) {
   const widths: Record<PreviewDevice, string> = {
     desktop: "100%",
@@ -37,23 +53,110 @@ export function PreviewPane({
     mobile: "390px",
   };
 
-  const iframeSrc = useMemo(() => {
-    if (!activeDeployUrl) return null;
-    try {
-      const u = new URL(activeDeployUrl);
-      if (selectedPage && selectedPage !== "/") u.pathname = selectedPage;
-      return u.toString();
-    } catch {
-      return activeDeployUrl;
+  // Effective connection list — synthesize a vercel row if the parent only
+  // passed activeDeployUrl (back-compat with existing tests/callers).
+  const effectiveConnections: ProjectConnection[] = useMemo(() => {
+    if (connections && connections.length > 0) return connections;
+    if (activeDeployUrl) {
+      return [
+        {
+          id: "synthetic-vercel",
+          projectId: project.id,
+          provider: "vercel",
+          status: "connected",
+          repoFullName: null,
+          repoUrl: null,
+          defaultBranch: null,
+          metadata: { lastPreviewDeployment: { url: activeDeployUrl } },
+          createdBy: "",
+          createdAt: "",
+          updatedAt: "",
+          workspaceId: null,
+          externalId: null,
+          url: activeDeployUrl,
+          tokenOwnerType: null,
+          providerAccountId: null,
+        },
+      ];
     }
-  }, [activeDeployUrl, selectedPage]);
+    return [];
+  }, [connections, activeDeployUrl, project.id]);
+
+  const liveAvailable = !!activeDeployUrl;
+  const localAvailable = !!project; // route always works; srcDoc is bonus
+  const generatedHasContent = hasLocalPreview(generated ?? null);
+
+  // Persisted toggle. If live is unavailable, default to local. If local is
+  // unavailable, default to live.
+  const [mode, setMode] = useState<PreviewMode>(() => {
+    try {
+      const stored = window.localStorage.getItem(TOGGLE_KEY(project.id)) as PreviewMode | null;
+      if (stored === "live" && liveAvailable) return "live";
+      if (stored === "local" && localAvailable) return "local";
+    } catch {
+      /* ignore */
+    }
+    return liveAvailable ? "live" : "local";
+  });
+
+  // Auto-switch when availability changes (e.g. preview deploy lands).
+  useEffect(() => {
+    if (mode === "live" && !liveAvailable) setMode("local");
+    if (mode === "local" && !localAvailable && liveAvailable) setMode("live");
+  }, [mode, liveAvailable, localAvailable]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TOGGLE_KEY(project.id), mode);
+    } catch {
+      /* ignore */
+    }
+  }, [mode, project.id]);
+
+  const resolved: ResolvedPreviewSource = useMemo(
+    () =>
+      resolvePreviewSource({
+        project,
+        connections: effectiveConnections,
+        generated: generated ?? null,
+        preferred: mode,
+      }),
+    [project, effectiveConnections, generated, mode],
+  );
+
+  useEffect(() => {
+    console.info("[yawb] preview.source.resolved", {
+      kind: resolved.kind,
+      mode,
+      reason: resolved.reason,
+      url: resolved.url,
+      hasSrcDoc: !!resolved.srcDoc,
+    });
+  }, [resolved, mode]);
+
+  // Compute the iframe's effective src URL (with selectedPage overlay for live).
+  const iframeSrc = useMemo(() => {
+    if (!resolved.url) return null;
+    if (resolved.kind === "live") {
+      try {
+        const u = new URL(resolved.url);
+        if (selectedPage && selectedPage !== "/") u.pathname = selectedPage;
+        return u.toString();
+      } catch {
+        return resolved.url;
+      }
+    }
+    return resolved.url;
+  }, [resolved, selectedPage]);
 
   const [iframeState, setIframeState] = useState<IframeState>("idle");
   const [softHintVisible, setSoftHintVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset + start the load timer whenever the iframe URL changes.
+  // Reset + start the load timer whenever the iframe URL or srcDoc changes.
+  // Local previews (srcDoc / same-origin route) get NO failure fallback —
+  // they shouldn't be blocked by CSP.
   useEffect(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -64,14 +167,17 @@ export function PreviewPane({
       softHintRef.current = null;
     }
     setSoftHintVisible(false);
-    if (!iframeSrc) {
+    if (!iframeSrc && !resolved.srcDoc) {
       setIframeState("idle");
       return;
     }
     setIframeState("loading");
-    console.info("[yawb] preview.iframe.loading", { url: iframeSrc });
-    // Soft hint: even if iframe says loaded, cross-origin embeds can be
-    // visually blank. Show non-blocking overlay after 3s regardless.
+    console.info("[yawb] preview.iframe.loading", {
+      kind: resolved.kind,
+      url: iframeSrc,
+      srcDoc: !!resolved.srcDoc,
+    });
+    if (resolved.kind !== "live") return; // skip CSP timeout for local
     softHintRef.current = setTimeout(() => {
       setSoftHintVisible(true);
       console.info("[yawb] preview.fallback.visible", {
@@ -80,14 +186,9 @@ export function PreviewPane({
       });
     }, IFRAME_SOFT_HINT_MS);
     timeoutRef.current = setTimeout(() => {
-      // If still loading after the hard timeout, treat as failed (likely
-      // X-Frame-Options/CSP block — do NOT mark deploy itself as failed).
       setIframeState((cur) => {
         if (cur === "loading") {
-          console.info("[yawb] preview.iframe.failed", {
-            url: iframeSrc,
-            reason: "timeout",
-          });
+          console.info("[yawb] preview.iframe.failed", { url: iframeSrc, reason: "timeout" });
           console.info("[yawb] preview.fallback.visible", {
             url: iframeSrc,
             reason: "iframe-timeout",
@@ -107,7 +208,7 @@ export function PreviewPane({
         softHintRef.current = null;
       }
     };
-  }, [iframeSrc]);
+  }, [iframeSrc, resolved.srcDoc, resolved.kind]);
 
   const onIframeLoad = () => {
     if (timeoutRef.current) {
@@ -115,12 +216,10 @@ export function PreviewPane({
       timeoutRef.current = null;
     }
     setIframeState("loaded");
-    // Cross-origin iframe load events fire even when the embedded page is
-    // visually blocked (CSP/X-Frame-Options sometimes still trigger onload).
-    // We can't introspect contentDocument cross-origin, so treat this as
-    // "loaded but unverified" and keep the open-live-preview affordance.
-    console.info("[yawb] preview.iframe.loaded", { url: iframeSrc });
-    console.info("[yawb] preview.iframe.loaded_unverified", { url: iframeSrc });
+    console.info("[yawb] preview.iframe.loaded", { url: iframeSrc, kind: resolved.kind });
+    if (resolved.kind === "live") {
+      console.info("[yawb] preview.iframe.loaded_unverified", { url: iframeSrc });
+    }
   };
 
   const onIframeError = () => {
@@ -129,17 +228,33 @@ export function PreviewPane({
       timeoutRef.current = null;
     }
     setIframeState("failed");
-    console.info("[yawb] preview.iframe.failed", {
-      url: iframeSrc,
-      reason: "error",
-    });
+    console.info("[yawb] preview.iframe.failed", { url: iframeSrc, reason: "error" });
   };
 
   const onExternalOpen = () => {
-    if (!activeDeployUrl) return;
+    if (!resolved.externalOpenable || !activeDeployUrl) return;
     console.info("[yawb] preview.external.open", { url: activeDeployUrl });
     window.open(activeDeployUrl, "_blank", "noopener");
   };
+
+  const onCreatePreviewDeploy = () => {
+    console.info("[yawb] preview.createDeploy.clicked", { projectId: project.id });
+    window.dispatchEvent(
+      new CustomEvent("yawb:switch-tab", { detail: { tab: "deploy" } }),
+    );
+  };
+
+  const onModeChange = (next: PreviewMode) => {
+    if (next === mode) return;
+    if (next === "live" && !liveAvailable) return;
+    console.info("[yawb] preview.mode.toggled", { from: mode, to: next });
+    setMode(next);
+  };
+
+  const showFallbackCard =
+    resolved.kind === "live" && iframeSrc && iframeState === "failed";
+  const showLocalEmpty =
+    resolved.kind === "local" && !generatedHasContent && !iframeSrc && !resolved.srcDoc;
 
   return (
     <div className="h-full flex flex-col">
@@ -156,37 +271,89 @@ export function PreviewPane({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
+
+        {/* Local | Live toggle */}
+        <div
+          className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5"
+          data-testid="preview-mode-toggle"
+        >
+          <button
+            type="button"
+            onClick={() => onModeChange("local")}
+            disabled={!localAvailable}
+            data-testid="preview-mode-local"
+            aria-pressed={mode === "local"}
+            className={cn(
+              "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
+              mode === "local"
+                ? "bg-white/10 text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+              !localAvailable && "opacity-40 cursor-not-allowed",
+            )}
+          >
+            Local
+          </button>
+          <button
+            type="button"
+            onClick={() => onModeChange("live")}
+            disabled={!liveAvailable}
+            data-testid="preview-mode-live"
+            aria-pressed={mode === "live"}
+            title={liveAvailable ? "Show live deploy" : "No live deploy yet"}
+            className={cn(
+              "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
+              mode === "live"
+                ? "bg-white/10 text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+              !liveAvailable && "opacity-40 cursor-not-allowed",
+            )}
+          >
+            Live
+          </button>
+        </div>
+
         <div
           data-testid="preview-url-bar"
           className="flex-1 mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono"
         >
           <ExternalLink className="h-3 w-3" />
-          {activeDeployUrl ? (
+          {resolved.kind === "live" && activeDeployUrl ? (
             <>
               <span className="truncate text-foreground/80">{activeDeployUrl}</span>
               <span className="text-muted-foreground/50">{selectedPage}</span>
             </>
-          ) : (
+          ) : resolved.kind === "local" ? (
             <>
-              <span className="truncate">{selectedPage}</span>
-              <span className="ml-auto text-muted-foreground/60 text-[10.5px] non-italic">
-                No deploy URL yet
+              <span
+                data-testid="preview-local-badge"
+                className="px-1.5 py-0.5 rounded bg-warning/15 text-warning text-[10px] uppercase tracking-[0.16em] font-sans"
+              >
+                Local preview
               </span>
+              <span className="truncate">{resolved.url ?? "in-memory"}</span>
             </>
+          ) : (
+            <span className="truncate">No preview yet</span>
           )}
         </div>
+
         <Button
           type="button"
           variant="ghost"
           size="icon"
           className="h-7 w-7 touch-manipulation"
           onClick={onExternalOpen}
-          disabled={!activeDeployUrl}
+          disabled={!resolved.externalOpenable || !activeDeployUrl}
           aria-label="Open deploy URL in new tab"
-          title={activeDeployUrl ? "Open in new tab" : "No deploy URL yet"}
+          title={
+            resolved.externalOpenable && activeDeployUrl
+              ? "Open in new tab"
+              : "External open is only available for live deploys"
+          }
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
+
         <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5">
           {(
             [
@@ -214,14 +381,17 @@ export function PreviewPane({
           ))}
         </div>
       </div>
+
       <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
         <div style={{ width: widths[device] }} className="transition-all w-full max-w-full">
-          {iframeSrc && iframeState !== "failed" ? (
+          {(iframeSrc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden relative">
               <iframe
                 title={`${project.name} preview`}
-                src={iframeSrc}
+                src={iframeSrc ?? undefined}
+                srcDoc={resolved.srcDoc}
                 data-testid="preview-iframe"
+                data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}
                 onError={onIframeError}
                 className="w-full h-full block bg-background"
@@ -235,9 +405,8 @@ export function PreviewPane({
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               )}
-              {/* Always-visible "Open live preview" overlay button — works
-                  whether the iframe loaded, is loading, or is silently blank. */}
-              {activeDeployUrl && (
+              {/* Open-live overlay only for live deploys (external openable). */}
+              {resolved.kind === "live" && activeDeployUrl && (
                 <Button
                   type="button"
                   variant="secondary"
@@ -251,9 +420,8 @@ export function PreviewPane({
                   Open live preview
                 </Button>
               )}
-              {/* Soft hint after 3s — non-blocking, suggests opening externally
-                  if the iframe looks blank/blocked. */}
-              {softHintVisible && activeDeployUrl && (
+              {/* Soft hint: only for live (cross-origin embed risk). */}
+              {softHintVisible && resolved.kind === "live" && activeDeployUrl && (
                 <div
                   data-testid="preview-iframe-soft-hint"
                   className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 backdrop-blur px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated"
@@ -270,8 +438,17 @@ export function PreviewPane({
                   </button>
                 </div>
               )}
+              {/* Subtle "Local preview" pill on local */}
+              {resolved.kind === "local" && (
+                <div
+                  data-testid="preview-local-corner-badge"
+                  className="absolute top-3 left-3 rounded-md bg-background/80 backdrop-blur px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-warning border border-warning/20"
+                >
+                  Local preview
+                </div>
+              )}
             </div>
-          ) : iframeSrc && iframeState === "failed" ? (
+          ) : showFallbackCard ? (
             <div
               data-testid="preview-iframe-fallback"
               className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden"
@@ -300,34 +477,50 @@ export function PreviewPane({
               </div>
             </div>
           ) : (
+            // Empty local state — only when user picked Local and there's nothing to render.
             <div
               data-testid="preview-empty-state"
               className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden"
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Preview
+                  {resolved.kind === "local" ? "Local preview" : "Preview"}
                 </div>
-                <h2 className="mt-3 text-3xl md:text-4xl font-display font-bold tracking-tight text-balance">
-                  {project.name}
+                <h2 className="mt-3 text-2xl md:text-3xl font-display font-bold tracking-tight text-balance">
+                  {resolved.kind === "local"
+                    ? "No local preview yet"
+                    : project.name}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground max-w-md text-pretty">
-                  Tell yawB in the chat what to build. The first build will appear here.
+                  {resolved.kind === "local"
+                    ? "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
+                    : "Tell yawB in the chat what to build. The first build will appear here."}
                 </p>
-                <Button
-                  type="button"
-                  variant="hero"
-                  className="mt-5 touch-manipulation"
-                  onClick={onStartBuild}
-                  disabled={starting}
-                >
-                  {starting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Play className="h-3.5 w-3.5" />
-                  )}
-                  {starting ? "Queuing…" : "Start a build"}
-                </Button>
+                <div className="mt-5 flex items-center gap-2 flex-wrap justify-center">
+                  <Button
+                    type="button"
+                    variant="hero"
+                    className="touch-manipulation"
+                    onClick={onStartBuild}
+                    disabled={starting}
+                  >
+                    {starting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5" />
+                    )}
+                    {starting ? "Queuing…" : "Start a build"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onCreatePreviewDeploy}
+                    data-testid="preview-create-deploy-cta"
+                  >
+                    Create preview deploy
+                  </Button>
+                </div>
               </div>
             </div>
           )}
