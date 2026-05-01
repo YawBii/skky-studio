@@ -123,6 +123,23 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
           const { resolvedFailed } = partitionFailures(jobs);
           const resolvedIds = new Set(resolvedFailed.map((j) => j.id));
           const activeJobs = jobs.filter((j) => !resolvedIds.has(j.id));
+          // Group resolved failures by job type
+          const groups = new Map<string, Job[]>();
+          for (const j of resolvedFailed) {
+            const arr = groups.get(j.type) ?? [];
+            arr.push(j);
+            groups.set(j.type, arr);
+          }
+          const focusJob = (id: string) => {
+            setExpanded((p) => ({ ...p, [id]: true }));
+            void refreshSteps(id);
+            void refreshQuestions(id);
+            void refreshAttempts(id);
+            requestAnimationFrame(() => {
+              const el = document.getElementById(`job-row-${id}`);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+          };
           const renderRow = (j: Job) => (
             <JobRow key={j.id}
               job={j}
@@ -150,18 +167,50 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
           );
           return (
             <>
+              {jobs.length > 0 && (
+                <JobTimeline jobs={jobs} onJobClick={focusJob} />
+              )}
+              {resolvedFailed.length > 0 && (
+                <div className="px-4 py-2 border-b border-white/5 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowResolvedHistory((v) => !v)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                  >
+                    {showResolvedHistory
+                      ? `Hide resolved history (${resolvedFailed.length})`
+                      : `Show resolved history (${resolvedFailed.length})`}
+                  </button>
+                </div>
+              )}
               <ul className="divide-y divide-white/5">
                 {activeJobs.map(renderRow)}
               </ul>
-              {resolvedFailed.length > 0 && (
-                <details className="border-t border-white/5">
-                  <summary className="px-4 py-2.5 text-[11.5px] text-muted-foreground cursor-pointer hover:text-foreground select-none">
-                    Resolved history ({resolvedFailed.length}) · superseded by a later success
-                  </summary>
-                  <ul className="divide-y divide-white/5 opacity-70">
-                    {resolvedFailed.map(renderRow)}
-                  </ul>
-                </details>
+              {showResolvedHistory && resolvedFailed.length > 0 && (
+                <div className="border-t border-white/5">
+                  {Array.from(groups.entries()).map(([type, list]) => (
+                    <details key={type} open className="border-b border-white/5">
+                      <summary className="px-4 py-2 text-[11.5px] text-muted-foreground cursor-pointer hover:text-foreground select-none">
+                        Resolved {type} failures ({list.length}) · superseded by a later success
+                      </summary>
+                      <ul className="divide-y divide-white/5 opacity-70">
+                        {list.map((j) => {
+                          const r = getResolvingSuccess(j, jobs);
+                          return (
+                            <div key={j.id}>
+                              {renderRow(j)}
+                              {r && (
+                                <div className="px-4 pb-2 -mt-1 ml-10 text-[10.5px] font-mono text-muted-foreground">
+                                  superseded by <button onClick={() => focusJob(r.id)} className="underline hover:text-foreground">{r.id.slice(0, 8)}</button> · {new Date(r.createdAt).toLocaleTimeString()}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  ))}
+                </div>
               )}
             </>
           );
