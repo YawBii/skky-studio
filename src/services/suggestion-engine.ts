@@ -589,3 +589,50 @@ function truncate(s: string, n: number): string {
   if (s.length <= n) return s;
   return s.slice(0, n - 1) + "…";
 }
+
+function slug(s: string): string {
+  return (s || "x").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "x";
+}
+
+interface AiPlanAction {
+  label: string;
+  reason: string;
+  category: SuggestionCategory;
+  prompt: string;
+  confidence: number;
+  risk: "low" | "medium" | "high";
+}
+
+const AI_PLAN_ALLOWED_CATEGORIES: SuggestionCategory[] = [
+  "build_next", "improve_quality", "fix_failure", "publish_deploy", "inspect_proof",
+];
+
+/**
+ * Extract recommendedActions from an ai.plan job's `output.plan`. Tolerant of
+ * partial/missing fields — returns [] if nothing usable.
+ */
+export function extractPlanActions(output: unknown): AiPlanAction[] {
+  if (!output || typeof output !== "object") return [];
+  const plan = (output as { plan?: unknown }).plan;
+  if (!plan || typeof plan !== "object") return [];
+  const actions = (plan as { recommendedActions?: unknown }).recommendedActions;
+  if (!Array.isArray(actions)) return [];
+  const out: AiPlanAction[] = [];
+  for (const item of actions) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const cat = String(o.category ?? "build_next") as SuggestionCategory;
+    const category: SuggestionCategory = AI_PLAN_ALLOWED_CATEGORIES.includes(cat) ? cat : "build_next";
+    const risk = String(o.risk ?? "low");
+    out.push({
+      label: String(o.label ?? "").slice(0, 80),
+      reason: String(o.reason ?? ""),
+      category,
+      prompt: String(o.prompt ?? ""),
+      confidence: typeof o.confidence === "number" ? o.confidence : 0.5,
+      risk: (risk === "low" || risk === "medium" || risk === "high") ? risk : "low",
+    });
+  }
+  return out;
+}
+
