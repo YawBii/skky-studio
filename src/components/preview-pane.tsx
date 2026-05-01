@@ -92,11 +92,7 @@ export function PreviewPane({
   connections,
   generated,
 }: PreviewPaneProps) {
-  const widths: Record<PreviewDevice, string> = {
-    desktop: "100%",
-    tablet: "820px",
-    mobile: "390px",
-  };
+  const viewport = DEVICE_VIEWPORTS[device];
 
   // Effective connection list — synthesize a vercel row if the parent only
   // passed activeDeployUrl (back-compat with existing tests/callers).
