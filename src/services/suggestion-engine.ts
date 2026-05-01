@@ -15,7 +15,7 @@ import type { ProjectConnection } from "@/services/project-connections";
 import type { Workspace } from "@/services/workspaces";
 import type { Project } from "@/services/projects";
 import type { DiagState } from "@/lib/diagnostics";
-import { isFailedJobResolved, isPlaceholderFailure, latestFailedJob, latestSucceededJob, describeUnresolvedReason, getResolvingSuccess, partitionFailures } from "@/lib/job-resolution";
+import { isFailedJobResolved, isPlaceholderFailure, isAiPlannerSetupFailure, latestFailedJob, latestSucceededJob, describeUnresolvedReason, getResolvingSuccess, partitionFailures } from "@/lib/job-resolution";
 
 export type SuggestionCategory =
   | "blocking"
@@ -221,7 +221,14 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
 
   // Failed job → fix it. Skip "resolved" failures (newer same-type success,
   // or transient runner errors when a newer build.production has succeeded).
-  const failed = jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs));
+  // Also skip ai.plan setup failures — they need provider configuration, not
+  // retry; we surface a dedicated "Configure AI provider" suggestion below.
+  const failed = jobs.find(
+    (j) =>
+      j.status === "failed" &&
+      !isFailedJobResolved(j, jobs) &&
+      !isAiPlannerSetupFailure(j),
+  );
   if (failed) {
     const errText = (failed.error ?? "").toLowerCase();
     const isRunnerErr = errText.includes("build runner") || errText.includes("runner is not configured");
@@ -249,9 +256,21 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     }
   }
 
-  // Placeholder feature gaps — surface a single low-priority "wire it" hint
-  // instead of noisy retry chips. These failures are filtered out of the
-  // active-failure set above (isFailedJobResolved returns true for them).
+  // ai.plan setup failure → "Configure AI provider", not Retry.
+  const aiSetupFail = jobs.find((j) => isAiPlannerSetupFailure(j));
+  if (aiSetupFail) {
+    out.push({
+      id: "configure-ai-provider",
+      label: "Configure AI provider",
+      category: "blocking",
+      priority: CATEGORY_BASE.blocking - 4,
+      action: { kind: "open_server_setup" },
+      reason: "ai.plan failed because the AI planner provider key is not configured.",
+      explanation: "Set LOVABLE_API_KEY (or AI_GATEWAY_KEY) in server env, then re-run ai.plan.",
+    });
+  }
+
+  // Placeholder feature gaps — legacy "provider call is not wired yet" hint.
   const aiPlanPlaceholder = jobs.find(
     (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
   );
@@ -265,6 +284,28 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       reason: "ai.plan job exists but provider execution is not implemented yet.",
       explanation: "ai.plan job exists but provider execution is not implemented yet.",
     });
+  }
+
+  // Prefer recommendations from the most recent successful ai.plan job. These
+  // are model-generated, project-specific, and outrank the heuristic
+  // build_next chips below.
+  const latestAiPlan = latestSucceededJob(jobs, "ai.plan");
+  if (latestAiPlan) {
+    const planActions = extractPlanActions(latestAiPlan.output);
+    for (const a of planActions.slice(0, 4)) {
+      out.push({
+        id: `ai-plan-${latestAiPlan.id}-${slug(a.label)}`,
+        label: a.label || "AI suggestion",
+        category: a.category,
+        // Boost above heuristic build_next so AI recs win when present.
+        priority: CATEGORY_BASE[a.category] + 12 + Math.round((a.confidence ?? 0.5) * 5),
+        action: a.prompt
+          ? { kind: "ask_chat_prefill", prompt: a.prompt }
+          : { kind: "open_command_center" },
+        reason: a.reason || `From ai.plan ${latestAiPlan.id}`,
+        explanation: `AI plan • ${Math.round((a.confidence ?? 0.5) * 100)}% confidence • risk ${a.risk ?? "low"}`,
+      });
+    }
   }
 
   // Build runner not configured but no failure yet → only suggest if user is
@@ -548,3 +589,50 @@ function truncate(s: string, n: number): string {
   if (s.length <= n) return s;
   return s.slice(0, n - 1) + "…";
 }
+
+function slug(s: string): string {
+  return (s || "x").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "x";
+}
+
+interface AiPlanAction {
+  label: string;
+  reason: string;
+  category: SuggestionCategory;
+  prompt: string;
+  confidence: number;
+  risk: "low" | "medium" | "high";
+}
+
+const AI_PLAN_ALLOWED_CATEGORIES: SuggestionCategory[] = [
+  "build_next", "improve_quality", "fix_failure", "publish_deploy", "inspect_proof",
+];
+
+/**
+ * Extract recommendedActions from an ai.plan job's `output.plan`. Tolerant of
+ * partial/missing fields — returns [] if nothing usable.
+ */
+export function extractPlanActions(output: unknown): AiPlanAction[] {
+  if (!output || typeof output !== "object") return [];
+  const plan = (output as { plan?: unknown }).plan;
+  if (!plan || typeof plan !== "object") return [];
+  const actions = (plan as { recommendedActions?: unknown }).recommendedActions;
+  if (!Array.isArray(actions)) return [];
+  const out: AiPlanAction[] = [];
+  for (const item of actions) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const cat = String(o.category ?? "build_next") as SuggestionCategory;
+    const category: SuggestionCategory = AI_PLAN_ALLOWED_CATEGORIES.includes(cat) ? cat : "build_next";
+    const risk = String(o.risk ?? "low");
+    out.push({
+      label: String(o.label ?? "").slice(0, 80),
+      reason: String(o.reason ?? ""),
+      category,
+      prompt: String(o.prompt ?? ""),
+      confidence: typeof o.confidence === "number" ? o.confidence : 0.5,
+      risk: (risk === "low" || risk === "medium" || risk === "high") ? risk : "low",
+    });
+  }
+  return out;
+}
+

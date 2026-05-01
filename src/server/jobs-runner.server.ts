@@ -604,24 +604,55 @@ export function getBuildRunnerConfigServer(): {
   };
 }
 
+import { runAiPlan, gatherPlanContext, isAiPlannerConfigured, AI_PLANNER_NOT_CONFIGURED_ERROR } from "./ai-planner.server";
+
 const aiAdapter: ProviderAdapter = {
   name: "ai",
   async isConfigured() {
-    return Boolean(process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY);
+    return isAiPlannerConfigured();
   },
   async verifyConnection() {
-    if (!(process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY)) {
-      return { ok: false, error: "AI gateway key is not configured." };
+    if (!isAiPlannerConfigured()) {
+      return { ok: false, error: AI_PLANNER_NOT_CONFIGURED_ERROR };
     }
     return { ok: true };
   },
-  async runStep(_sb, job, _step) {
-    if (!(process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY)) {
-      return { status: "failed", error: "AI gateway key is not configured." };
+  async runStep(sb, job, step) {
+    if (!isAiPlannerConfigured()) {
+      return { status: "failed", error: AI_PLANNER_NOT_CONFIGURED_ERROR };
+    }
+    if (job.type === "ai.plan") {
+      const input = (job.input ?? {}) as Record<string, unknown>;
+      const { context, missing, sources } = await gatherPlanContext(sb, {
+        projectId: job.project_id,
+        workspaceId: job.workspace_id,
+        selectedPage: typeof input.selectedPage === "string" ? input.selectedPage : null,
+        selectedEnvironment: typeof input.selectedEnvironment === "string" ? input.selectedEnvironment : null,
+        chatRequest: typeof input.chatRequest === "string" ? input.chatRequest
+          : typeof input.prompt === "string" ? input.prompt : null,
+      });
+      const r = await runAiPlan({ context, contextSources: sources, baseMissing: missing });
+      if (!r.ok) {
+        return {
+          status: "failed",
+          error: r.error,
+          output: { setupError: Boolean(r.setupError), httpStatus: r.httpStatus ?? null },
+          log: r.error,
+        };
+      }
+      // Mirror plan into job output so the browser sees it on the Job row.
+      try {
+        await sb.from("project_jobs").update({ output: { plan: r.plan } }).eq("id", job.id);
+      } catch { /* best-effort mirror */ }
+      return {
+        status: "succeeded",
+        output: { plan: r.plan },
+        log: `ai.plan ok: ${r.plan.recommendedActions.length} actions in ${r.plan.proof.durationMs}ms (model=${r.plan.proof.model})`,
+      };
     }
     return { status: "failed", error: `${job.type}: provider call is not wired yet.` };
   },
-  missingConfigReason: () => "AI gateway key is not configured.",
+  missingConfigReason: () => AI_PLANNER_NOT_CONFIGURED_ERROR,
 };
 
 function adapterForJobType(type: string): ProviderAdapter | null {

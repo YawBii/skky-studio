@@ -17,12 +17,24 @@ const TRANSIENT_ERROR_PATTERNS = [
  * Known placeholder / "feature gap" failures that should NOT be treated as
  * actionable runtime failures. They represent a backend feature that isn't
  * wired yet — surfacing them as "Action needed" / "Retry failed step" is
- * misleading. Suggestion engine emits a single low-priority "wire it" hint
- * instead, and Command Center treats them as resolved.
+ * misleading.
+ *
+ * NOTE: "provider call is not wired yet" is the legacy ai.plan placeholder
+ * message — kept here so historical failures stay collapsed in resolved
+ * history. The new provider returns "AI planner provider is not configured."
+ * which is handled by `isAiPlannerSetupFailure` below (a distinct setup
+ * error, not a placeholder gap).
  */
 const PLACEHOLDER_FAILURES: Array<{ type: string; pattern: RegExp }> = [
   { type: "ai.plan", pattern: /provider call is not wired yet/i },
 ];
+
+/** True if a failed job matches the new ai.plan setup error (missing key). */
+export function isAiPlannerSetupFailure(failed: Job): boolean {
+  if (failed.status !== "failed") return false;
+  if (failed.type !== "ai.plan") return false;
+  return /AI planner provider is not configured/i.test(failed.error ?? "");
+}
 
 /** True if a failed job matches a known placeholder feature gap. */
 export function isPlaceholderFailure(failed: Job): boolean {
