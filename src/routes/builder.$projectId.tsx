@@ -1,20 +1,31 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus, Activity, Loader2 } from "lucide-react";
+import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus, Activity, Loader2, ChevronDown, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/services/projects";
 import { JobsPanel } from "@/components/jobs-panel";
 import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
+import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
 import {
   CommandCenterPill,
   CommandCenterDrawer,
   deriveCommandCenterState,
   useCommandCenterAutoOpen,
 } from "@/components/command-center";
+
+const FALLBACK_PAGES: { path: string; label: string }[] = [
+  { path: "/",          label: "Home" },
+  { path: "/dashboard", label: "Dashboard" },
+  { path: "/settings",  label: "Settings" },
+  { path: "/projects",  label: "Projects" },
+  { path: "/billing",   label: "Billing" },
+  { path: "/team",      label: "Team" },
+];
 
 export const Route = createFileRoute("/builder/$projectId")({
   head: ({ params }) => ({
