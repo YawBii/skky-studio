@@ -15,7 +15,7 @@ import type { ProjectConnection } from "@/services/project-connections";
 import type { Workspace } from "@/services/workspaces";
 import type { Project } from "@/services/projects";
 import type { DiagState } from "@/lib/diagnostics";
-import { isFailedJobResolved, latestFailedJob, latestSucceededJob, describeUnresolvedReason, getResolvingSuccess, partitionFailures } from "@/lib/job-resolution";
+import { isFailedJobResolved, isPlaceholderFailure, latestFailedJob, latestSucceededJob, describeUnresolvedReason, getResolvingSuccess, partitionFailures } from "@/lib/job-resolution";
 
 export type SuggestionCategory =
   | "blocking"
@@ -247,6 +247,24 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
         unresolvedReason,
       });
     }
+  }
+
+  // Placeholder feature gaps — surface a single low-priority "wire it" hint
+  // instead of noisy retry chips. These failures are filtered out of the
+  // active-failure set above (isFailedJobResolved returns true for them).
+  const aiPlanPlaceholder = jobs.find(
+    (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
+  );
+  if (aiPlanPlaceholder) {
+    out.push({
+      id: "wire-ai-planner-provider",
+      label: "Wire AI planner provider",
+      category: "build_next",
+      priority: CATEGORY_BASE.build_next - 5,
+      action: { kind: "open_server_setup" },
+      reason: "ai.plan job exists but provider execution is not implemented yet.",
+      explanation: "ai.plan job exists but provider execution is not implemented yet.",
+    });
   }
 
   // Build runner not configured but no failure yet → only suggest if user is

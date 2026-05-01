@@ -34,4 +34,22 @@ describe("suggestion engine retry suggestions", () => {
     const out = buildSmartSuggestions({ ...baseCtx, jobs });
     expect(out.some((s) => s.id.startsWith("retry-"))).toBe(false);
   });
+
+  it("does NOT emit Retry for ai.plan provider-not-wired placeholder failure", () => {
+    const jobs = [
+      mkJob({ id: "f1", type: "ai.plan", status: "failed", createdAt: "2026-05-01T11:00:00Z", error: "Provider call is not wired yet — no real changes were made." }),
+    ];
+    const out = buildSmartSuggestions({ ...baseCtx, jobs });
+    expect(out.some((s) => s.id.startsWith("retry-"))).toBe(false);
+    expect(out.some((s) => s.id === "wire-ai-planner-provider")).toBe(true);
+  });
+
+  it("DOES emit Retry for a real ai.plan runtime error", () => {
+    const jobs = [
+      mkJob({ id: "f1", type: "ai.plan", status: "failed", createdAt: "2026-05-01T11:00:00Z", error: "TypeError: cannot read property foo of undefined" }),
+    ];
+    const out = buildSmartSuggestions({ ...baseCtx, jobs });
+    expect(out.some((s) => s.id.startsWith("retry-"))).toBe(true);
+    expect(out.some((s) => s.id === "wire-ai-planner-provider")).toBe(false);
+  });
 });
