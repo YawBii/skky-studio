@@ -102,12 +102,16 @@ export async function createConnection(input: {
   repoUrl?: string | null;
   defaultBranch?: string | null;
   metadata?: Record<string, unknown>;
+  workspaceId?: string | null;
+  externalId?: string | null;
+  url?: string | null;
+  tokenOwnerType?: "workspace" | "user";
 }): Promise<CreateConnectionResult> {
   try {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return { ok: false, error: "Not signed in", code: "NO_SESSION" };
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       project_id: input.projectId,
       provider: input.provider,
       status: input.status ?? "pending",
@@ -117,6 +121,10 @@ export async function createConnection(input: {
       metadata: input.metadata ?? {},
       created_by: u.user.id,
     };
+    if (input.workspaceId !== undefined)   payload.workspace_id = input.workspaceId;
+    if (input.externalId !== undefined)    payload.external_id = input.externalId;
+    if (input.url !== undefined)           payload.url = input.url;
+    if (input.tokenOwnerType !== undefined) payload.token_owner_type = input.tokenOwnerType;
 
     const { data, error } = await supabase
       .from("project_connections")
@@ -132,6 +140,99 @@ export async function createConnection(input: {
     }
     if (!data) return { ok: false, error: "Insert returned no row", code: "NO_ROW" };
     return { ok: true, connection: rowToConnection(data) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// Find an existing connection by (provider, external_id) — used to avoid
+// duplicate imports when a yawB project already exists for a repo/Vercel project.
+export async function findConnectionByExternalId(
+  provider: ConnectionProvider,
+  externalId: string,
+): Promise<{ ok: true; connection: ProjectConnection | null } | { ok: false; error: string }> {
+  try {
+    const { data, error } = await supabase
+      .from("project_connections")
+      .select("*")
+      .eq("provider", provider)
+      .eq("external_id", externalId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      if (isMissingTable(error)) return { ok: false, error: error.message };
+      return { ok: false, error: error.message };
+    }
+    return { ok: true, connection: data ? rowToConnection(data) : null };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// Upsert a connection for a (project_id, provider, external_id) tuple.
+// Updates status / url / metadata if a row already exists for this project.
+export async function upsertConnection(input: {
+  projectId: string;
+  provider: ConnectionProvider;
+  externalId: string;
+  status: ConnectionStatus;
+  url?: string | null;
+  repoFullName?: string | null;
+  repoUrl?: string | null;
+  defaultBranch?: string | null;
+  workspaceId?: string | null;
+  metadata?: Record<string, unknown>;
+  tokenOwnerType?: "workspace" | "user";
+}): Promise<CreateConnectionResult> {
+  try {
+    const { data: existing, error: selErr } = await supabase
+      .from("project_connections")
+      .select("*")
+      .eq("project_id", input.projectId)
+      .eq("provider", input.provider)
+      .eq("external_id", input.externalId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (selErr && !isMissingTable(selErr)) {
+      return { ok: false, error: selErr.message, code: selErr.code };
+    }
+    if (existing) {
+      const patch: Record<string, unknown> = {
+        status: input.status,
+        url: input.url ?? null,
+        repo_full_name: input.repoFullName ?? existing.repo_full_name,
+        repo_url: input.repoUrl ?? existing.repo_url,
+        default_branch: input.defaultBranch ?? existing.default_branch,
+        metadata: { ...(existing.metadata as Record<string, unknown> ?? {}), ...(input.metadata ?? {}) },
+        updated_at: new Date().toISOString(),
+      };
+      if (input.workspaceId !== undefined)    patch.workspace_id = input.workspaceId;
+      if (input.tokenOwnerType !== undefined) patch.token_owner_type = input.tokenOwnerType;
+      const { data, error } = await supabase
+        .from("project_connections")
+        .update(patch)
+        .eq("id", existing.id)
+        .select("*")
+        .maybeSingle();
+      if (error) return { ok: false, error: error.message, code: error.code };
+      if (!data) return { ok: false, error: "Update returned no row", code: "NO_ROW" };
+      return { ok: true, connection: rowToConnection(data) };
+    }
+    return createConnection({
+      projectId: input.projectId,
+      provider: input.provider,
+      status: input.status,
+      repoFullName: input.repoFullName,
+      repoUrl: input.repoUrl,
+      defaultBranch: input.defaultBranch,
+      metadata: input.metadata,
+      workspaceId: input.workspaceId,
+      externalId: input.externalId,
+      url: input.url,
+      tokenOwnerType: input.tokenOwnerType,
+    });
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
