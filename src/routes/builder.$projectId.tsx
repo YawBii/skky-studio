@@ -92,6 +92,19 @@ function Builder() {
     return () => window.removeEventListener("yawb:switch-tab", handler as EventListener);
   }, []);
 
+  // Live job state for the Command Center pill/drawer. Polling only runs
+  // while there is active work (handled inside useProjectJobs).
+  const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null);
+  const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
+  const { open: ccOpen, setOpen: setCcOpen, effectiveMode: ccMode } = useCommandCenterAutoOpen(ccState, {
+    onJobSucceeded: (j) => {
+      // After a successful build, return focus to Preview.
+      if (j.type === "build.production" || j.type === "build.typecheck") {
+        setTab("preview");
+      }
+    },
+  });
+
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
     throw notFound();
