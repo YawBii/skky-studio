@@ -116,45 +116,43 @@ describe("PreviewPane", () => {
     expect(btn!.disabled).toBe(true);
   });
 
-  it("shows the friendly fallback card after iframe error and external-open still works", () => {
-    const url = "https://preview-blocked.vercel.app";
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-    const container = render(
-      <PreviewPane
-        device="desktop"
-        setDevice={() => {}}
-        project={project}
-        onStartBuild={() => {}}
-        starting={false}
-        selectedPage="/"
-        activeDeployUrl={url}
-      />,
-    );
-    const iframe = container.querySelector(
-      '[data-testid="preview-iframe"]',
-    ) as HTMLIFrameElement | null;
-    expect(iframe).not.toBeNull();
-    act(() => {
-      // React attaches onerror via addEventListener; dispatch a non-bubbling
-      // error event to trigger the React handler.
-      iframe!.dispatchEvent(new Event("error", { bubbles: false, cancelable: false }));
-      // Fallback: also invoke property handler if React used the property.
-      const handler = (iframe as unknown as { onerror?: (e: Event) => void }).onerror;
-      if (typeof handler === "function") handler.call(iframe, new Event("error"));
-    });
-    const fallback = container.querySelector(
-      '[data-testid="preview-iframe-fallback"]',
-    ) as HTMLElement | null;
-    expect(fallback).not.toBeNull();
-    expect(fallback!.textContent).toContain("This app may block embedded preview.");
-    const openBtn = container.querySelector(
-      'button[aria-label="Open live preview"]',
-    ) as HTMLButtonElement | null;
-    expect(openBtn).not.toBeNull();
-    act(() => {
-      openBtn!.click();
-    });
-    expect(openSpy).toHaveBeenCalledWith(url, "_blank", "noopener");
+  it("shows the friendly fallback card after iframe failure and external-open still works", () => {
+    vi.useFakeTimers();
+    try {
+      const url = "https://preview-blocked.vercel.app";
+      const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+      const container = render(
+        <PreviewPane
+          device="desktop"
+          setDevice={() => {}}
+          project={project}
+          onStartBuild={() => {}}
+          starting={false}
+          selectedPage="/"
+          activeDeployUrl={url}
+        />,
+      );
+      // Trigger the failed state via the load timeout (covers the X-Frame
+      // / CSP block scenario where the iframe never fires onload).
+      act(() => {
+        vi.advanceTimersByTime(8001);
+      });
+      const fallback = container.querySelector(
+        '[data-testid="preview-iframe-fallback"]',
+      ) as HTMLElement | null;
+      expect(fallback).not.toBeNull();
+      expect(fallback!.textContent).toContain("This app may block embedded preview.");
+      const openBtn = container.querySelector(
+        'button[aria-label="Open live preview"]',
+      ) as HTMLButtonElement | null;
+      expect(openBtn).not.toBeNull();
+      act(() => {
+        openBtn!.click();
+      });
+      expect(openSpy).toHaveBeenCalledWith(url, "_blank", "noopener");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("falls back to the friendly card after the 8s iframe load timeout", () => {
