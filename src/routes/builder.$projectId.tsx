@@ -304,6 +304,7 @@ function Builder() {
             project={project}
             onStartBuild={onStartBuild}
             starting={starting}
+            selectedPage={selectedPage}
           />
         )}
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
@@ -336,12 +337,13 @@ function Builder() {
   );
 }
 
-function PreviewPane({ device, setDevice, project, onStartBuild, starting }: {
+function PreviewPane({ device, setDevice, project, onStartBuild, starting, selectedPage }: {
   device: Device;
   setDevice: (d: Device) => void;
   project: Project;
   onStartBuild: () => void;
   starting: boolean;
+  selectedPage: string;
 }) {
   const widths: Record<Device, string> = { desktop: "100%", tablet: "820px", mobile: "390px" };
   return (
@@ -357,7 +359,9 @@ function PreviewPane({ device, setDevice, project, onStartBuild, starting }: {
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
         <div className="flex-1 mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono">
-          <ExternalLink className="h-3 w-3" /> No deploy URL yet
+          <ExternalLink className="h-3 w-3" />
+          <span className="truncate">{selectedPage}</span>
+          <span className="ml-auto text-muted-foreground/60 text-[10.5px] non-italic">No deploy URL yet</span>
         </div>
         <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5">
           {([
