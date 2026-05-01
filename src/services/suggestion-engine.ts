@@ -292,6 +292,16 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       reason: "ai.plan job exists but provider execution is not implemented yet.",
       explanation: "ai.plan job exists but provider execution is not implemented yet.",
     });
+  } else if (
+    hasSuccessfulAiPlan &&
+    jobs.some(
+      (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
+    )
+  ) {
+    console.info("[yawb] suggestions.filtered.stale", {
+      id: "wire-ai-planner-provider",
+      reason: "ai-plan-success-supersedes-placeholder",
+    });
   }
 
   // Prefer recommendations from the most recent successful ai.plan job. These
