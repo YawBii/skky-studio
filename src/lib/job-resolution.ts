@@ -98,6 +98,10 @@ export function getResolvingSuccess(failed: Job, allJobs: Job[]): Job | null {
  * A failed job is "resolved" when getResolvingSuccess returns a non-null Job.
  */
 export function isFailedJobResolved(failed: Job, allJobs: Job[]): boolean {
+  // Placeholder feature gaps (e.g. ai.plan "provider call is not wired yet")
+  // are treated as resolved — they aren't actionable runtime failures and
+  // should not trigger Command Center attention or retry suggestions.
+  if (isPlaceholderFailure(failed)) return true;
   return getResolvingSuccess(failed, allJobs) !== null;
 }
 
