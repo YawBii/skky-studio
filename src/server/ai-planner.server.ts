@@ -83,14 +83,16 @@ export async function gatherPlanContext(
 ): Promise<{ context: PlanContext; missing: string[]; sources: string[] }> {
   const missing: string[] = [];
   const sources: string[] = [];
-  let projectRow: { id: string; name: string | null; description: string | null } | null = null;
-  let workspaceRow: { id: string; name: string | null } | null = null;
+  type ProjectRow = { id: string; name: string | null; description: string | null };
+  type WorkspaceRow = { id: string; name: string | null };
+  let projectRow: ProjectRow | null = null;
+  let workspaceRow: WorkspaceRow | null = null;
 
   try {
     const { data, error } = await sb
       .from("projects").select("id,name,description").eq("id", args.projectId).maybeSingle();
     if (error || !data) missing.push("project");
-    else { projectRow = data as typeof projectRow; sources.push("projects"); }
+    else { projectRow = data as unknown as ProjectRow; sources.push("projects"); }
   } catch { missing.push("project"); }
 
   if (args.workspaceId) {
@@ -98,7 +100,7 @@ export async function gatherPlanContext(
       const { data, error } = await sb
         .from("workspaces").select("id,name").eq("id", args.workspaceId).maybeSingle();
       if (error || !data) missing.push("workspace");
-      else { workspaceRow = data as typeof workspaceRow; sources.push("workspaces"); }
+      else { workspaceRow = data as unknown as WorkspaceRow; sources.push("workspaces"); }
     } catch { missing.push("workspace"); }
   } else {
     missing.push("workspace");
