@@ -8,7 +8,7 @@ import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
-import { enqueueJob, retryJob, JOB_TYPES, type JobType } from "@/services/jobs";
+import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useDiagnostics } from "@/lib/diagnostics";
@@ -16,6 +16,7 @@ import { useMemo } from "react";
 import { buildSmartSuggestions, dismissSuggestion, type SmartSuggestion } from "@/services/suggestion-engine";
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
+import { TaskSummaryCard } from "@/components/task-summary-card";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -25,7 +26,33 @@ type Handoff = {
   next: string[];
   verify: string[];
 };
-type Msg = { role: "user" | "assistant"; content: string; proof?: ProofItem[]; handoff?: Handoff };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  proof?: ProofItem[];
+  handoff?: Handoff;
+  /** When set, render a TaskSummaryCard for this job below the message. */
+  summaryJobId?: string;
+};
+
+const TERMINAL_JOB_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
+const SUMMARIZED_KEY = (projectId: string) => `yawb:chat:summarized-jobs:${projectId}`;
+
+function loadSummarized(projectId: string | null | undefined): Set<string> {
+  if (!projectId || typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(SUMMARIZED_KEY(projectId));
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(arr);
+  } catch { return new Set(); }
+}
+
+function persistSummarized(projectId: string, ids: Set<string>) {
+  try {
+    window.localStorage.setItem(SUMMARIZED_KEY(projectId), JSON.stringify([...ids]));
+  } catch { /* ignore */ }
+}
 
 const DEFAULT_CHECKLIST: { id: string; label: string; enabled: boolean }[] = [
   { id: "typecheck",  label: "TypeScript check",      enabled: true  },
