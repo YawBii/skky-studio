@@ -135,7 +135,11 @@ describe("PreviewPane", () => {
     ) as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     act(() => {
-      iframe!.dispatchEvent(new Event("error"));
+      // React attaches onerror via the DOM property; invoke it directly to
+      // simulate a frame-level error (X-Frame-Options/CSP block, network fail).
+      const handler = (iframe as unknown as { onerror?: (e: Event) => void }).onerror;
+      if (typeof handler === "function") handler.call(iframe, new Event("error"));
+      else iframe!.dispatchEvent(new Event("error"));
     });
     const fallback = container.querySelector(
       '[data-testid="preview-iframe-fallback"]',
