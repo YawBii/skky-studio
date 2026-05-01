@@ -30,4 +30,14 @@ describe("deriveCommandCenterState", () => {
     expect(s.mode).toBe("failed");
     expect(s.failedJob?.id).toBe("f1");
   });
+
+  it("does NOT mark failed for ai.plan placeholder when infra is green", () => {
+    const jobs = [
+      mkJob({ id: "build1", type: "build.production", status: "succeeded", createdAt: "2026-05-01T10:00:00Z" }),
+      mkJob({ id: "f1", type: "ai.plan", status: "failed", createdAt: "2026-05-01T13:00:00Z", error: "Provider call is not wired yet" }),
+    ];
+    const s = deriveCommandCenterState(jobs);
+    expect(s.mode).not.toBe("failed");
+    expect(s.failedJob).toBeNull();
+  });
 });
