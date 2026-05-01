@@ -13,6 +13,7 @@ import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useDiagnostics } from "@/lib/diagnostics";
 import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
 import { getBuildRunnerConfig, type BuildRunnerConfigSnapshot } from "@/services/build-runner.functions";
+import { partitionFailures } from "@/lib/job-resolution";
 
 interface JobsPanelProps {
   projectId: string | null;
@@ -117,8 +118,11 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
         {loading && jobs.length === 0 && (
           <div className="p-6 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin inline mr-1.5" /> Loading jobs…</div>
         )}
-        <ul className="divide-y divide-white/5">
-          {jobs.map((j) => (
+        {(() => {
+          const { resolvedFailed } = partitionFailures(jobs);
+          const resolvedIds = new Set(resolvedFailed.map((j) => j.id));
+          const activeJobs = jobs.filter((j) => !resolvedIds.has(j.id));
+          const renderRow = (j: Job) => (
             <JobRow key={j.id}
               job={j}
               expanded={!!expanded[j.id]}
@@ -142,8 +146,25 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
               onRetryStep={(stepId) => retryStep(j.id, stepId)}
               onAnswer={(input) => answer({ ...input, jobId: j.id })}
             />
-          ))}
-        </ul>
+          );
+          return (
+            <>
+              <ul className="divide-y divide-white/5">
+                {activeJobs.map(renderRow)}
+              </ul>
+              {resolvedFailed.length > 0 && (
+                <details className="border-t border-white/5">
+                  <summary className="px-4 py-2.5 text-[11.5px] text-muted-foreground cursor-pointer hover:text-foreground select-none">
+                    Resolved history ({resolvedFailed.length}) · superseded by a later success
+                  </summary>
+                  <ul className="divide-y divide-white/5 opacity-70">
+                    {resolvedFailed.map(renderRow)}
+                  </ul>
+                </details>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

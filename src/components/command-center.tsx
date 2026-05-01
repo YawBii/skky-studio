@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { JobsPanel } from "@/components/jobs-panel";
 import type { Job } from "@/services/jobs";
+import { isFailedJobResolved } from "@/lib/job-resolution";
 
 export type CommandCenterMode = "idle" | "running" | "waiting" | "failed" | "succeeded";
 
@@ -31,8 +32,9 @@ export interface CommandCenterDerivedState {
 export function deriveCommandCenterState(jobs: Job[]): CommandCenterDerivedState {
   const running = jobs.filter((j) => j.status === "running" || j.status === "queued");
   const waiting = jobs.filter((j) => j.status === "waiting_for_input");
-  // Most recent failed job (jobs are ordered desc by createdAt in listJobs).
-  const failedJob = jobs.find((j) => j.status === "failed") ?? null;
+  // Only treat a failed job as "needs attention" if it isn't resolved by a
+  // newer succeeded job of the same type. Stale failures get hidden.
+  const failedJob = jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs)) ?? null;
   const lastSucceeded = jobs.find((j) => j.status === "succeeded") ?? null;
 
   let mode: CommandCenterMode = "idle";

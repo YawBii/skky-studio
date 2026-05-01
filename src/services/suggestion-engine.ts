@@ -15,6 +15,7 @@ import type { ProjectConnection } from "@/services/project-connections";
 import type { Workspace } from "@/services/workspaces";
 import type { Project } from "@/services/projects";
 import type { DiagState } from "@/lib/diagnostics";
+import { isFailedJobResolved, latestFailedJob, latestSucceededJob } from "@/lib/job-resolution";
 
 export type SuggestionCategory =
   | "blocking"
@@ -184,7 +185,7 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       action: { kind: "navigate", to: "/projects" },
       reason: "No project selected; nothing else can be suggested.",
     });
-    return finalize(out, null);
+    return finalize(out, null, jobs);
   }
 
   // SQL tables missing → blocking, must run migration before any job.
@@ -212,8 +213,9 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   }
 
-  // Failed job → fix it. Use exact error label if available.
-  const failed = jobs.find((j) => j.status === "failed");
+  // Failed job → fix it. Skip "resolved" failures (newer same-type success,
+  // or transient runner errors when a newer build.production has succeeded).
+  const failed = jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs));
   if (failed) {
     const errText = (failed.error ?? "").toLowerCase();
     const isRunnerErr = errText.includes("build runner") || errText.includes("runner is not configured");
@@ -488,10 +490,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   }
 
-  return finalize(out, project.id);
+  return finalize(out, project.id, jobs);
 }
 
-function finalize(list: SmartSuggestion[], projectId: string | null): SmartSuggestion[] {
+function finalize(list: SmartSuggestion[], projectId: string | null, jobs: Job[] = []): SmartSuggestion[] {
   const dismissed = loadDismissed(projectId);
   const seen = new Set<string>();
   const sorted = [...list]
@@ -499,7 +501,13 @@ function finalize(list: SmartSuggestion[], projectId: string | null): SmartSugge
     .sort((a, b) => b.priority - a.priority)
     .filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true)))
     .slice(0, 4);
-  console.info("[yawb] suggestions.generated", sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason })));
+  const lf = latestFailedJob(jobs);
+  const ls = latestSucceededJob(jobs);
+  console.info("[yawb] suggestions.generated", {
+    suggestions: sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason })),
+    latestFailed: lf ? { id: lf.id, type: lf.type, createdAt: lf.createdAt, error: lf.error } : null,
+    latestSucceeded: ls ? { id: ls.id, type: ls.type, createdAt: ls.createdAt } : null,
+  });
   return sorted;
 }
 
