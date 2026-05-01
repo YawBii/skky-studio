@@ -586,7 +586,7 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   }
   const vercel = connections.find((c) => c.provider === "vercel" && c.status === "connected");
-  if (!vercel && triedDeploy) {
+  if (!vercel && !vercelHealthConnected && triedDeploy) {
     out.push({
       id: "connect-vercel",
       label: "Connect Vercel",
@@ -594,6 +594,11 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       priority: CATEGORY_BASE.connect_provider + 4,
       action: { kind: "navigate", to: "/connectors" },
       reason: "Deploy requires Vercel.",
+    });
+  } else if ((vercel || vercelHealthConnected) && triedDeploy) {
+    console.info("[yawb] suggestions.filtered.stale", {
+      id: "connect-vercel",
+      reason: vercel ? "vercel-row-connected" : "vercel-health-connected",
     });
   }
 
