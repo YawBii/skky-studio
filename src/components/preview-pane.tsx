@@ -36,6 +36,15 @@ const IFRAME_LOAD_TIMEOUT_MS = 8000;
 const IFRAME_SOFT_HINT_MS = 3000;
 const TOGGLE_KEY = (projectId: string) => `yawb:preview:mode:${projectId}`;
 
+const DEVICE_VIEWPORTS: Record<
+  PreviewDevice,
+  { width: string; maxWidth: string; minHeight: number; label: string }
+> = {
+  desktop: { width: "100%", maxWidth: "100%", minHeight: 640, label: "Desktop 100%" },
+  tablet: { width: "820px", maxWidth: "100%", minHeight: 640, label: "Tablet 820px" },
+  mobile: { width: "390px", maxWidth: "100%", minHeight: 720, label: "Mobile 390px" },
+};
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -92,11 +101,7 @@ export function PreviewPane({
   connections,
   generated,
 }: PreviewPaneProps) {
-  const widths: Record<PreviewDevice, string> = {
-    desktop: "100%",
-    tablet: "820px",
-    mobile: "390px",
-  };
+  const viewport = DEVICE_VIEWPORTS[device];
 
   // Effective connection list — synthesize a vercel row if the parent only
   // passed activeDeployUrl (back-compat with existing tests/callers).
@@ -419,6 +424,9 @@ export function PreviewPane({
                 console.info("[yawb] preview.device.clicked", { device: k });
                 setDevice(k);
               }}
+              data-testid={`preview-device-${k}`}
+              aria-label={DEVICE_VIEWPORTS[k].label}
+              title={DEVICE_VIEWPORTS[k].label}
               className={cn(
                 "h-6 w-6 rounded grid place-items-center transition touch-manipulation",
                 device === k
@@ -433,9 +441,20 @@ export function PreviewPane({
       </div>
 
       <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
-        <div style={{ width: widths[device] }} className="transition-all w-full max-w-full">
+        <div
+          data-testid="preview-device-frame"
+          data-device={device}
+          style={{
+            width: viewport.width,
+            maxWidth: viewport.maxWidth,
+            minHeight: viewport.minHeight,
+            height: "100%",
+            margin: "0 auto",
+          }}
+          className="transition-all overflow-hidden"
+        >
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
-            <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden relative">
+            <div className="rounded-2xl border border-white/10 bg-background shadow-elevated h-full min-h-[inherit] overflow-hidden relative">
               <iframe
                 title={`${project.name} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
@@ -444,7 +463,7 @@ export function PreviewPane({
                 data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}
                 onError={onIframeError}
-                className="w-full h-full block bg-background"
+                className="h-full w-full border-0 block bg-background"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               />
               {iframeState === "loading" && (
@@ -501,7 +520,7 @@ export function PreviewPane({
           ) : showFallbackCard ? (
             <div
               data-testid="preview-iframe-fallback"
-              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden"
+              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated h-full min-h-[inherit] overflow-hidden"
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -530,7 +549,7 @@ export function PreviewPane({
             // Empty local state — only when user picked Local and there's nothing to render.
             <div
               data-testid="preview-empty-state"
-              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden"
+              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated h-full min-h-[inherit] overflow-hidden"
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">

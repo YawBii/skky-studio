@@ -328,3 +328,69 @@ describe("PreviewPane — local preview", () => {
     ).not.toBeNull();
   });
 });
+
+describe("PreviewPane — device viewports", () => {
+  function renderWithDevice(device: "desktop" | "tablet" | "mobile") {
+    return render(
+      <PreviewPane
+        device={device}
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+  }
+
+  it("desktop frame width is 100%", () => {
+    const c = renderWithDevice("desktop");
+    const frame = c.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
+    expect(frame).not.toBeNull();
+    expect(frame.style.width).toBe("100%");
+    expect(frame.style.maxWidth).toBe("100%");
+    expect(frame.style.minHeight).toBe("640px");
+    expect(frame.style.margin).toContain("auto");
+    expect(frame.style.transform || "").toBe("");
+  });
+
+  it("tablet frame width is 820px and max-width 100%", () => {
+    const c = renderWithDevice("tablet");
+    const frame = c.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
+    expect(frame.style.width).toBe("820px");
+    expect(frame.style.maxWidth).toBe("100%");
+    expect(frame.style.minHeight).toBe("640px");
+  });
+
+  it("mobile frame width is 390px and min-height 720", () => {
+    const c = renderWithDevice("mobile");
+    const frame = c.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
+    expect(frame.style.width).toBe("390px");
+    expect(frame.style.maxWidth).toBe("100%");
+    expect(frame.style.minHeight).toBe("720px");
+  });
+
+  it("iframe remains width/height 100% with no transform scale", () => {
+    const c = renderWithDevice("tablet");
+    const iframe = c.querySelector('[data-testid="preview-iframe"]') as HTMLIFrameElement;
+    expect(iframe.className).toContain("w-full");
+    expect(iframe.className).toContain("h-full");
+    expect(iframe.className).toContain("border-0");
+    expect(iframe.style.transform || "").toBe("");
+  });
+
+  it("device buttons expose readable labels", () => {
+    const c = renderWithDevice("desktop");
+    expect(
+      c.querySelector('[data-testid="preview-device-desktop"]')?.getAttribute("title"),
+    ).toBe("Desktop 100%");
+    expect(
+      c.querySelector('[data-testid="preview-device-tablet"]')?.getAttribute("title"),
+    ).toBe("Tablet 820px");
+    expect(
+      c.querySelector('[data-testid="preview-device-mobile"]')?.getAttribute("title"),
+    ).toBe("Mobile 390px");
+  });
+});
+
