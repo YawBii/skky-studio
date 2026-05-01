@@ -336,6 +336,7 @@ function Builder() {
             onStartBuild={onStartBuild}
             starting={starting}
             selectedPage={selectedPage}
+            activeDeployUrl={activeDeployUrl}
           />
         )}
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
