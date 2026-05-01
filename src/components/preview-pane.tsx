@@ -115,7 +115,12 @@ export function PreviewPane({
       timeoutRef.current = null;
     }
     setIframeState("loaded");
+    // Cross-origin iframe load events fire even when the embedded page is
+    // visually blocked (CSP/X-Frame-Options sometimes still trigger onload).
+    // We can't introspect contentDocument cross-origin, so treat this as
+    // "loaded but unverified" and keep the open-live-preview affordance.
     console.info("[yawb] preview.iframe.loaded", { url: iframeSrc });
+    console.info("[yawb] preview.iframe.loaded_unverified", { url: iframeSrc });
   };
 
   const onIframeError = () => {
