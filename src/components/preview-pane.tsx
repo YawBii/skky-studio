@@ -454,7 +454,7 @@ export function PreviewPane({
           className="transition-all overflow-hidden"
         >
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
-            <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden relative">
+            <div className="rounded-2xl border border-white/10 bg-background shadow-elevated h-full min-h-[inherit] overflow-hidden relative">
               <iframe
                 title={`${project.name} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
@@ -463,7 +463,7 @@ export function PreviewPane({
                 data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}
                 onError={onIframeError}
-                className="w-full h-full block bg-background"
+                className="h-full w-full border-0 block bg-background"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
               />
               {iframeState === "loading" && (
@@ -520,7 +520,7 @@ export function PreviewPane({
           ) : showFallbackCard ? (
             <div
               data-testid="preview-iframe-fallback"
-              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden"
+              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated h-full min-h-[inherit] overflow-hidden"
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -549,7 +549,7 @@ export function PreviewPane({
             // Empty local state — only when user picked Local and there's nothing to render.
             <div
               data-testid="preview-empty-state"
-              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden"
+              className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated h-full min-h-[inherit] overflow-hidden"
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
