@@ -231,7 +231,7 @@ export interface BuildRunnerExecResult {
 }
 
 function buildRunnerMode(): "external" | "local" | "none" {
-  if (process.env.BUILD_RUNNER_URL) return "external";
+  if (process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL) return "external";
   if ((process.env.BUILD_RUNNER_MODE ?? "").toLowerCase() === "local") return "local";
   return "none";
 }
@@ -256,8 +256,8 @@ async function execExternalBuild(payload: {
   stepId: string;
   projectId: string;
 }): Promise<BuildRunnerExecResult> {
-  const url = process.env.BUILD_RUNNER_URL!;
-  const token = process.env.BUILD_RUNNER_TOKEN;
+  const url = (process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL)!;
+  const token = process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN;
   const startedAt = Date.now();
   try {
     const res = await fetch(url, {
@@ -339,7 +339,7 @@ async function execLocalBuild(command: string): Promise<BuildRunnerExecResult> {
       ok: false, exitCode: null, stdout: "", stderr: "",
       durationMs: Date.now() - startedAt,
       error: /not implemented|unenv/i.test(msg)
-        ? "Build runner requires an external worker. Configure BUILD_RUNNER_URL."
+        ? "Build runner requires an external worker. Configure YAWB_BUILD_RUNNER_URL (or BUILD_RUNNER_URL)."
         : `local build failed: ${msg}`,
     };
   }
@@ -436,13 +436,13 @@ export function getBuildRunnerConfigServer(): {
 } {
   const mode = buildRunnerMode();
   const reason =
-    mode === "external" ? "External build worker configured (BUILD_RUNNER_URL set)."
+    mode === "external" ? "External build worker configured (YAWB_BUILD_RUNNER_URL or BUILD_RUNNER_URL set)."
       : mode === "local" ? "Local mode set (BUILD_RUNNER_MODE=local). Requires a Node host that supports child_process; will fail on Worker runtimes."
-        : "Build runner is not configured. Set BUILD_RUNNER_URL (recommended) or BUILD_RUNNER_MODE=local.";
+        : "Build runner is not configured. Set YAWB_BUILD_RUNNER_URL (recommended) or BUILD_RUNNER_MODE=local.";
   return {
     mode,
-    hasBuildRunnerUrl: Boolean(process.env.BUILD_RUNNER_URL),
-    hasBuildRunnerToken: Boolean(process.env.BUILD_RUNNER_TOKEN),
+    hasBuildRunnerUrl: Boolean(process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL),
+    hasBuildRunnerToken: Boolean(process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN),
     hasBuildRunnerMode: Boolean(process.env.BUILD_RUNNER_MODE),
     hasBuildCommand: Boolean(process.env.BUILD_COMMAND),
     hasTypecheckCommand: Boolean(process.env.TYPECHECK_COMMAND),
