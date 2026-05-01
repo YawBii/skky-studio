@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/services/projects";
 import { JobsPanel } from "@/components/jobs-panel";
+import { PreviewPane } from "@/components/preview-pane";
 import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
