@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { PreviewPane } from "./preview-pane";
+import { PreviewPane, makeLocalPreviewSrcDoc } from "./preview-pane";
 import type { Project } from "@/services/projects";
 
 const project: Project = {
