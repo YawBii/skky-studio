@@ -158,9 +158,9 @@ function Builder() {
       console.info("[yawb] startBuild.enqueue.success", { jobId: r.job.id });
       toast.success("Build job queued");
       setFocusJobId(r.job.id);
-      // Keep the user on Preview — Command Center pill/drawer surfaces progress.
+      // Keep user on Preview. Command Center pill shows progress; the drawer
+      // only auto-opens for waiting_for_input or failed (or manual click).
       setTab("preview");
-      setCcOpen(true);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[yawb] startBuild.enqueue.error", e);
