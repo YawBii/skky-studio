@@ -36,6 +36,51 @@ const IFRAME_LOAD_TIMEOUT_MS = 8000;
 const IFRAME_SOFT_HINT_MS = 3000;
 const TOGGLE_KEY = (projectId: string) => `yawb:preview:mode:${projectId}`;
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "description">): string {
+  const name = escapeHtml(project.name);
+  const description = escapeHtml(project.description || "No description yet.");
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      html, body { margin:0; min-height:100%; background:#0b0f14; color:#e6edf3; font-family:Inter, system-ui, sans-serif; }
+      * { box-sizing:border-box; }
+      .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:48px 24px; }
+      .card { width:min(720px,100%); }
+      .eyebrow { letter-spacing:.28em; text-transform:uppercase; color:#f5b84b; font-size:12px; margin-bottom:28px; }
+      h1 { font-size:48px; line-height:1; margin:0 0 18px; }
+      p { color:#9aa4b2; font-size:18px; line-height:1.55; margin:0 0 28px; }
+      .empty { border:1px solid rgba(255,255,255,.12); border-radius:24px; padding:28px; background:rgba(255,255,255,.03); }
+      .empty strong { display:block; color:#fff; margin-bottom:10px; font-size:18px; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <div class="eyebrow">Local preview</div>
+        <h1>${name}</h1>
+        <p>${description}</p>
+        <div class="empty">
+          <strong>No generated screens yet</strong>
+          Ask yawB in the chat to build the first screen. Once a build runs, the local preview will render it here — no Vercel deploy required.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
 export function PreviewPane({
   device,
   setDevice,
@@ -124,6 +169,11 @@ export function PreviewPane({
     [project, effectiveConnections, generated, mode],
   );
 
+  const localSrcDoc = useMemo(() => {
+    if (resolved.kind !== "local") return undefined;
+    return resolved.srcDoc ?? makeLocalPreviewSrcDoc(project);
+  }, [resolved.kind, resolved.srcDoc, project]);
+
   useEffect(() => {
     console.info("[yawb] preview.source.resolved", {
       kind: resolved.kind,
@@ -167,7 +217,7 @@ export function PreviewPane({
       softHintRef.current = null;
     }
     setSoftHintVisible(false);
-    if (!iframeSrc && !resolved.srcDoc) {
+    if (!iframeSrc && !localSrcDoc && !resolved.srcDoc) {
       setIframeState("idle");
       return;
     }
@@ -175,7 +225,7 @@ export function PreviewPane({
     console.info("[yawb] preview.iframe.loading", {
       kind: resolved.kind,
       url: iframeSrc,
-      srcDoc: !!resolved.srcDoc,
+      srcDoc: !!(localSrcDoc ?? resolved.srcDoc),
     });
     if (resolved.kind !== "live") return; // skip CSP timeout for local
     softHintRef.current = setTimeout(() => {
@@ -208,7 +258,7 @@ export function PreviewPane({
         softHintRef.current = null;
       }
     };
-  }, [iframeSrc, resolved.srcDoc, resolved.kind]);
+  }, [iframeSrc, localSrcDoc, resolved.srcDoc, resolved.kind]);
 
   const onIframeLoad = () => {
     if (timeoutRef.current) {
@@ -254,7 +304,7 @@ export function PreviewPane({
   const showFallbackCard =
     resolved.kind === "live" && iframeSrc && iframeState === "failed";
   const showLocalEmpty =
-    resolved.kind === "local" && !generatedHasContent && !iframeSrc && !resolved.srcDoc;
+    resolved.kind === "local" && !generatedHasContent && !iframeSrc && !localSrcDoc;
 
   return (
     <div className="h-full flex flex-col">
@@ -384,12 +434,12 @@ export function PreviewPane({
 
       <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
         <div style={{ width: widths[device] }} className="transition-all w-full max-w-full">
-          {(iframeSrc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
+          {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden relative">
               <iframe
                 title={`${project.name} preview`}
-                src={iframeSrc ?? undefined}
-                srcDoc={resolved.srcDoc}
+                src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
+                srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
                 data-testid="preview-iframe"
                 data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}

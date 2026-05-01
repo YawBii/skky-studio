@@ -1,7 +1,8 @@
 // Resolves which preview to render in the Builder Preview tab.
 // Live (Vercel deploy URL) is preferred when available. Otherwise we render
-// a local preview — either a generated index.html via srcDoc, or an
-// in-app /preview/$projectId route, or a friendly empty local state.
+// a local preview — either a generated index.html via srcDoc, or a
+// friendly empty local state. We intentionally do not use /preview/$projectId
+// as a default iframe URL because that route can load the app shell.
 
 import type { ProjectConnection } from "@/services/project-connections";
 import type { Project } from "@/services/projects";
@@ -105,10 +106,9 @@ function buildLocal(
   if (project) {
     return {
       kind: "local",
-      url: `/preview/${project.id}?embed=1`,
       label: "Local preview",
       externalOpenable: false,
-      reason: hasLocalPreview(generated) ? "local:route+files" : "local:route-empty",
+      reason: hasLocalPreview(generated) ? "local:files-placeholder" : "local:empty-srcDoc",
     };
   }
   return {

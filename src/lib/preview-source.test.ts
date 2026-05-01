@@ -45,10 +45,11 @@ describe("resolvePreviewSource", () => {
     expect(r.externalOpenable).toBe(true);
   });
 
-  it("returns local /preview/$projectId?embed=1 when no deploy URL but project exists", () => {
+  it("returns local without /preview/$projectId URL when no deploy URL but project exists", () => {
     const r = resolvePreviewSource({ project, connections: [] });
     expect(r.kind).toBe("local");
-    expect(r.url).toBe("/preview/p1?embed=1");
+    expect(r.url).toBeUndefined();
+    expect(r.srcDoc).toBeUndefined();
     expect(r.label).toBe("Local preview");
     expect(r.externalOpenable).toBe(false);
   });
