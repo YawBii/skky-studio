@@ -18,6 +18,12 @@ export interface ProjectConnection {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  // additive (2026-05-01)
+  workspaceId: string | null;
+  externalId: string | null;
+  url: string | null;
+  tokenOwnerType: "workspace" | "user" | null;
+  providerAccountId: string | null;
 }
 
 export type ConnectionsSource = "supabase" | "empty" | "table-missing" | "error" | "no-project";
