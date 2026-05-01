@@ -50,7 +50,8 @@ describe("resolvePreviewSource", () => {
     expect(r.kind).toBe("local");
     expect(r.url).toBeUndefined();
     expect(r.srcDoc).toBeUndefined();
-    expect(r.label).toBe("Local preview");
+    expect(r.label).toBe("fallback:placeholder");
+    expect(r.source).toBe("fallback:placeholder");
     expect(r.externalOpenable).toBe(false);
   });
 
