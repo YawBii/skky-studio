@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   generateProjectFiles,
   detectCategory,
+  inferProjectArchetype,
 } from "./project-template";
 
-describe("project-template generator", () => {
+describe("project-template (Monster Brain v1 shim)", () => {
   it("produces visibly different index.html for different projects", () => {
     const goodhand = generateProjectFiles({
       project: { id: "p-goodhand", name: "Goodhand", description: "Discover and verify community contributors." },
@@ -24,18 +25,27 @@ describe("project-template generator", () => {
     expect(ghHtml).not.toEqual(ujHtml);
     expect(skHtml).not.toEqual(ujHtml);
 
-    // Project name must appear in each
     expect(ghHtml).toContain("Goodhand");
     expect(skHtml).toContain("skkygroup");
     expect(ujHtml).toContain("uJob");
 
-    // Category must be reflected in the generator meta tag
-    expect(ghHtml).toContain("scanner");
-    expect(skHtml).toContain("portfolio");
-    expect(ujHtml).toContain("marketplace");
+    // Archetype reflected in meta tag
+    expect(ghHtml).toContain("social-good");
+    expect(skHtml).toContain("corporate");
+    expect(ujHtml).toContain("jobs");
   });
 
-  it("detects categories from name + description + chat", () => {
+  it("infers archetypes from name + description", () => {
+    expect(inferProjectArchetype({ id: "1", name: "Goodhand", description: "discovery" })).toBe("social-good");
+    expect(inferProjectArchetype({ id: "2", name: "uJob", description: "" })).toBe("jobs");
+    expect(inferProjectArchetype({ id: "3", name: "skkygroup", description: "holdings" })).toBe("corporate");
+    expect(inferProjectArchetype({ id: "4", name: "PayFlow", description: "invoice payments" })).toBe("fintech");
+    expect(inferProjectArchetype({ id: "5", name: "TrustID", description: "verification" })).toBe("identity");
+    expect(inferProjectArchetype({ id: "6", name: "Arena", description: "multiplayer game" })).toBe("gaming");
+    expect(inferProjectArchetype({ id: "7", name: "Random", description: "" })).toBe("default");
+  });
+
+  it("legacy detectCategory still maps correctly", () => {
     expect(detectCategory({ name: "Goodhand", description: "discovery" })).toBe("scanner");
     expect(detectCategory({ name: "uJob", description: "" })).toBe("marketplace");
     expect(detectCategory({ name: "skkygroup", description: "holdings" })).toBe("portfolio");
@@ -45,13 +55,12 @@ describe("project-template generator", () => {
     expect(detectCategory({ name: "Random", description: "" })).toBe("generic");
   });
 
-  it("returns at least index.html and app.css", () => {
+  it("returns index.html, app.css and app.js", () => {
     const files = generateProjectFiles({
       project: { id: "x", name: "X", description: "" },
     });
     const paths = files.map((f) => f.path).sort();
-    expect(paths).toContain("index.html");
-    expect(paths).toContain("app.css");
+    expect(paths).toEqual(["app.css", "app.js", "index.html"]);
   });
 
   it("emits valid HTML doctype", () => {

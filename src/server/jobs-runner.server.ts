@@ -605,20 +605,25 @@ export function getBuildRunnerConfigServer(): {
 }
 
 import { runAiPlan, gatherPlanContext, isAiPlannerConfigured, AI_PLANNER_NOT_CONFIGURED_ERROR } from "./ai-planner.server";
-import { generateProjectFiles } from "../services/project-template";
+import {
+  generateProjectFiles as monsterGenerate,
+  inferProjectArchetype,
+  designSignature as monsterSignature,
+  type Archetype,
+} from "../services/monster-brain-generator";
 
 /**
- * Persist deterministic project files to the project_files table. Used by
+ * Persist Monster Brain v1 project files to the project_files table. Used by
  * `ai.generate_changes` and as a post-success hook for `build.production`.
  *
  * NOTE: When a real AI generator is wired (Lovable AI Gateway), swap the
- * `generateProjectFiles` call for an async generator with the same return
- * shape — PreviewPane/project_files do not need to change.
+ * `monsterGenerate` call for an async generator with the same return shape —
+ * PreviewPane/project_files do not need to change.
  */
 async function generateAndPersistProjectFiles(
   sb: SupabaseClient,
   job: JobRow,
-): Promise<{ ok: boolean; written: string[]; error?: string; category?: string }> {
+): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string }> {
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
@@ -631,10 +636,9 @@ async function generateAndPersistProjectFiles(
   const chatRequest = typeof input.chatRequest === "string"
     ? input.chatRequest
     : typeof input.prompt === "string" ? input.prompt : null;
-  const files = generateProjectFiles({
-    project: { id: proj.id, name: proj.name ?? "", description: proj.description ?? null },
-    chatRequest,
-  });
+  const projectInput = { id: proj.id, name: proj.name ?? "", description: proj.description ?? null };
+  const archetype = inferProjectArchetype(projectInput, { chatRequest });
+  const files = monsterGenerate(projectInput, { chatRequest });
   const written: string[] = [];
   for (const f of files) {
     const { error } = await sb
@@ -644,11 +648,11 @@ async function generateAndPersistProjectFiles(
         { onConflict: "project_id,path" },
       );
     if (error) {
-      return { ok: false, written, error: error.message };
+      return { ok: false, written, error: error.message, archetype, designSignature: monsterSignature(projectInput, archetype) };
     }
     written.push(f.path);
   }
-  return { ok: true, written };
+  return { ok: true, written, archetype, designSignature: monsterSignature(projectInput, archetype) };
 }
 
 const aiAdapter: ProviderAdapter = {
@@ -668,17 +672,22 @@ const aiAdapter: ProviderAdapter = {
     if (job.type === "ai.generate_changes") {
       const r = await generateAndPersistProjectFiles(sb, job);
       if (!r.ok) {
-        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written } };
+        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
       }
+      const output = {
+        filesWritten: r.written,
+        archetype: r.archetype,
+        designSignature: r.designSignature,
+        previewReady: r.written.includes("index.html"),
+        generator: "monster-brain-v1",
+      };
       try {
-        await sb.from("project_jobs").update({
-          output: { filesWritten: r.written, generator: "deterministic" },
-        }).eq("id", job.id);
+        await sb.from("project_jobs").update({ output }).eq("id", job.id);
       } catch { /* best-effort */ }
       return {
         status: "succeeded",
-        output: { filesWritten: r.written, generator: "deterministic" },
-        log: `ai.generate_changes ok: wrote ${r.written.join(", ")}`,
+        output,
+        log: `ai.generate_changes ok: archetype=${r.archetype} wrote ${r.written.join(", ")}`,
       };
     }
     if (!isAiPlannerConfigured()) {
@@ -770,8 +779,15 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
       try {
         const gen = await generateAndPersistProjectFiles(sb, job);
         const out = (result.output ?? {}) as Record<string, unknown>;
-        result.output = { ...out, filesWritten: gen.written, generator: "deterministic" };
-        result.log = `${result.log ?? "build ok"}; wrote ${gen.written.join(", ") || "<no files>"}`;
+        result.output = {
+          ...out,
+          filesWritten: gen.written,
+          archetype: gen.archetype,
+          designSignature: gen.designSignature,
+          previewReady: gen.written.includes("index.html"),
+          generator: "monster-brain-v1",
+        };
+        result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
       } catch { /* best-effort */ }
     }
     return result;
