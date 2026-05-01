@@ -133,13 +133,13 @@ function WorkspaceShell() {
       ? (prefs.workspaceSplit as Record<string, number>)["chat-width-px"]
       : undefined;
   const initialRightWidth =
-    typeof persistedWidth === "number" && persistedWidth >= 320 && persistedWidth <= 1600
+    typeof persistedWidth === "number" && persistedWidth >= 280 && persistedWidth <= 1600
       ? persistedWidth
-      : 460;
+      : 380;
 
   const [rightWidth, setRightWidth] = useState(initialRightWidth);
   useEffect(() => {
-    if (loaded && typeof persistedWidth === "number" && persistedWidth >= 320 && persistedWidth <= 1600) {
+    if (loaded && typeof persistedWidth === "number" && persistedWidth >= 280 && persistedWidth <= 1600) {
       setRightWidth(persistedWidth);
     }
   }, [loaded, persistedWidth]);
@@ -215,8 +215,8 @@ function WorkspaceShell() {
         <div className="flex-1 min-h-0">
           <SplitPane
             initialRightWidth={rightWidth}
-            minRightWidth={320}
-            minLeftWidth={320}
+            minRightWidth={280}
+            minLeftWidth={240}
             onChange={(w) => { setRightWidth(w); update({ workspaceSplit: { "chat-width-px": w } }); }}
             left={
               <main className="h-full overflow-y-auto scrollbar-thin">

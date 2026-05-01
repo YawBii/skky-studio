@@ -20,10 +20,10 @@ interface Props {
  */
 export function SplitPane({
   left, right,
-  initialRightWidth = 460,
-  minRightWidth = 320,
+  initialRightWidth = 380,
+  minRightWidth = 280,
   maxRightWidth,
-  minLeftWidth = 360,
+  minLeftWidth = 240,
   onChange,
 }: Props) {
   const [rightWidth, setRightWidth] = useState(initialRightWidth);
@@ -34,9 +34,12 @@ export function SplitPane({
 
   useEffect(() => { setRightWidth(initialRightWidth); }, [initialRightWidth]);
 
-  // Track viewport for mobile/tablet vs desktop layout.
+  // Track viewport for mobile vs desktop layout. Lovable keeps chat + preview
+  // side-by-side at narrow desktop widths (e.g. ~600px), only switching to a
+  // bottom-sheet drawer on true phone widths. Match that behavior so users
+  // don't lose the live preview when the window is narrow.
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
+    const mq = window.matchMedia("(max-width: 639px)");
     const apply = () => setIsMobile(mq.matches);
     apply();
     mq.addEventListener("change", apply);
@@ -91,7 +94,7 @@ export function SplitPane({
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerCancel={stopDrag}
-        onDoubleClick={() => { setRightWidth(460); onChange?.(460); }}
+        onDoubleClick={() => { setRightWidth(380); onChange?.(380); }}
         className={cn(
           "group relative w-2 shrink-0 cursor-col-resize bg-white/5 hover:bg-primary/40 active:bg-primary/60 transition-colors",
           "touch-none select-none",
