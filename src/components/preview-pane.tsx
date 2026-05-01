@@ -45,23 +45,54 @@ const DEVICE_VIEWPORTS: Record<
   mobile: { width: "390px", maxWidth: "100%", minHeight: 720, label: "Mobile 390px" },
 };
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+/**
+ * Strict HTML-text sanitizer for srcDoc interpolation.
+ * - Strips ALL control characters (incl. NUL, TAB-less C0/C1) that can confuse
+ *   the HTML parser or smuggle attribute breakouts.
+ * - Strips Unicode bidi/format overrides used for spoofing.
+ * - Encodes every HTML-significant character including `=`, `` ` ``, `/` so
+ *   the value cannot escape an attribute, comment, or text node — even if the
+ *   surrounding template is later changed to put it inside an attribute.
+ * - Hard-caps length to avoid pathological inputs.
+ */
+function sanitizeText(value: unknown, maxLen = 500): string {
+  const raw = typeof value === "string" ? value : "";
+  // Drop C0 (except \n \r \t), C1, and Unicode bidi/format controls.
+  const cleaned = raw
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "")
+    .slice(0, maxLen);
+  return cleaned.replace(/[&<>"'`/=]/g, (c) => {
+    switch (c) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      case "`": return "&#96;";
+      case "/": return "&#47;";
+      case "=": return "&#61;";
+      default: return c;
+    }
+  });
 }
 
+// Back-compat alias for any external imports.
+const escapeHtml = (v: string) => sanitizeText(v);
+void escapeHtml;
+
 export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "description">): string {
-  const name = escapeHtml(project.name);
-  const description = escapeHtml(project.description || "No description yet.");
+  const name = sanitizeText(project.name, 200) || "Untitled project";
+  const description = sanitizeText(project.description || "No description yet.", 500);
   return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>${name}</title>
     <style>
       html, body { margin:0; min-height:100%; background:#0b0f14; color:#e6edf3; font-family:Inter, system-ui, sans-serif; }
       * { box-sizing:border-box; }
@@ -456,15 +487,21 @@ export function PreviewPane({
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div className="rounded-2xl border border-white/10 bg-background shadow-elevated h-full min-h-[inherit] overflow-hidden relative">
               <iframe
-                title={`${project.name} preview`}
+                title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
                 srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
                 data-testid="preview-iframe"
                 data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}
                 onError={onIframeError}
+                referrerPolicy="no-referrer"
+                loading="lazy"
                 className="h-full w-full border-0 block bg-background"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                sandbox={
+                  resolved.kind === "local"
+                    ? "" /* CSP-locked srcDoc, no scripts/forms needed */
+                    : "allow-scripts allow-same-origin allow-forms allow-popups"
+                }
               />
               {iframeState === "loading" && (
                 <div

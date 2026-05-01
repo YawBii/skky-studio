@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { PreviewPane } from "./preview-pane";
+import { PreviewPane, makeLocalPreviewSrcDoc } from "./preview-pane";
 import type { Project } from "@/services/projects";
 
 const project: Project = {
@@ -391,6 +391,80 @@ describe("PreviewPane — device viewports", () => {
     expect(
       c.querySelector('[data-testid="preview-device-mobile"]')?.getAttribute("title"),
     ).toBe("Mobile 390px");
+  });
+});
+
+describe("PreviewPane — local preview hardening", () => {
+  it("local iframe uses an empty sandbox (no allow-scripts / allow-same-origin)", () => {
+    const c = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+    const iframe = c.querySelector('[data-testid="preview-iframe"]') as HTMLIFrameElement;
+    expect(iframe.getAttribute("sandbox")).toBe("");
+    expect(iframe.getAttribute("referrerpolicy")).toBe("no-referrer");
+    expect(iframe.getAttribute("loading")).toBe("lazy");
+  });
+
+  it("live iframe keeps script/same-origin sandbox tokens", () => {
+    const c = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl="https://x.vercel.app"
+      />,
+    );
+    const iframe = c.querySelector('[data-testid="preview-iframe"]') as HTMLIFrameElement;
+    const sb = iframe.getAttribute("sandbox") || "";
+    expect(sb).toContain("allow-scripts");
+    expect(sb).toContain("allow-same-origin");
+  });
+
+  it("srcDoc includes a strict CSP and no-referrer meta", () => {
+    const html = makeLocalPreviewSrcDoc({ name: "Demo", description: "Hi" });
+    expect(html).toContain('http-equiv="Content-Security-Policy"');
+    expect(html).toContain("default-src 'none'");
+    expect(html).toContain("frame-ancestors 'self'");
+    expect(html).toContain('name="referrer"');
+  });
+
+  it("sanitizes HTML, attribute-breakout, and control characters in name/description", () => {
+    const html = makeLocalPreviewSrcDoc({
+      name: '<script>alert(1)</script>" onload=x=`y`/',
+      description: "hi\u0000\u202Eevil\u200B</style><img src=x onerror=alert(2)>",
+    });
+    expect(html).not.toMatch(/<script\b/i);
+    expect(html).not.toMatch(/<img\b/i);
+    expect(html).not.toMatch(/onerror=/i);
+    expect(html).not.toMatch(/onload=/i);
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("&quot;");
+    expect(html).toContain("&#61;");
+    expect(html).toContain("&#96;");
+    expect(html).toContain("&#47;");
+    expect(html).not.toMatch(/[\u202E\u200B\u0000]/);
+  });
+
+  it("falls back to 'Untitled project' when name sanitizes to empty", () => {
+    const html = makeLocalPreviewSrcDoc({ name: "\u0000\u202E", description: "" });
+    expect(html).toContain("Untitled project");
+  });
+
+  it("caps absurdly long inputs", () => {
+    const long = "a".repeat(5000);
+    const html = makeLocalPreviewSrcDoc({ name: long, description: long });
+    expect((html.match(/a/g) || []).length).toBeLessThan(1500);
   });
 });
 
