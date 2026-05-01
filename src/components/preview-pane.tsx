@@ -424,6 +424,9 @@ export function PreviewPane({
                 console.info("[yawb] preview.device.clicked", { device: k });
                 setDevice(k);
               }}
+              data-testid={`preview-device-${k}`}
+              aria-label={DEVICE_VIEWPORTS[k].label}
+              title={DEVICE_VIEWPORTS[k].label}
               className={cn(
                 "h-6 w-6 rounded grid place-items-center transition touch-manipulation",
                 device === k
@@ -438,7 +441,18 @@ export function PreviewPane({
       </div>
 
       <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
-        <div style={{ width: widths[device] }} className="transition-all w-full max-w-full">
+        <div
+          data-testid="preview-device-frame"
+          data-device={device}
+          style={{
+            width: viewport.width,
+            maxWidth: viewport.maxWidth,
+            minHeight: viewport.minHeight,
+            height: "100%",
+            margin: "0 auto",
+          }}
+          className="transition-all overflow-hidden"
+        >
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden relative">
               <iframe
