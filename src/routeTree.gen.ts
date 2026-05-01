@@ -16,6 +16,7 @@ import { Route as ServerSetupRouteImport } from './routes/server-setup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HealthRouteImport } from './routes/health'
@@ -65,6 +66,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportRoute = ImportRouteImport.update({
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/health': typeof HealthRoute
   '/help': typeof HelpRoute
   '/import': typeof ImportRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/health': typeof HealthRoute
   '/help': typeof HelpRoute
   '/import': typeof ImportRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/health': typeof HealthRoute
   '/help': typeof HelpRoute
   '/import': typeof ImportRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/help'
     | '/import'
+    | '/integrations'
     | '/login'
     | '/projects'
     | '/reset-password'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/help'
     | '/import'
+    | '/integrations'
     | '/login'
     | '/projects'
     | '/reset-password'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/health'
     | '/help'
     | '/import'
+    | '/integrations'
     | '/login'
     | '/projects'
     | '/reset-password'
@@ -303,6 +315,7 @@ export interface RootRouteChildren {
   HealthRoute: typeof HealthRoute
   HelpRoute: typeof HelpRoute
   ImportRoute: typeof ImportRoute
+  IntegrationsRoute: typeof IntegrationsRoute
   LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -365,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import': {
@@ -487,6 +507,7 @@ const rootRouteChildren: RootRouteChildren = {
   HealthRoute: HealthRoute,
   HelpRoute: HelpRoute,
   ImportRoute: ImportRoute,
+  IntegrationsRoute: IntegrationsRoute,
   LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
