@@ -1,20 +1,31 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus, Activity, Loader2 } from "lucide-react";
+import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus, Activity, Loader2, ChevronDown, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/services/projects";
 import { JobsPanel } from "@/components/jobs-panel";
 import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
+import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
 import {
   CommandCenterPill,
   CommandCenterDrawer,
   deriveCommandCenterState,
   useCommandCenterAutoOpen,
 } from "@/components/command-center";
+
+const FALLBACK_PAGES: { path: string; label: string }[] = [
+  { path: "/",          label: "Home" },
+  { path: "/dashboard", label: "Dashboard" },
+  { path: "/settings",  label: "Settings" },
+  { path: "/projects",  label: "Projects" },
+  { path: "/billing",   label: "Billing" },
+  { path: "/team",      label: "Team" },
+];
 
 export const Route = createFileRoute("/builder/$projectId")({
   head: ({ params }) => ({
@@ -54,6 +65,14 @@ function Builder() {
   const [device, setDevice] = useState<Device>("desktop");
   const [focusJobId, setFocusJobId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [selectedPage, setSelectedPage] = useState<string>("/");
+  const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
+  const navigate = useNavigate();
+
+  // Mirror UI state to the global hook so the chat panel reads it.
+  useEffect(() => {
+    setBuilderUIState({ selectedPage, selectedEnvironment, currentTab: tab });
+  }, [selectedPage, selectedEnvironment, tab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,21 +170,120 @@ function Builder() {
     }
   };
 
+  const onPagePick = (path: string) => {
+    console.info("[yawb] pagePicker.selected", { path, projectId: project.id });
+    console.info("[yawb] topbar.clicked", { control: "page-picker-item", path });
+    setSelectedPage(path);
+  };
+
+  const onEnvPick = (env: BuilderEnvironment) => {
+    console.info("[yawb] environmentPicker.selected", { env, projectId: project.id });
+    console.info("[yawb] topbar.clicked", { control: "environment-picker-item", env });
+    setSelectedEnvironment(env);
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="h-11 border-b border-white/5 px-4 flex items-center gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-display font-semibold text-[13px] truncate max-w-[180px]">{project.name}</span>
-        </div>
-        <div className="h-4 w-px bg-white/5" />
+      <div className="relative z-40 h-11 border-b border-white/5 px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto">
+        {/* Project selector — currently jumps to the project list, will become a switcher. */}
+        <button
+          type="button"
+          onClick={() => {
+            console.info("[yawb] topbar.clicked", { control: "project-name", projectId: project.id });
+            void navigate({ to: "/projects" });
+          }}
+          className="inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer min-w-0"
+          title="Switch project"
+        >
+          <span className="font-display font-semibold text-[13px] truncate max-w-[160px]">{project.name}</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+
+        <span className="text-muted-foreground/40 text-xs">/</span>
+
+        {/* Page picker */}
+        <Popover onOpenChange={(o) => o && (console.info("[yawb] pagePicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "page-picker" }))}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer"
+              title="Switch page"
+            >
+              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="font-mono text-[12px]">{selectedPage}</span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
+            <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pages</div>
+            {FALLBACK_PAGES.map((p) => (
+              <button
+                key={p.path}
+                type="button"
+                onClick={() => onPagePick(p.path)}
+                className={cn(
+                  "w-full text-left flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-white/[0.05] touch-manipulation",
+                  selectedPage === p.path && "bg-white/[0.06] text-foreground",
+                )}
+              >
+                <span className="font-mono">{p.path}</span>
+                <span className="text-[11px] text-muted-foreground">{p.label}</span>
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        <span className="text-muted-foreground/40 text-xs">/</span>
+
+        {/* Environment picker */}
+        <Popover onOpenChange={(o) => o && (console.info("[yawb] environmentPicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "environment-picker" }))}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center gap-1.5 h-7 px-2 rounded-md border text-[10.5px] uppercase tracking-[0.16em] transition touch-manipulation pointer-events-auto cursor-pointer",
+                selectedEnvironment === "production"
+                  ? "border-success/30 bg-success/10 text-success hover:bg-success/15"
+                  : "border-warning/30 bg-warning/10 text-warning hover:bg-warning/15",
+              )}
+              title="Switch environment"
+            >
+              <Globe className="h-3 w-3" />
+              {selectedEnvironment}
+              <ChevronDown className="h-3 w-3 opacity-70" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-44 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
+            {(["preview", "production"] as BuilderEnvironment[]).map((env) => (
+              <button
+                key={env}
+                type="button"
+                onClick={() => onEnvPick(env)}
+                className={cn(
+                  "w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-white/[0.05] touch-manipulation capitalize",
+                  selectedEnvironment === env && "bg-white/[0.06] text-foreground",
+                )}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full", env === "production" ? "bg-success" : "bg-warning")} />
+                {env}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        <div className="h-4 w-px bg-white/5 mx-1" />
+
         <div className="flex items-center gap-1">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
-              onClick={() => onTabClick(t.id)}
+              onClick={() => {
+                console.info("[yawb] topbar.clicked", { control: `tab-${t.id}` });
+                onTabClick(t.id);
+              }}
               className={cn(
-                "inline-flex items-center gap-2 h-8 px-3 rounded-lg text-[12.5px] transition touch-manipulation",
+                "inline-flex items-center gap-2 h-8 px-3 rounded-lg text-[12.5px] transition touch-manipulation pointer-events-auto cursor-pointer",
                 tab === t.id
                   ? "bg-white/[0.07] text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]",
@@ -186,6 +304,7 @@ function Builder() {
             project={project}
             onStartBuild={onStartBuild}
             starting={starting}
+            selectedPage={selectedPage}
           />
         )}
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
@@ -218,12 +337,13 @@ function Builder() {
   );
 }
 
-function PreviewPane({ device, setDevice, project, onStartBuild, starting }: {
+function PreviewPane({ device, setDevice, project, onStartBuild, starting, selectedPage }: {
   device: Device;
   setDevice: (d: Device) => void;
   project: Project;
   onStartBuild: () => void;
   starting: boolean;
+  selectedPage: string;
 }) {
   const widths: Record<Device, string> = { desktop: "100%", tablet: "820px", mobile: "390px" };
   return (
@@ -239,7 +359,9 @@ function PreviewPane({ device, setDevice, project, onStartBuild, starting }: {
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
         <div className="flex-1 mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono">
-          <ExternalLink className="h-3 w-3" /> No deploy URL yet
+          <ExternalLink className="h-3 w-3" />
+          <span className="truncate">{selectedPage}</span>
+          <span className="ml-auto text-muted-foreground/60 text-[10.5px] non-italic">No deploy URL yet</span>
         </div>
         <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5">
           {([
