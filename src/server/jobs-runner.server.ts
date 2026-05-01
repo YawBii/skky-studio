@@ -605,6 +605,51 @@ export function getBuildRunnerConfigServer(): {
 }
 
 import { runAiPlan, gatherPlanContext, isAiPlannerConfigured, AI_PLANNER_NOT_CONFIGURED_ERROR } from "./ai-planner.server";
+import { generateProjectFiles } from "../services/project-template";
+
+/**
+ * Persist deterministic project files to the project_files table. Used by
+ * `ai.generate_changes` and as a post-success hook for `build.production`.
+ *
+ * NOTE: When a real AI generator is wired (Lovable AI Gateway), swap the
+ * `generateProjectFiles` call for an async generator with the same return
+ * shape — PreviewPane/project_files do not need to change.
+ */
+async function generateAndPersistProjectFiles(
+  sb: SupabaseClient,
+  job: JobRow,
+): Promise<{ ok: boolean; written: string[]; error?: string; category?: string }> {
+  const { data: proj, error: pErr } = await sb
+    .from("projects")
+    .select("id, name, description")
+    .eq("id", job.project_id)
+    .maybeSingle();
+  if (pErr || !proj) {
+    return { ok: false, written: [], error: pErr?.message ?? "project not found" };
+  }
+  const input = (job.input ?? {}) as Record<string, unknown>;
+  const chatRequest = typeof input.chatRequest === "string"
+    ? input.chatRequest
+    : typeof input.prompt === "string" ? input.prompt : null;
+  const files = generateProjectFiles({
+    project: { id: proj.id, name: proj.name ?? "", description: proj.description ?? null },
+    chatRequest,
+  });
+  const written: string[] = [];
+  for (const f of files) {
+    const { error } = await sb
+      .from("project_files")
+      .upsert(
+        { project_id: job.project_id, path: f.path, content: f.content, language: f.language, kind: f.kind },
+        { onConflict: "project_id,path" },
+      );
+    if (error) {
+      return { ok: false, written, error: error.message };
+    }
+    written.push(f.path);
+  }
+  return { ok: true, written };
+}
 
 const aiAdapter: ProviderAdapter = {
   name: "ai",
