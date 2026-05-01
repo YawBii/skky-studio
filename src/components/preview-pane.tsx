@@ -253,7 +253,7 @@ export function PreviewPane({
               )}
               {/* Soft hint after 3s — non-blocking, suggests opening externally
                   if the iframe looks blank/blocked. */}
-              {softHintVisible && iframeState !== "failed" && activeDeployUrl && (
+              {softHintVisible && activeDeployUrl && (
                 <div
                   data-testid="preview-iframe-soft-hint"
                   className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 backdrop-blur px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated"
