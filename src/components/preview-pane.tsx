@@ -49,7 +49,9 @@ export function PreviewPane({
   }, [activeDeployUrl, selectedPage]);
 
   const [iframeState, setIframeState] = useState<IframeState>("idle");
+  const [softHintVisible, setSoftHintVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset + start the load timer whenever the iframe URL changes.
   useEffect(() => {
@@ -57,20 +59,38 @@ export function PreviewPane({
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    if (softHintRef.current) {
+      clearTimeout(softHintRef.current);
+      softHintRef.current = null;
+    }
+    setSoftHintVisible(false);
     if (!iframeSrc) {
       setIframeState("idle");
       return;
     }
     setIframeState("loading");
     console.info("[yawb] preview.iframe.loading", { url: iframeSrc });
+    // Soft hint: even if iframe says loaded, cross-origin embeds can be
+    // visually blank. Show non-blocking overlay after 3s regardless.
+    softHintRef.current = setTimeout(() => {
+      setSoftHintVisible(true);
+      console.info("[yawb] preview.fallback.visible", {
+        url: iframeSrc,
+        reason: "soft-hint-3s",
+      });
+    }, IFRAME_SOFT_HINT_MS);
     timeoutRef.current = setTimeout(() => {
-      // If still loading after the timeout, treat as failed (likely
+      // If still loading after the hard timeout, treat as failed (likely
       // X-Frame-Options/CSP block — do NOT mark deploy itself as failed).
       setIframeState((cur) => {
         if (cur === "loading") {
           console.info("[yawb] preview.iframe.failed", {
             url: iframeSrc,
             reason: "timeout",
+          });
+          console.info("[yawb] preview.fallback.visible", {
+            url: iframeSrc,
+            reason: "iframe-timeout",
           });
           return "failed";
         }
@@ -81,6 +101,10 @@ export function PreviewPane({
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+      if (softHintRef.current) {
+        clearTimeout(softHintRef.current);
+        softHintRef.current = null;
       }
     };
   }, [iframeSrc]);
