@@ -13,6 +13,7 @@ import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useDiagnostics } from "@/lib/diagnostics";
 import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
 import { getBuildRunnerConfig, type BuildRunnerConfigSnapshot } from "@/services/build-runner.functions";
+import { partitionFailures } from "@/lib/job-resolution";
 
 interface JobsPanelProps {
   projectId: string | null;
