@@ -137,7 +137,6 @@ function LocalPreview() {
     );
   }
 
-  const projectName = project?.name ?? "Project";
 
   return (
     <div data-testid="preview-embed-root" style={wrapperStyle}>
