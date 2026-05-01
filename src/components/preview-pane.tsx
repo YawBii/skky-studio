@@ -36,6 +36,15 @@ const IFRAME_LOAD_TIMEOUT_MS = 8000;
 const IFRAME_SOFT_HINT_MS = 3000;
 const TOGGLE_KEY = (projectId: string) => `yawb:preview:mode:${projectId}`;
 
+const DEVICE_VIEWPORTS: Record<
+  PreviewDevice,
+  { width: string; maxWidth: string; minHeight: number; label: string }
+> = {
+  desktop: { width: "100%", maxWidth: "100%", minHeight: 640, label: "Desktop 100%" },
+  tablet: { width: "820px", maxWidth: "100%", minHeight: 640, label: "Tablet 820px" },
+  mobile: { width: "390px", maxWidth: "100%", minHeight: 720, label: "Mobile 390px" },
+};
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
