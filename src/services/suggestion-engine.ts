@@ -271,9 +271,17 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
   }
 
   // Placeholder feature gaps — legacy "provider call is not wired yet" hint.
-  const aiPlanPlaceholder = jobs.find(
-    (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
+  // Suppress entirely once Monster Brain v1 has produced any successful
+  // ai.plan job — the provider is wired and old placeholder failures are
+  // stale history.
+  const hasSuccessfulAiPlan = jobs.some(
+    (j) => j.type === "ai.plan" && j.status === "succeeded",
   );
+  const aiPlanPlaceholder = !hasSuccessfulAiPlan
+    ? jobs.find(
+        (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
+      )
+    : undefined;
   if (aiPlanPlaceholder) {
     out.push({
       id: "wire-ai-planner-provider",

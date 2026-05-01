@@ -128,7 +128,62 @@ describe("Monster Brain v1 — ai.plan integration", () => {
     expect(extractPlanActions({ plan: { recommendedActions: "nope" } })).toEqual([]);
     expect(extractPlanActions({ plan: { recommendedActions: [{ label: "x" }] } })).toEqual([{
       label: "x", reason: "", category: "build_next", prompt: "", confidence: 0.5, risk: "low",
-    }]);
+  }]);
+  });
+});
+
+describe("stale suggestion suppression", () => {
+  function vercelConn(status: "connected" | "pending" | "error" | "disconnected") {
+    return {
+      id: "c1", projectId: "p", provider: "vercel", status,
+      repoFullName: null, repoUrl: null, defaultBranch: null,
+      metadata: {}, createdBy: "u", createdAt: "", updatedAt: "",
+      workspaceId: null, externalId: null, url: null,
+      tokenOwnerType: null, providerAccountId: null,
+    } as never;
+  }
+
+  it("does NOT suggest 'Connect Vercel' when a connected Vercel row exists (even after a deploy attempt)", () => {
+    const jobs = [
+      mkJob({ id: "d1", type: "vercel.create_preview_deploy", status: "succeeded", createdAt: "2026-05-01T12:00:00Z" }),
+    ];
+    const out = buildSmartSuggestions({
+      ...baseCtx,
+      jobs,
+      connections: [vercelConn("connected")],
+    });
+    expect(out.some((s) => s.id === "connect-vercel")).toBe(false);
+  });
+
+  it("does NOT show 'Wire AI planner provider' for stale ai.plan placeholder failure once a successful ai.plan exists", () => {
+    const jobs = [
+      mkJob({
+        id: "ok", type: "ai.plan", status: "succeeded",
+        createdAt: "2026-05-01T12:00:00Z",
+        output: { plan: { recommendedActions: [], summary: "ok", missingContext: [], proof: { model: "x", durationMs: 1, contextSources: [] } } },
+      }),
+      mkJob({
+        id: "old", type: "ai.plan", status: "failed",
+        createdAt: "2026-05-01T10:00:00Z",
+        error: "Provider call is not wired yet — no real changes were made.",
+      }),
+    ];
+    const out = buildSmartSuggestions({ ...baseCtx, jobs });
+    expect(out.some((s) => s.id === "wire-ai-planner-provider")).toBe(false);
+    // and no retry/resolve-wiring chip either
+    expect(out.some((s) => s.id.startsWith("retry-"))).toBe(false);
+  });
+
+  it("STILL shows 'Wire AI planner provider' for placeholder failure when no successful ai.plan exists yet", () => {
+    const jobs = [
+      mkJob({
+        id: "old", type: "ai.plan", status: "failed",
+        createdAt: "2026-05-01T10:00:00Z",
+        error: "Provider call is not wired yet — no real changes were made.",
+      }),
+    ];
+    const out = buildSmartSuggestions({ ...baseCtx, jobs });
+    expect(out.some((s) => s.id === "wire-ai-planner-provider")).toBe(true);
   });
 });
 

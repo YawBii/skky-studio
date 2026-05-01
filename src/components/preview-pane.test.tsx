@@ -115,4 +115,75 @@ describe("PreviewPane", () => {
     expect(btn).not.toBeNull();
     expect(btn!.disabled).toBe(true);
   });
+
+  it("shows the friendly fallback card after iframe failure and external-open still works", () => {
+    vi.useFakeTimers();
+    try {
+      const url = "https://preview-blocked.vercel.app";
+      const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+      const container = render(
+        <PreviewPane
+          device="desktop"
+          setDevice={() => {}}
+          project={project}
+          onStartBuild={() => {}}
+          starting={false}
+          selectedPage="/"
+          activeDeployUrl={url}
+        />,
+      );
+      // Trigger the failed state via the load timeout (covers the X-Frame
+      // / CSP block scenario where the iframe never fires onload).
+      act(() => {
+        vi.advanceTimersByTime(8001);
+      });
+      const fallback = container.querySelector(
+        '[data-testid="preview-iframe-fallback"]',
+      ) as HTMLElement | null;
+      expect(fallback).not.toBeNull();
+      expect(fallback!.textContent).toContain("This app may block embedded preview.");
+      const openBtn = container.querySelector(
+        'button[aria-label="Open live preview"]',
+      ) as HTMLButtonElement | null;
+      expect(openBtn).not.toBeNull();
+      act(() => {
+        openBtn!.click();
+      });
+      expect(openSpy).toHaveBeenCalledWith(url, "_blank", "noopener");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("falls back to the friendly card after the 8s iframe load timeout", () => {
+    vi.useFakeTimers();
+    try {
+      const url = "https://preview-slow.vercel.app";
+      const container = render(
+        <PreviewPane
+          device="desktop"
+          setDevice={() => {}}
+          project={project}
+          onStartBuild={() => {}}
+          starting={false}
+          selectedPage="/"
+          activeDeployUrl={url}
+        />,
+      );
+      expect(
+        container.querySelector('[data-testid="preview-iframe"]'),
+      ).not.toBeNull();
+      expect(
+        container.querySelector('[data-testid="preview-iframe-fallback"]'),
+      ).toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(8001);
+      });
+      expect(
+        container.querySelector('[data-testid="preview-iframe-fallback"]'),
+      ).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
