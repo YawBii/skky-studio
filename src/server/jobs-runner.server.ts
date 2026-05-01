@@ -673,14 +673,14 @@ const aiAdapter: ProviderAdapter = {
     if (job.type === "ai.generate_changes") {
       const r = await generateAndPersistProjectFiles(sb, job);
       if (!r.ok) {
-        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
+        return { status: "failed", error: r.error ?? "generate failed", output: { generator: r.generator, filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
       }
       const output = {
+        generator: r.generator,
         filesWritten: r.written,
         archetype: r.archetype,
         designSignature: r.designSignature,
-        previewReady: r.written.includes("index.html"),
-        generator: "monster-brain-v1",
+        previewReady: r.previewReady,
       };
       try {
         await sb.from("project_jobs").update({ output }).eq("id", job.id);
