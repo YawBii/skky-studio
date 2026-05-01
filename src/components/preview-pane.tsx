@@ -38,11 +38,11 @@ const TOGGLE_KEY = (projectId: string) => `yawb:preview:mode:${projectId}`;
 
 const DEVICE_VIEWPORTS: Record<
   PreviewDevice,
-  { width: string; maxWidth: string; minHeight: number; label: string }
+  { width: string; maxWidth: string; minWidth: number; minHeight: number; label: string }
 > = {
-  desktop: { width: "100%", maxWidth: "100%", minHeight: 640, label: "Desktop 100%" },
-  tablet: { width: "820px", maxWidth: "100%", minHeight: 640, label: "Tablet 820px" },
-  mobile: { width: "390px", maxWidth: "100%", minHeight: 720, label: "Mobile 390px" },
+  desktop: { width: "100%", maxWidth: "none", minWidth: 0, minHeight: 640, label: "Desktop 100%" },
+  tablet: { width: "820px", maxWidth: "100%", minWidth: 0, minHeight: 640, label: "Tablet 820px" },
+  mobile: { width: "390px", maxWidth: "100%", minWidth: 0, minHeight: 720, label: "Mobile 390px" },
 };
 
 /**
@@ -472,21 +472,39 @@ export function PreviewPane({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
+      <div
+        className={cn(
+          "flex-1 min-h-0 bg-[oklch(0.13_0_0)]",
+          device === "desktop"
+            ? "overflow-hidden"
+            : "overflow-auto p-8 grid place-items-start justify-center",
+        )}
+      >
         <div
           data-testid="preview-device-frame"
           data-device={device}
           style={{
             width: viewport.width,
             maxWidth: viewport.maxWidth,
+            minWidth: viewport.minWidth,
             minHeight: viewport.minHeight,
             height: "100%",
-            margin: "0 auto",
+            ...(device === "desktop" ? {} : { margin: "0 auto" }),
           }}
-          className="transition-all overflow-hidden"
+          className={cn(
+            "transition-all overflow-hidden",
+            device === "desktop" && "w-full h-full",
+          )}
         >
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
-            <div className="rounded-2xl border border-white/10 bg-background shadow-elevated h-full min-h-[inherit] overflow-hidden relative">
+            <div
+              className={cn(
+                "bg-background h-full min-h-[inherit] overflow-hidden relative",
+                device === "desktop"
+                  ? "w-full"
+                  : "rounded-2xl border border-white/10 shadow-elevated",
+              )}
+            >
               <iframe
                 title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
