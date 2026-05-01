@@ -253,7 +253,7 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
   const openQuestion = questions.find((q) => !q.answeredAt);
 
   return (
-    <li className="px-4 py-2.5">
+    <li id={`job-row-${job.id}`} className="px-4 py-2.5">
       <div className="flex items-center gap-2">
         <button onClick={onToggle} className="text-muted-foreground hover:text-foreground">
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
