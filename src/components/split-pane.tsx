@@ -94,7 +94,7 @@ export function SplitPane({
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerCancel={stopDrag}
-        onDoubleClick={() => { setRightWidth(460); onChange?.(460); }}
+        onDoubleClick={() => { setRightWidth(380); onChange?.(380); }}
         className={cn(
           "group relative w-2 shrink-0 cursor-col-resize bg-white/5 hover:bg-primary/40 active:bg-primary/60 transition-colors",
           "touch-none select-none",
