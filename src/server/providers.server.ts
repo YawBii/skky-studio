@@ -209,11 +209,24 @@ export async function listVercelProjects(opts: { teamId?: string; limit?: number
   }
 }
 
-export function getSupabaseStatus(): ProviderStatus {
+function readSupabaseEnv(): { url: string | undefined; anon: string | undefined; service: string | undefined } {
   const env = process.env;
-  const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
-  const anon = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const url =
+    env.SUPABASE_URL ||
+    env.EXTERNAL_SUPABASE_URL ||
+    env.VITE_SUPABASE_URL;
+  const anon =
+    env.SUPABASE_PUBLISHABLE_KEY ||
+    env.EXTERNAL_SUPABASE_PUBLISHABLE_KEY ||
+    env.SUPABASE_ANON_KEY ||
+    env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    env.VITE_SUPABASE_ANON_KEY;
   const service = env.SUPABASE_SERVICE_ROLE_KEY;
+  return { url, anon, service };
+}
+
+export function getSupabaseStatus(): ProviderStatus {
+  const { url, anon, service } = readSupabaseEnv();
   const missing: string[] = [];
   if (!url) missing.push("SUPABASE_URL");
   if (!anon) missing.push("SUPABASE_PUBLISHABLE_KEY");
