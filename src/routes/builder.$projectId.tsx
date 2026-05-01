@@ -117,9 +117,10 @@ function Builder() {
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
   const { open: ccOpen, setOpen: setCcOpen, effectiveMode: ccMode } = useCommandCenterAutoOpen(ccState, {
     onJobSucceeded: (j) => {
-      // After a successful build, return focus to Preview.
+      // After a successful build, return focus to Preview + flash a toast.
       if (j.type === "build.production" || j.type === "build.typecheck") {
         setTab("preview");
+        toast.success("Build passed", { description: j.title });
       }
     },
   });
