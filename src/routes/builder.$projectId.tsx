@@ -8,6 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/services/projects";
 import { JobsPanel } from "@/components/jobs-panel";
 import { enqueueJob } from "@/services/jobs";
+import { useProjectJobs } from "@/hooks/use-project-jobs";
+import {
+  CommandCenterPill,
+  CommandCenterDrawer,
+  deriveCommandCenterState,
+  useCommandCenterAutoOpen,
+} from "@/components/command-center";
 
 export const Route = createFileRoute("/builder/$projectId")({
   head: ({ params }) => ({
