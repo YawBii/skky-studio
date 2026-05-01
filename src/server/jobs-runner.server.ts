@@ -672,17 +672,22 @@ const aiAdapter: ProviderAdapter = {
     if (job.type === "ai.generate_changes") {
       const r = await generateAndPersistProjectFiles(sb, job);
       if (!r.ok) {
-        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written } };
+        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
       }
+      const output = {
+        filesWritten: r.written,
+        archetype: r.archetype,
+        designSignature: r.designSignature,
+        previewReady: r.written.includes("index.html"),
+        generator: "monster-brain-v1",
+      };
       try {
-        await sb.from("project_jobs").update({
-          output: { filesWritten: r.written, generator: "deterministic" },
-        }).eq("id", job.id);
+        await sb.from("project_jobs").update({ output }).eq("id", job.id);
       } catch { /* best-effort */ }
       return {
         status: "succeeded",
-        output: { filesWritten: r.written, generator: "deterministic" },
-        log: `ai.generate_changes ok: wrote ${r.written.join(", ")}`,
+        output,
+        log: `ai.generate_changes ok: archetype=${r.archetype} wrote ${r.written.join(", ")}`,
       };
     }
     if (!isAiPlannerConfigured()) {
