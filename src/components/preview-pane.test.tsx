@@ -346,40 +346,90 @@ describe("PreviewPane — device viewports", () => {
     );
   }
 
-  it("desktop frame width is 100%", () => {
+  it("desktop frame fills available width with no centered narrow wrapper", () => {
     const c = renderWithDevice("desktop");
     const frame = c.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
     expect(frame).not.toBeNull();
     expect(frame.style.width).toBe("100%");
-    expect(frame.style.maxWidth).toBe("100%");
+    // maxWidth must NOT be a phone/tablet constraint
+    expect(frame.style.maxWidth).not.toBe("390px");
+    expect(frame.style.maxWidth).not.toBe("820px");
+    expect(["none", "100%", ""]).toContain(frame.style.maxWidth);
     expect(frame.style.minHeight).toBe("640px");
-    expect(frame.style.margin).toContain("auto");
     expect(frame.style.transform || "").toBe("");
+    // No centered narrow wrapper / aspect / fit constraints
+    expect(frame.className).not.toMatch(/\bmx-auto\b/);
+    expect(frame.className).not.toMatch(/\bw-fit\b/);
+    expect(frame.className).not.toMatch(/\bmax-w-\[/);
+    expect(frame.className).not.toMatch(/\baspect-\[/);
+    // Margin auto must NOT be applied on desktop
+    expect(frame.style.margin || "").not.toContain("auto");
   });
 
-  it("tablet frame width is 820px and max-width 100%", () => {
+  it("tablet frame width is 820px and centered with max-width 100%", () => {
     const c = renderWithDevice("tablet");
     const frame = c.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
     expect(frame.style.width).toBe("820px");
     expect(frame.style.maxWidth).toBe("100%");
     expect(frame.style.minHeight).toBe("640px");
+    expect(frame.style.margin).toContain("auto");
   });
 
-  it("mobile frame width is 390px and min-height 720", () => {
+  it("mobile frame width is 390px centered with min-height 720", () => {
     const c = renderWithDevice("mobile");
     const frame = c.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
     expect(frame.style.width).toBe("390px");
     expect(frame.style.maxWidth).toBe("100%");
     expect(frame.style.minHeight).toBe("720px");
+    expect(frame.style.margin).toContain("auto");
   });
 
-  it("iframe remains width/height 100% with no transform scale", () => {
+  it("iframe remains width/height 100% with border 0 and no transform scale", () => {
     const c = renderWithDevice("tablet");
     const iframe = c.querySelector('[data-testid="preview-iframe"]') as HTMLIFrameElement;
     expect(iframe.className).toContain("w-full");
     expect(iframe.className).toContain("h-full");
     expect(iframe.className).toContain("border-0");
     expect(iframe.style.transform || "").toBe("");
+  });
+
+  it("switching from mobile back to desktop restores the full-width frame", () => {
+    let device: "desktop" | "tablet" | "mobile" = "mobile";
+    const setDevice = (d: typeof device) => {
+      device = d;
+    };
+    // first render mobile
+    const c1 = render(
+      <PreviewPane
+        device="mobile"
+        setDevice={setDevice}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+    const mobileFrame = c1.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
+    expect(mobileFrame.style.width).toBe("390px");
+    // re-render as desktop
+    act(() => {
+      root!.render(
+        <PreviewPane
+          device="desktop"
+          setDevice={setDevice}
+          project={project}
+          onStartBuild={() => {}}
+          starting={false}
+          selectedPage="/"
+          activeDeployUrl={null}
+        />,
+      );
+    });
+    const desktopFrame = c1.querySelector('[data-testid="preview-device-frame"]') as HTMLElement;
+    expect(desktopFrame.style.width).toBe("100%");
+    expect(desktopFrame.style.margin || "").not.toContain("auto");
+    expect(desktopFrame.className).not.toMatch(/\bmx-auto\b/);
   });
 
   it("device buttons expose readable labels", () => {
