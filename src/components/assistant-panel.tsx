@@ -12,8 +12,10 @@ import { enqueueJob, retryJob, JOB_TYPES, type JobType } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useDiagnostics } from "@/lib/diagnostics";
-import { useSmartSuggestions, type SmartSuggestion } from "@/hooks/use-smart-suggestions";
+import { useMemo } from "react";
+import { buildSmartSuggestions, dismissSuggestion, type SmartSuggestion } from "@/services/suggestion-engine";
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
+import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -72,7 +74,10 @@ export function AssistantPanel() {
   const connState = useProjectConnections(project?.id ?? null);
   const diag = useDiagnostics();
 
-  const suggestions = useSmartSuggestions({
+  const ui = useBuilderUIState();
+  const [, forceTick] = useState(0);
+
+  const suggestions = useMemo(() => buildSmartSuggestions({
     workspace: workspace ?? null,
     project: project ?? null,
     jobs: jobsState.jobs,
@@ -81,7 +86,15 @@ export function AssistantPanel() {
     jobsSource: jobsState.source,
     diagnostics: diag.state,
     hasDeployUrl: false,
-  });
+    selectedPage: ui.selectedPage,
+    selectedEnvironment: ui.selectedEnvironment,
+    currentBuilderTab: ui.currentTab,
+  }), [workspace, project, jobsState.jobs, connState.connections, connState.source, jobsState.source, diag.state, ui.selectedPage, ui.selectedEnvironment, ui.currentTab]);
+
+  const onDismissSuggestion = (s: SmartSuggestion) => {
+    dismissSuggestion(project?.id ?? null, s.id);
+    forceTick((n) => n + 1);
+  };
 
   const dispatchSuggestion = async (s: SmartSuggestion) => {
     try {
@@ -91,8 +104,32 @@ export function AssistantPanel() {
           await navigate({ to: a.to as never });
           break;
         case "switch_tab":
-          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: a.tab } }));
-          toast(`Open the ${a.tab} tab in the builder header.`);
+          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: a.tab, focusJobId: a.focusJobId } }));
+          break;
+        case "open_page_picker":
+          window.dispatchEvent(new CustomEvent("yawb:open-page-picker"));
+          break;
+        case "open_command_center":
+          window.dispatchEvent(new CustomEvent("yawb:open-command-center", { detail: { focusJobId: a.focusJobId } }));
+          break;
+        case "open_server_setup":
+          await navigate({ to: "/server-setup" as never });
+          break;
+        case "ask_chat_prefill":
+          setPrompt(a.prompt);
+          // Focus the textarea on next paint.
+          setTimeout(() => {
+            const el = document.querySelector<HTMLTextAreaElement>("textarea[placeholder^='Ask yawB']");
+            el?.focus();
+            el?.setSelectionRange(a.prompt.length, a.prompt.length);
+          }, 0);
+          toast("Prefilled — review then send.");
+          break;
+        case "create_page":
+          setPrompt(`Create a new page at ${a.path} for ${project?.name ?? "this app"}. Include layout, empty state, and update the builder page picker list.`);
+          break;
+        case "create_schema_plan":
+          setPrompt(`Plan a Supabase schema for these tables: ${a.tables.join(", ")}. Include columns, FK relations, RLS policies (with a SECURITY DEFINER has_role() helper if roles are needed), and a migration SQL file under docs/sql/.`);
           break;
         case "enqueue_job": {
           if (!project || !workspace) {
