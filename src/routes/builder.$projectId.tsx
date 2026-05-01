@@ -178,7 +178,7 @@ function Builder() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {tab === "preview"  && (
           <PreviewPane
             device={device}
@@ -193,6 +193,26 @@ function Builder() {
         {tab === "deploy"   && <NotConnected title="Deploys" hint="Connect Vercel from Integrations to deploy this project." cta={{ label: "Open Integrations", to: "/connectors" }} />}
         {tab === "jobs"     && <JobsPanel projectId={project.id} workspaceId={project.workspaceId} initialExpandedJobId={focusJobId} />}
         {tab === "history"  && <NotConnected title="History" hint="Connect a Git provider to see commit history." cta={{ label: "Open Integrations", to: "/connectors" }} />}
+
+        {/* Command Center: compact pill + collapsible drawer.
+            Hidden on the Jobs tab (full panel already visible there). */}
+        {tab !== "jobs" && (
+          <>
+            <CommandCenterPill
+              state={{ ...ccState, mode: ccMode }}
+              open={ccOpen}
+              onToggle={() => setCcOpen(!ccOpen)}
+            />
+            <CommandCenterDrawer
+              open={ccOpen}
+              onClose={() => setCcOpen(false)}
+              projectId={project.id}
+              workspaceId={project.workspaceId}
+              focusJobId={ccState.activeJob?.id ?? focusJobId}
+              onOpenJobsTab={() => { setCcOpen(false); setTab("jobs"); }}
+            />
+          </>
+        )}
       </div>
     </div>
   );
