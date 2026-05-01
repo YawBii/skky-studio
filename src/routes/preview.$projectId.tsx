@@ -1,9 +1,11 @@
-// Local builder preview route — renders a project's current generated state
-// inside the iframe used by PreviewPane. Works without any Vercel deploy.
+// Chrome-less local builder preview route.
 //
-// For now this serves a minimal shell explaining that no generated files
-// exist yet. When a project_files table is wired up, hydrate this with
-// the project's generated index.html / React shell.
+// Rendered directly under <html> with no yawB sidebar / topbar / chat /
+// diagnostics — the root layout (src/routes/__root.tsx) checks for a path
+// starting with "/preview/" and returns a bare <Outlet />.
+//
+// PreviewPane embeds this route via /preview/$projectId?embed=1 so the user
+// sees ONLY the project output (or a clean local-preview placeholder).
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -31,6 +33,30 @@ function LocalPreview() {
   const [loading, setLoading] = useState(true);
   const [hasFiles, setHasFiles] = useState(false);
 
+  // Make this route truly chrome-less and full-viewport. Strip any inherited
+  // app background so the embedded iframe shows the preview document only.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlClass = html.className;
+    const prevBodyClass = body.className;
+    const prevBg = body.style.background;
+    const prevMargin = body.style.margin;
+    const prevMinH = body.style.minHeight;
+    body.style.background = "#0b0f14";
+    body.style.margin = "0";
+    body.style.minHeight = "100%";
+    body.setAttribute("data-yawb-preview-embed", "1");
+    return () => {
+      html.className = prevHtmlClass;
+      body.className = prevBodyClass;
+      body.style.background = prevBg;
+      body.style.margin = prevMargin;
+      body.style.minHeight = prevMinH;
+      body.removeAttribute("data-yawb-preview-embed");
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -54,57 +80,62 @@ function LocalPreview() {
     };
   }, [projectId]);
 
+  const wrapperStyle: React.CSSProperties = {
+    minHeight: "100vh",
+    width: "100%",
+    margin: 0,
+    background: "#0b0f14",
+    color: "#e6edf3",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px",
+    fontFamily:
+      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background text-muted-foreground text-sm">
-        Loading local preview…
+      <div data-testid="preview-embed-root" style={wrapperStyle}>
+        <div style={{ fontSize: 13, opacity: 0.6 }}>Loading local preview…</div>
       </div>
     );
   }
 
-  if (!project) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-background text-center px-6">
-        <div className="max-w-md">
-          <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-            Local preview
-          </div>
-          <h1 className="mt-2 text-2xl font-display font-semibold">Project not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            We couldn't locate this project. It may have been deleted.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const projectName = project?.name ?? "Project";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-2xl mx-auto px-8 py-16">
-        <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
+    <div data-testid="preview-embed-root" style={wrapperStyle}>
+      <div style={{ maxWidth: 480, textAlign: "center" }}>
+        <div
+          style={{
+            fontSize: 10.5,
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
+            opacity: 0.55,
+          }}
+        >
           Local preview
         </div>
-        <h1 className="mt-3 text-3xl md:text-4xl font-display font-bold tracking-tight">
-          {project.name}
+        <h1
+          style={{
+            marginTop: 12,
+            fontSize: 28,
+            fontWeight: 700,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {projectName} local preview
         </h1>
-        {project.description && (
-          <p className="mt-3 text-sm text-muted-foreground">{project.description}</p>
+        {hasFiles ? (
+          <p style={{ marginTop: 10, fontSize: 14, opacity: 0.7 }}>
+            Rendering generated files…
+          </p>
+        ) : (
+          <p style={{ marginTop: 10, fontSize: 14, opacity: 0.7, lineHeight: 1.5 }}>
+            No generated screen yet — ask yawB to build the first screen.
+          </p>
         )}
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-          {hasFiles ? (
-            <p className="text-sm text-muted-foreground">
-              Rendering generated files…
-            </p>
-          ) : (
-            <>
-              <h2 className="text-base font-semibold">No generated screens yet</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Ask yawB in the chat to build the first screen. Once a build runs,
-                the local preview will render it here — no Vercel deploy required.
-              </p>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );
