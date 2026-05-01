@@ -120,6 +120,21 @@ function LocalPreview() {
     );
   }
 
+  // If we have a saved index.html, render it inline as the page content via
+  // an iframe srcDoc so the project's own CSS owns the viewport (no yawB chrome).
+  if (indexHtml) {
+    return (
+      <iframe
+        data-testid="preview-embed-root"
+        title={`${projectName} local preview`}
+        srcDoc={indexHtml}
+        sandbox=""
+        referrerPolicy="no-referrer"
+        style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, background: "#0b0f14" }}
+      />
+    );
+  }
+
   const projectName = project?.name ?? "Project";
 
   return (
