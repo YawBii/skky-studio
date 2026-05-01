@@ -782,11 +782,11 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
         const out = (result.output ?? {}) as Record<string, unknown>;
         result.output = {
           ...out,
+          generator: gen.generator,
           filesWritten: gen.written,
           archetype: gen.archetype,
           designSignature: gen.designSignature,
-          previewReady: gen.written.includes("index.html"),
-          generator: "monster-brain-v1",
+          previewReady: gen.previewReady,
         };
         result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
       } catch { /* best-effort */ }
