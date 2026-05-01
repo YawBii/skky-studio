@@ -90,6 +90,9 @@ export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "descript
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>${name}</title>
     <style>
       html, body { margin:0; min-height:100%; background:#0b0f14; color:#e6edf3; font-family:Inter, system-ui, sans-serif; }
       * { box-sizing:border-box; }
