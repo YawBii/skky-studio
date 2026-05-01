@@ -24,11 +24,7 @@ export interface JobRow {
   status: JobStatus; title: string; input: Record<string, unknown>;
 }
 export interface ProjectFilesSupabaseLike {
-  from(table: string): {
-    select?: (...args: unknown[]) => unknown;
-    upsert?: (...args: unknown[]) => Promise<{ error: { message: string } | null }>;
-    update?: (...args: unknown[]) => unknown;
-  } & Record<string, unknown>;
+  from: (table: string) => any;
 }
 interface StepRow {
   id: string; job_id: string; step_key: string; title: string;
