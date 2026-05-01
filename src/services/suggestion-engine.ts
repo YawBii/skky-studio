@@ -266,6 +266,8 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       explanation: "ai.plan job exists but provider execution is not implemented yet.",
     });
   }
+
+  // Build runner not configured but no failure yet → only suggest if user is
   // about to need it (e.g., started a build attempt or is on Deploy tab).
   if (buildRunnerConfigured === false && (jobs.some((j) => j.type.startsWith("build.")) || currentBuilderTab === "deploy")) {
     out.push({
