@@ -61,6 +61,16 @@ export function getResolvingSuccess(failed: Job, allJobs: Job[]): Job | null {
     const buildSuccess = latestSucceededJob(allJobs, "build.production");
     if (buildSuccess && ts(buildSuccess) > failedAt) return buildSuccess;
   }
+
+  // "Vercel token is not configured." failures resolve once any newer
+  // vercel.create_preview_deploy succeeds (token was wired in afterwards).
+  if (
+    failed.type.startsWith("vercel.") &&
+    /vercel token is not configured/i.test(errText)
+  ) {
+    const vercelSuccess = latestSucceededJob(allJobs, "vercel.create_preview_deploy");
+    if (vercelSuccess && ts(vercelSuccess) > failedAt) return vercelSuccess;
+  }
   return null;
 }
 
