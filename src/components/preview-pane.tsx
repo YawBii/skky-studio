@@ -235,6 +235,41 @@ export function PreviewPane({
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               )}
+              {/* Always-visible "Open live preview" overlay button — works
+                  whether the iframe loaded, is loading, or is silently blank. */}
+              {activeDeployUrl && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  data-testid="preview-open-live-overlay"
+                  aria-label="Open live preview"
+                  onClick={onExternalOpen}
+                  className="absolute top-3 right-3 h-7 px-2.5 text-[11px] gap-1 shadow-elevated"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open live preview
+                </Button>
+              )}
+              {/* Soft hint after 3s — non-blocking, suggests opening externally
+                  if the iframe looks blank/blocked. */}
+              {softHintVisible && iframeState !== "failed" && activeDeployUrl && (
+                <div
+                  data-testid="preview-iframe-soft-hint"
+                  className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 backdrop-blur px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated"
+                >
+                  <span className="flex-1">
+                    If preview looks blank or blocked, open live preview.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onExternalOpen}
+                    className="text-foreground hover:underline font-medium whitespace-nowrap"
+                  >
+                    Open ↗
+                  </button>
+                </div>
+              )}
             </div>
           ) : iframeSrc && iframeState === "failed" ? (
             <div
