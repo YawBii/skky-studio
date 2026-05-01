@@ -220,6 +220,70 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
   );
 }
 
+/** Compact horizontal timeline of recent jobs as colored dots with tooltips. */
+function JobTimeline({ jobs, onJobClick }: { jobs: Job[]; onJobClick: (id: string) => void }) {
+  // Latest 12 in chronological order (oldest left → newest right)
+  const recent = [...jobs].slice(0, 12).reverse();
+  if (recent.length === 0) return null;
+  const resolvedSet = new Set(partitionFailures(jobs).resolvedFailed.map((j) => j.id));
+  return (
+    <div className="px-4 py-2.5 border-b border-white/5">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Timeline · last {recent.length}</div>
+      <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-thin">
+        {recent.map((j, i) => {
+          const isResolvedFail = j.status === "failed" && resolvedSet.has(j.id);
+          const resolvedBy = isResolvedFail ? getResolvingSuccess(j, jobs) : null;
+          // Connector to next dot of same type
+          const next = recent[i + 1];
+          const sameTypeNext = next && next.type === j.type;
+          const dotClass =
+            j.status === "running" || j.status === "queued"
+              ? "bg-primary animate-pulse"
+              : j.status === "waiting_for_input"
+              ? "bg-warning"
+              : j.status === "succeeded"
+              ? "bg-success"
+              : isResolvedFail
+              ? "bg-muted-foreground/40"
+              : j.status === "failed"
+              ? "bg-destructive"
+              : "bg-white/20";
+          const title = [
+            j.title,
+            `type: ${j.type}`,
+            `status: ${j.status}`,
+            `created: ${new Date(j.createdAt).toLocaleString()}`,
+            resolvedBy ? `Superseded by success ${resolvedBy.id.slice(0, 8)}` : "",
+          ].filter(Boolean).join("\n");
+          return (
+            <div key={j.id} className="flex items-center shrink-0">
+              <button
+                type="button"
+                title={title}
+                onClick={() => onJobClick(j.id)}
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full ring-1 ring-white/10 hover:ring-white/30 transition",
+                  dotClass,
+                  isResolvedFail && "line-through opacity-60",
+                )}
+                aria-label={`${j.type} ${j.status}`}
+              />
+              {i < recent.length - 1 && (
+                <span
+                  className={cn(
+                    "h-px w-3 mx-0.5",
+                    sameTypeNext ? "bg-white/20" : "bg-white/5",
+                  )}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function EmptyMissingTable({ error, sqlFile }: { error: string | null; sqlFile: string | null }) {
   return (
     <div className="p-6 text-[12.5px] text-muted-foreground">
