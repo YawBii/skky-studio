@@ -763,7 +763,18 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
         },
       };
     }
-    return buildAdapter.runStep(sb, job, step);
+    const result = await buildAdapter.runStep(sb, job, step);
+    // Post-build hook: regenerate per-project files so Local Preview reflects
+    // the latest project context. Failure here must NOT fail the build.
+    if (result.status === "succeeded") {
+      try {
+        const gen = await generateAndPersistProjectFiles(sb, job);
+        const out = (result.output ?? {}) as Record<string, unknown>;
+        result.output = { ...out, filesWritten: gen.written, generator: "deterministic" };
+        result.log = `${result.log ?? "build ok"}; wrote ${gen.written.join(", ") || "<no files>"}`;
+      } catch { /* best-effort */ }
+    }
+    return result;
   }
 
   const adapter = adapterForJobType(job.type);
