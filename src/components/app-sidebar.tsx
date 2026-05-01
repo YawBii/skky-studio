@@ -10,7 +10,7 @@ const nav = [
   { to: "/projects",   label: "Projects",     icon: FolderKanban },
   { to: "/health",     label: "Health",       icon: AlertTriangle },
   { to: "/deploys",    label: "Deploys",      icon: Rocket },
-  { to: "/connectors", label: "Integrations", icon: Plug },
+  { to: "/integrations", label: "Integrations", icon: Plug },
   { to: "/settings",   label: "Settings",     icon: Settings },
 ];
 
