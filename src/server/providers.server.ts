@@ -382,7 +382,20 @@ async function runVercelDiagnostic(checkedAt: string): Promise<ProviderDiagnosti
 }
 
 async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnostic> {
-  const { url, anon } = readSupabaseEnv();
+  const env = process.env;
+  const { url, anon, service } = readSupabaseEnv();
+  const presentEnvVars = [
+    env.SUPABASE_URL && "SUPABASE_URL",
+    env.EXTERNAL_SUPABASE_URL && "EXTERNAL_SUPABASE_URL",
+    env.VITE_SUPABASE_URL && "VITE_SUPABASE_URL",
+    env.SUPABASE_PUBLISHABLE_KEY && "SUPABASE_PUBLISHABLE_KEY",
+    env.EXTERNAL_SUPABASE_PUBLISHABLE_KEY && "EXTERNAL_SUPABASE_PUBLISHABLE_KEY",
+    env.SUPABASE_ANON_KEY && "SUPABASE_ANON_KEY",
+    env.VITE_SUPABASE_PUBLISHABLE_KEY && "VITE_SUPABASE_PUBLISHABLE_KEY",
+    env.VITE_SUPABASE_ANON_KEY && "VITE_SUPABASE_ANON_KEY",
+    env.SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
+  ].filter(Boolean) as string[];
+
   const missing: string[] = [];
   if (!url) missing.push("SUPABASE_URL");
   if (!anon) missing.push("SUPABASE_PUBLISHABLE_KEY");
@@ -390,7 +403,8 @@ async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnos
     return {
       provider: "supabase", status: "off", configured: false, reachable: null,
       account: null, checkedAt, durationMs: 0, target: url ?? null, httpStatus: null,
-      responseBody: null, normalizedError: `Missing ${missing.join(", ")}`,
+      responseBody: JSON.stringify({ presentEnvVars, missing }, null, 2),
+      normalizedError: `Missing ${missing.join(", ")}`,
       missing,
     };
   }
@@ -408,20 +422,33 @@ async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnos
         normalizedError: `Supabase auth/health ${res.status}`, missing: [],
       };
     }
-    const serviceWarn = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const serviceWarn = service
       ? null
       : "SUPABASE_SERVICE_ROLE_KEY not set (admin jobs disabled)";
+
+    // Non-secret proof summary: which endpoints were reachable + which env
+    // vars are present. Never includes any secret values.
+    const proofSummary = {
+      host: safeHost(url),
+      endpointsReachable: { "auth/v1/health": true },
+      presentEnvVars,
+      hasServiceRole: Boolean(service),
+      checkedAt,
+    };
+
     return {
       provider: "supabase", status: serviceWarn ? "warn" : "ok",
       configured: true, reachable: true, account: safeHost(url), checkedAt,
-      durationMs: ms, target, httpStatus: res.status, responseBody: null,
+      durationMs: ms, target, httpStatus: res.status,
+      responseBody: JSON.stringify(proofSummary, null, 2),
       normalizedError: serviceWarn, missing: [],
     };
   } catch (e) {
     return {
       provider: "supabase", status: "err", configured: true, reachable: false,
       account: safeHost(url), checkedAt, durationMs: 0, target, httpStatus: null,
-      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      responseBody: JSON.stringify({ presentEnvVars }, null, 2),
+      normalizedError: e instanceof Error ? e.message : String(e),
       missing: [],
     };
   }
