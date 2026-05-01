@@ -7,10 +7,10 @@
 // The drawer reuses <JobsPanel /> for deep inspection so the runner/job
 // system stays unchanged.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, Loader2, HelpCircle, AlertTriangle, CheckCircle2, X,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, GripHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -117,25 +117,96 @@ interface DrawerProps {
   onOpenJobsTab: () => void;
 }
 
+const HEIGHT_KEY = "yawb:command-center:height";
+const MIN_HEIGHT = 220;
+
+function loadHeight(defaultPx: number): number {
+  if (typeof window === "undefined") return defaultPx;
+  try {
+    const raw = window.localStorage.getItem(HEIGHT_KEY);
+    if (!raw) return defaultPx;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= MIN_HEIGHT ? n : defaultPx;
+  } catch {
+    return defaultPx;
+  }
+}
+
 /**
  * Bottom-anchored drawer that hosts the full JobsPanel for the active job.
  * Stays inside the preview pane (not full-screen) so chat remains visible.
+ * Supports a draggable top resize handle (pointer events) with persistence.
  */
 export function CommandCenterDrawer({
   open, onClose, projectId, workspaceId, focusJobId, onOpenJobsTab,
 }: DrawerProps) {
+  // Default height: ~45vh, clamped between min and 85vh.
+  const defaultPx = typeof window !== "undefined" ? Math.round(window.innerHeight * 0.45) : 480;
+  const [height, setHeight] = useState<number>(() => loadHeight(defaultPx));
+  const draggingRef = useRef(false);
+  const startRef = useRef<{ y: number; h: number } | null>(null);
+
+  const clamp = useCallback((px: number) => {
+    const max = typeof window !== "undefined" ? window.innerHeight * 0.85 : 800;
+    return Math.max(MIN_HEIGHT, Math.min(max, px));
+  }, []);
+
+  useEffect(() => {
+    if (!draggingRef.current) return;
+    const onMove = (e: PointerEvent) => {
+      if (!draggingRef.current || !startRef.current) return;
+      const dy = startRef.current.y - e.clientY; // dragging up grows height
+      const next = clamp(startRef.current.h + dy);
+      setHeight(next);
+    };
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      startRef.current = null;
+      try { window.localStorage.setItem(HEIGHT_KEY, String(Math.round(height))); } catch { /* ignore */ }
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [height, clamp]);
+
+  const onHandlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    startRef.current = { y: e.clientY, h: height };
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "row-resize";
+  };
+
   if (!open) return null;
   return (
     <div
       role="dialog"
       aria-label="Command Center"
+      style={{ height: `${height}px` }}
       className={cn(
-        "absolute left-3 right-3 bottom-14 top-3 z-30 flex flex-col",
-        "md:top-auto md:max-h-[80vh] md:h-[min(80vh,640px)]",
+        "absolute left-3 right-3 bottom-14 z-30 flex flex-col",
         "rounded-xl border border-white/10 bg-sidebar/95 backdrop-blur-xl shadow-elevated",
         "overflow-hidden",
       )}
     >
+      <div
+        onPointerDown={onHandlePointerDown}
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize Command Center"
+        className="h-2.5 flex items-center justify-center cursor-row-resize bg-white/[0.03] hover:bg-white/[0.07] border-b border-white/5 touch-none select-none"
+        title="Drag to resize"
+      >
+        <GripHorizontal className="h-3 w-3 text-muted-foreground/60" />
+      </div>
       <div className="h-10 px-3 flex items-center gap-2 border-b border-white/5">
         <Activity className="h-3.5 w-3.5 text-primary" />
         <div className="text-[12.5px] font-medium">Command Center</div>
