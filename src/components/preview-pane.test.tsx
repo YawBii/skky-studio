@@ -169,7 +169,7 @@ describe("PreviewPane — live deploy", () => {
 });
 
 describe("PreviewPane — local preview", () => {
-  it("auto-selects local mode and renders the /preview/$projectId iframe when no deploy URL", () => {
+  it("auto-selects local mode and renders srcDoc without a route src when no deploy URL", () => {
     const container = render(
       <PreviewPane
         device="desktop"
@@ -186,7 +186,12 @@ describe("PreviewPane — local preview", () => {
     ) as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
-    expect(iframe!.getAttribute("src")).toBe("/preview/p1?embed=1");
+    expect(iframe!.getAttribute("src")).toBeNull();
+    expect(iframe!.getAttribute("srcdoc")).toContain("Demo");
+    expect(iframe!.getAttribute("srcdoc")).toContain("No generated screens yet");
+    for (const shellText of ["yawB Chat", "Diagnostics", "Smart Next", "Share", "Analytics"]) {
+      expect(iframe!.getAttribute("srcdoc")).not.toContain(shellText);
+    }
     // Local badge in URL bar
     expect(
       container.querySelector('[data-testid="preview-local-badge"]'),
@@ -279,7 +284,8 @@ describe("PreviewPane — local preview", () => {
       '[data-testid="preview-iframe"]',
     ) as HTMLIFrameElement | null;
     expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
-    expect(iframe!.getAttribute("src")).toBe("/preview/p1?embed=1");
+    expect(iframe!.getAttribute("src")).toBeNull();
+    expect(iframe!.getAttribute("srcdoc")).toContain("No generated screens yet");
   });
 
   it("Live toggle is disabled when no deploy URL exists", () => {
