@@ -213,6 +213,7 @@ export function PreviewPane({
   useEffect(() => {
     console.info("[yawb] preview.source.resolved", {
       kind: resolved.kind,
+      source: resolved.source ?? (resolved.kind === "local" && resolved.srcDoc ? "project_files/index.html" : resolved.url ?? "fallback:placeholder"),
       mode,
       reason: resolved.reason,
       url: resolved.url,
@@ -416,7 +417,7 @@ export function PreviewPane({
               >
                 Local preview
               </span>
-              <span className="truncate">{resolved.url ?? "in-memory"}</span>
+              <span className="truncate">{resolved.source ?? resolved.url ?? "fallback:placeholder"}</span>
             </>
           ) : (
             <span className="truncate">No preview yet</span>
