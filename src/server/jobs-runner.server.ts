@@ -633,17 +633,23 @@ export async function generateAndPersistProjectFiles(
     .eq("id", job.project_id)
     .maybeSingle();
   if (pErr || !proj) {
-    return { ok: false, written: [], error: pErr?.message ?? "project not found", generator: "monster-brain-v1", previewReady: false };
+    const error = pErr?.message ?? "project not found";
+    console.error("[yawb] monster.generate.error", { projectId: job.project_id, error });
+    return { ok: false, written: [], error, generator: "monster-brain-v1", previewReady: false };
   }
   const input = (job.input ?? {}) as Record<string, unknown>;
   const chatRequest = typeof input.chatRequest === "string"
     ? input.chatRequest
     : typeof input.prompt === "string" ? input.prompt : null;
   const projectInput = { id: proj.id, name: proj.name ?? "", description: proj.description ?? null };
+  console.log("[yawb] monster.generate.start", { projectId: job.project_id, name: projectInput.name });
   const archetype = inferProjectArchetype(projectInput, { chatRequest });
   const files = monsterGenerate(projectInput, { chatRequest });
+  const sig = monsterSignature(projectInput, archetype);
+  console.log("[yawb] monster.generate.done", { archetype, designSignature: sig, paths: files.map((f) => f.path) });
   const written: string[] = [];
   for (const f of files) {
+    console.log("[yawb] project_files.upsert.start", { projectId: job.project_id, path: f.path });
     const { error } = await sb
       .from("project_files")
       .upsert(
@@ -651,12 +657,14 @@ export async function generateAndPersistProjectFiles(
         { onConflict: "project_id,path" },
       );
     if (error) {
-      return { ok: false, written, error: error.message, archetype, designSignature: monsterSignature(projectInput, archetype), generator: "monster-brain-v1", previewReady: false };
+      console.error("[yawb] project_files.upsert.error", { projectId: job.project_id, path: f.path, error: error.message });
+      return { ok: false, written, error: `project_files upsert failed for ${f.path}: ${error.message}`, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: false };
     }
+    console.log("[yawb] project_files.upsert.done", { projectId: job.project_id, path: f.path, bytes: f.content.length });
     written.push(f.path);
   }
   const sortedWritten = [...written].sort();
-  return { ok: true, written: sortedWritten, archetype, designSignature: monsterSignature(projectInput, archetype), generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html") };
+  return { ok: true, written: sortedWritten, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html") };
 }
 
 const aiAdapter: ProviderAdapter = {
@@ -780,22 +788,32 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
     // Post-build hook: regenerate per-project files so Local Preview reflects
     // the latest project context. Failure here must NOT fail the build.
     if (result.status === "succeeded") {
+      const gen = await generateAndPersistProjectFiles(sb, job);
+      const out = (result.output ?? {}) as Record<string, unknown>;
+      const mergedOutput = {
+        ...out,
+        generator: gen.generator,
+        filesWritten: gen.written,
+        archetype: gen.archetype,
+        designSignature: gen.designSignature,
+        previewReady: gen.previewReady,
+      };
+      result.output = mergedOutput;
       try {
-        const gen = await generateAndPersistProjectFiles(sb, job);
-        const out = (result.output ?? {}) as Record<string, unknown>;
-        result.output = {
-          ...out,
-          generator: gen.generator,
-          filesWritten: gen.written,
-          archetype: gen.archetype,
-          designSignature: gen.designSignature,
-          previewReady: gen.previewReady,
+        await sb.from("project_jobs").update({ output: mergedOutput }).eq("id", job.id);
+      } catch (e) {
+        console.error("[yawb] project_jobs.output.mirror.error", { jobId: job.id, error: e instanceof Error ? e.message : String(e) });
+      }
+      if (!gen.ok) {
+        // Do NOT swallow — fail the build step with proof so the user sees it.
+        return {
+          status: "failed",
+          output: mergedOutput,
+          error: `build ok but project_files generation failed: ${gen.error ?? "unknown error"}`,
+          log: gen.error ?? "project_files generation failed",
         };
-        try {
-          await sb.from("project_jobs").update({ output: result.output }).eq("id", job.id);
-        } catch { /* best-effort mirror */ }
-        result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
-      } catch { /* best-effort */ }
+      }
+      result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
     }
     return result;
   }
