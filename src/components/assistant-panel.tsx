@@ -335,7 +335,7 @@ export function AssistantPanel() {
       {/* Composer */}
       <div className="p-3 border-t border-white/5 space-y-2">
         {suggestions.length > 0 && (
-          <SmartSuggestionChips suggestions={suggestions} onAction={dispatchSuggestion} />
+          <SmartSuggestionChips suggestions={suggestions} onAction={dispatchSuggestion} onDismiss={onDismissSuggestion} />
         )}
         <div className="rounded-2xl border border-white/10 bg-background/50 ring-hairline p-2">
 
