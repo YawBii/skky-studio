@@ -713,22 +713,6 @@ const aiAdapter: ProviderAdapter = {
         log: `ai.plan ok: ${r.plan.recommendedActions.length} actions in ${r.plan.proof.durationMs}ms (model=${r.plan.proof.model})`,
       };
     }
-    if (job.type === "ai.generate_changes") {
-      const r = await generateAndPersistProjectFiles(sb, job);
-      if (!r.ok) {
-        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written } };
-      }
-      try {
-        await sb.from("project_jobs").update({
-          output: { filesWritten: r.written, generator: "deterministic" },
-        }).eq("id", job.id);
-      } catch { /* best-effort */ }
-      return {
-        status: "succeeded",
-        output: { filesWritten: r.written, generator: "deterministic" },
-        log: `ai.generate_changes ok: wrote ${r.written.join(", ")}`,
-      };
-    }
     return { status: "failed", error: `${job.type}: provider call is not wired yet.` };
   },
   missingConfigReason: () => AI_PLANNER_NOT_CONFIGURED_ERROR,
