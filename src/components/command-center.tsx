@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { JobsPanel } from "@/components/jobs-panel";
 import type { Job } from "@/services/jobs";
+import { isFailedJobResolved } from "@/lib/job-resolution";
 
 export type CommandCenterMode = "idle" | "running" | "waiting" | "failed" | "succeeded";
 
