@@ -386,9 +386,28 @@ export function AssistantPanel() {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-5 space-y-4">
-        {messages.map((m, i) => (
-          <Message key={i} msg={m} />
-        ))}
+        {messages.map((m, i) => {
+          const job: Job | undefined = m.summaryJobId ? jobsState.jobs.find((j) => j.id === m.summaryJobId) : undefined;
+          const steps = m.summaryJobId ? (jobsState.stepsByJob[m.summaryJobId] ?? []) : [];
+          const nextActions = job
+            ? (job.status === "failed"
+                ? [{ id: "retry", label: "Retry job", onClick: async () => {
+                    const r = await retryJob(job.id);
+                    if (r.ok) toast.success("Job re-queued"); else toast.error(`Retry failed: ${r.error}`);
+                  } }]
+                : job.status === "waiting_for_input"
+                ? [{ id: "open-jobs", label: "Open Jobs tab", onClick: () => {
+                    window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "jobs", focusJobId: job.id } }));
+                  } }]
+                : [])
+            : [];
+          return (
+            <div key={i}>
+              <Message msg={m} />
+              {job && <TaskSummaryCard job={job} steps={steps} nextActions={nextActions} />}
+            </div>
+          );
+        })}
       </div>
 
       {/* Composer */}
