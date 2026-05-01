@@ -17,6 +17,8 @@ import {
   deriveCommandCenterState,
   useCommandCenterAutoOpen,
 } from "@/components/command-center";
+import { useProjectConnections } from "@/hooks/use-project-connections";
+import { resolveDeployUrl } from "@/lib/deploy-url";
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
   { path: "/",          label: "Home" },
