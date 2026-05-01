@@ -490,10 +490,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   }
 
-  return finalize(out, project.id);
+  return finalize(out, project.id, jobs);
 }
 
-function finalize(list: SmartSuggestion[], projectId: string | null): SmartSuggestion[] {
+function finalize(list: SmartSuggestion[], projectId: string | null, jobs: Job[] = []): SmartSuggestion[] {
   const dismissed = loadDismissed(projectId);
   const seen = new Set<string>();
   const sorted = [...list]
@@ -501,7 +501,13 @@ function finalize(list: SmartSuggestion[], projectId: string | null): SmartSugge
     .sort((a, b) => b.priority - a.priority)
     .filter((s) => (seen.has(s.id) ? false : (seen.add(s.id), true)))
     .slice(0, 4);
-  console.info("[yawb] suggestions.generated", sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason })));
+  const lf = latestFailedJob(jobs);
+  const ls = latestSucceededJob(jobs);
+  console.info("[yawb] suggestions.generated", {
+    suggestions: sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason })),
+    latestFailed: lf ? { id: lf.id, type: lf.type, createdAt: lf.createdAt, error: lf.error } : null,
+    latestSucceeded: ls ? { id: ls.id, type: ls.type, createdAt: ls.createdAt } : null,
+  });
   return sorted;
 }
 
