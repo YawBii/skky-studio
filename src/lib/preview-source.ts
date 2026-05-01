@@ -23,6 +23,8 @@ export interface ResolvedPreviewSource {
   url?: string;
   /** Inline HTML document for the iframe (preferred for local preview). */
   srcDoc?: string;
+  /** Concrete backing source for logs and the preview URL bar. */
+  source?: string;
   /** Short label for the URL bar / badge. */
   label: string;
   /** Whether the "Open in new tab" button should be enabled. */
@@ -98,15 +100,18 @@ function buildLocal(
     return {
       kind: "local",
       srcDoc: generated.indexHtml,
-      label: "Local preview",
+      url: "project_files/index.html",
+      source: "project_files/index.html",
+      label: "project_files/index.html",
       externalOpenable: false,
-      reason: "local:srcDoc",
+      reason: "local:project_files/index.html",
     };
   }
   if (project) {
     return {
       kind: "local",
-      label: "Local preview",
+      source: hasLocalPreview(generated) ? "project_files:no-index" : "fallback:placeholder",
+      label: hasLocalPreview(generated) ? "project_files:no-index" : "fallback:placeholder",
       externalOpenable: false,
       reason: hasLocalPreview(generated) ? "local:files-placeholder" : "local:empty-srcDoc",
     };
