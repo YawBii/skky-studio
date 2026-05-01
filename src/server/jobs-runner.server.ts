@@ -231,7 +231,7 @@ export interface BuildRunnerExecResult {
 }
 
 function buildRunnerMode(): "external" | "local" | "none" {
-  if (process.env.BUILD_RUNNER_URL) return "external";
+  if (process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL) return "external";
   if ((process.env.BUILD_RUNNER_MODE ?? "").toLowerCase() === "local") return "local";
   return "none";
 }
