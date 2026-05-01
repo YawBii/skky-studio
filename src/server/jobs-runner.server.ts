@@ -620,17 +620,17 @@ import {
  * `monsterGenerate` call for an async generator with the same return shape —
  * PreviewPane/project_files do not need to change.
  */
-async function generateAndPersistProjectFiles(
+export async function generateAndPersistProjectFiles(
   sb: SupabaseClient,
   job: JobRow,
-): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string }> {
+): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string; generator: "monster-brain-v1"; previewReady: boolean }> {
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
     .eq("id", job.project_id)
     .maybeSingle();
   if (pErr || !proj) {
-    return { ok: false, written: [], error: pErr?.message ?? "project not found" };
+    return { ok: false, written: [], error: pErr?.message ?? "project not found", generator: "monster-brain-v1", previewReady: false };
   }
   const input = (job.input ?? {}) as Record<string, unknown>;
   const chatRequest = typeof input.chatRequest === "string"
@@ -648,11 +648,12 @@ async function generateAndPersistProjectFiles(
         { onConflict: "project_id,path" },
       );
     if (error) {
-      return { ok: false, written, error: error.message, archetype, designSignature: monsterSignature(projectInput, archetype) };
+      return { ok: false, written, error: error.message, archetype, designSignature: monsterSignature(projectInput, archetype), generator: "monster-brain-v1", previewReady: false };
     }
     written.push(f.path);
   }
-  return { ok: true, written, archetype, designSignature: monsterSignature(projectInput, archetype) };
+  const sortedWritten = [...written].sort();
+  return { ok: true, written: sortedWritten, archetype, designSignature: monsterSignature(projectInput, archetype), generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html") };
 }
 
 const aiAdapter: ProviderAdapter = {
