@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, Code2, Database, Rocket, RefreshCw, Monitor, Tablet, Smartphone, ExternalLink, Play, History as HistoryIcon, Plus, Activity, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Project } from "@/services/projects";
 import { JobsPanel } from "@/components/jobs-panel";
 import { enqueueJob } from "@/services/jobs";
+import { useProjectJobs } from "@/hooks/use-project-jobs";
+import {
+  CommandCenterPill,
+  CommandCenterDrawer,
+  deriveCommandCenterState,
+  useCommandCenterAutoOpen,
+} from "@/components/command-center";
 
 export const Route = createFileRoute("/builder/$projectId")({
   head: ({ params }) => ({
@@ -85,6 +92,19 @@ function Builder() {
     return () => window.removeEventListener("yawb:switch-tab", handler as EventListener);
   }, []);
 
+  // Live job state for the Command Center pill/drawer. Polling only runs
+  // while there is active work (handled inside useProjectJobs).
+  const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null);
+  const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
+  const { open: ccOpen, setOpen: setCcOpen, effectiveMode: ccMode } = useCommandCenterAutoOpen(ccState, {
+    onJobSucceeded: (j) => {
+      // After a successful build, return focus to Preview.
+      if (j.type === "build.production" || j.type === "build.typecheck") {
+        setTab("preview");
+      }
+    },
+  });
+
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
     throw notFound();
@@ -119,7 +139,9 @@ function Builder() {
       console.info("[yawb] startBuild.enqueue.success", { jobId: r.job.id });
       toast.success("Build job queued");
       setFocusJobId(r.job.id);
-      setTab("jobs");
+      // Keep the user on Preview — Command Center pill/drawer surfaces progress.
+      setTab("preview");
+      setCcOpen(true);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[yawb] startBuild.enqueue.error", e);
@@ -156,7 +178,7 @@ function Builder() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {tab === "preview"  && (
           <PreviewPane
             device={device}
@@ -171,6 +193,26 @@ function Builder() {
         {tab === "deploy"   && <NotConnected title="Deploys" hint="Connect Vercel from Integrations to deploy this project." cta={{ label: "Open Integrations", to: "/connectors" }} />}
         {tab === "jobs"     && <JobsPanel projectId={project.id} workspaceId={project.workspaceId} initialExpandedJobId={focusJobId} />}
         {tab === "history"  && <NotConnected title="History" hint="Connect a Git provider to see commit history." cta={{ label: "Open Integrations", to: "/connectors" }} />}
+
+        {/* Command Center: compact pill + collapsible drawer.
+            Hidden on the Jobs tab (full panel already visible there). */}
+        {tab !== "jobs" && (
+          <>
+            <CommandCenterPill
+              state={{ ...ccState, mode: ccMode }}
+              open={ccOpen}
+              onToggle={() => setCcOpen(!ccOpen)}
+            />
+            <CommandCenterDrawer
+              open={ccOpen}
+              onClose={() => setCcOpen(false)}
+              projectId={project.id}
+              workspaceId={project.workspaceId}
+              focusJobId={ccState.activeJob?.id ?? focusJobId}
+              onOpenJobsTab={() => { setCcOpen(false); setTab("jobs"); }}
+            />
+          </>
+        )}
       </div>
     </div>
   );
