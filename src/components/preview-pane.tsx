@@ -45,18 +45,46 @@ const DEVICE_VIEWPORTS: Record<
   mobile: { width: "390px", maxWidth: "100%", minHeight: 720, label: "Mobile 390px" },
 };
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+/**
+ * Strict HTML-text sanitizer for srcDoc interpolation.
+ * - Strips ALL control characters (incl. NUL, TAB-less C0/C1) that can confuse
+ *   the HTML parser or smuggle attribute breakouts.
+ * - Strips Unicode bidi/format overrides used for spoofing.
+ * - Encodes every HTML-significant character including `=`, `` ` ``, `/` so
+ *   the value cannot escape an attribute, comment, or text node — even if the
+ *   surrounding template is later changed to put it inside an attribute.
+ * - Hard-caps length to avoid pathological inputs.
+ */
+function sanitizeText(value: unknown, maxLen = 500): string {
+  const raw = typeof value === "string" ? value : "";
+  // Drop C0 (except \n \r \t), C1, and Unicode bidi/format controls.
+  const cleaned = raw
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "")
+    .slice(0, maxLen);
+  return cleaned.replace(/[&<>"'`/=]/g, (c) => {
+    switch (c) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      case "`": return "&#96;";
+      case "/": return "&#47;";
+      case "=": return "&#61;";
+      default: return c;
+    }
+  });
 }
 
+// Back-compat alias for any external imports.
+const escapeHtml = (v: string) => sanitizeText(v);
+void escapeHtml;
+
 export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "description">): string {
-  const name = escapeHtml(project.name);
-  const description = escapeHtml(project.description || "No description yet.");
+  const name = sanitizeText(project.name, 200) || "Untitled project";
+  const description = sanitizeText(project.description || "No description yet.", 500);
   return `<!doctype html>
 <html>
   <head>
