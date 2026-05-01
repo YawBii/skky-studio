@@ -128,7 +128,8 @@ export function CommandCenterDrawer({
       role="dialog"
       aria-label="Command Center"
       className={cn(
-        "absolute left-3 right-3 bottom-14 z-30 max-h-[60%] flex flex-col",
+        "absolute left-3 right-3 bottom-14 top-3 z-30 flex flex-col",
+        "md:top-auto md:max-h-[80vh] md:h-[min(80vh,640px)]",
         "rounded-xl border border-white/10 bg-sidebar/95 backdrop-blur-xl shadow-elevated",
         "overflow-hidden",
       )}
