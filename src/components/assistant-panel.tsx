@@ -36,6 +36,23 @@ type Msg = {
 };
 
 const TERMINAL_JOB_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
+
+function formatSummaryHeadline(j: Job): string {
+  const label = j.title || j.type;
+  switch (j.status) {
+    case "succeeded":
+      return `yawB finished **${label}** — done. Proof below.`;
+    case "failed":
+      return `yawB hit an error on **${label}**. See proof + retry below.`;
+    case "waiting_for_input":
+      return `yawB needs an answer to continue **${label}**. See details below.`;
+    case "cancelled":
+      return `**${label}** was cancelled.`;
+    default:
+      return `Update on **${label}**.`;
+  }
+}
+
 const SUMMARIZED_KEY = (projectId: string) => `yawb:chat:summarized-jobs:${projectId}`;
 
 function loadSummarized(projectId: string | null | undefined): Set<string> {
@@ -114,10 +131,11 @@ export function AssistantPanel() {
       if (!TERMINAL_JOB_STATUSES.has(j.status)) continue;
       if (summarizedRef.current.has(j.id)) continue;
       // Only summarize jobs visible in the recent window — useProjectJobs
-      // already returns the latest 50 — and avoid spamming on first mount
-      // by skipping jobs older than 30 minutes.
+      // already returns the latest 50. Use a 24h cutoff so jobs that
+      // finished while the user wasn't looking still surface a summary
+      // (rather than being silently swallowed).
       const ageMs = Date.now() - Date.parse(j.createdAt);
-      if (Number.isFinite(ageMs) && ageMs > 30 * 60 * 1000) {
+      if (Number.isFinite(ageMs) && ageMs > 24 * 60 * 60 * 1000) {
         summarizedRef.current.add(j.id);
         continue;
       }
@@ -125,13 +143,39 @@ export function AssistantPanel() {
       persistSummarized(project.id, summarizedRef.current);
       // Lazily refresh steps for the proof block.
       void jobsState.refreshSteps(j.id);
+      const headline = formatSummaryHeadline(j);
+      console.info("[yawb] chat.summary.appended", { jobId: j.id, type: j.type, status: j.status });
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "", summaryJobId: j.id },
+        { role: "assistant", content: headline, summaryJobId: j.id },
       ]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobsState.jobs, project?.id]);
+
+  // Manually re-emit summary cards for the latest few terminal jobs (handy
+  // when the user just opened the panel and wants to see what happened).
+  const showRecentSummaries = () => {
+    if (!project) return;
+    const terminal = jobsState.jobs
+      .filter((j) => TERMINAL_JOB_STATUSES.has(j.status))
+      .slice(0, 5);
+    if (terminal.length === 0) {
+      toast("No recent jobs to summarize yet.");
+      return;
+    }
+    for (const j of terminal) void jobsState.refreshSteps(j.id);
+    setMessages((m) => [
+      ...m,
+      ...terminal.map((j) => ({
+        role: "assistant" as const,
+        content: formatSummaryHeadline(j),
+        summaryJobId: j.id,
+      })),
+    ]);
+    console.info("[yawb] chat.summary.show-recent", { count: terminal.length, ids: terminal.map((j) => j.id) });
+  };
+
 
   const ui = useBuilderUIState();
   const [, forceTick] = useState(0);
@@ -382,6 +426,16 @@ export function AssistantPanel() {
             </div>
           </PopoverContent>
         </Popover>
+        <button
+          type="button"
+          onClick={showRecentSummaries}
+          disabled={!project}
+          className="ml-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground rounded-md px-1.5 py-1 hover:bg-white/5 disabled:opacity-50"
+          title="Show summaries for recent jobs"
+        >
+          <FileEdit className="h-3.5 w-3.5" /> Summaries
+        </button>
+
       </div>
 
       {/* Messages */}
