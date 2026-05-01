@@ -369,15 +369,34 @@ function Builder() {
   );
 }
 
-function PreviewPane({ device, setDevice, project, onStartBuild, starting, selectedPage }: {
+function PreviewPane({ device, setDevice, project, onStartBuild, starting, selectedPage, activeDeployUrl }: {
   device: Device;
   setDevice: (d: Device) => void;
   project: Project;
   onStartBuild: () => void;
   starting: boolean;
   selectedPage: string;
+  activeDeployUrl: string | null;
 }) {
   const widths: Record<Device, string> = { desktop: "100%", tablet: "820px", mobile: "390px" };
+
+  const iframeSrc = useMemo(() => {
+    if (!activeDeployUrl) return null;
+    try {
+      const u = new URL(activeDeployUrl);
+      if (selectedPage && selectedPage !== "/") u.pathname = selectedPage;
+      return u.toString();
+    } catch {
+      return activeDeployUrl;
+    }
+  }, [activeDeployUrl, selectedPage]);
+
+  const onExternalOpen = () => {
+    if (!activeDeployUrl) return;
+    console.info("[yawb] preview.external.open", { url: activeDeployUrl });
+    window.open(activeDeployUrl, "_blank", "noopener");
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="h-11 border-b border-white/5 px-4 flex items-center gap-2">
@@ -392,9 +411,30 @@ function PreviewPane({ device, setDevice, project, onStartBuild, starting, selec
         </Button>
         <div className="flex-1 mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono">
           <ExternalLink className="h-3 w-3" />
-          <span className="truncate">{selectedPage}</span>
-          <span className="ml-auto text-muted-foreground/60 text-[10.5px] non-italic">No deploy URL yet</span>
+          {activeDeployUrl ? (
+            <>
+              <span className="truncate text-foreground/80">{activeDeployUrl}</span>
+              <span className="text-muted-foreground/50">{selectedPage}</span>
+            </>
+          ) : (
+            <>
+              <span className="truncate">{selectedPage}</span>
+              <span className="ml-auto text-muted-foreground/60 text-[10.5px] non-italic">No deploy URL yet</span>
+            </>
+          )}
         </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 touch-manipulation"
+          onClick={onExternalOpen}
+          disabled={!activeDeployUrl}
+          aria-label="Open deploy URL in new tab"
+          title={activeDeployUrl ? "Open in new tab" : "No deploy URL yet"}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
         <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5">
           {([
             { k: "desktop", I: Monitor },
@@ -417,25 +457,36 @@ function PreviewPane({ device, setDevice, project, onStartBuild, starting, selec
       </div>
       <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
         <div style={{ width: widths[device] }} className="transition-all w-full max-w-full">
-          <div className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden">
-            <div className="h-full flex flex-col items-center justify-center text-center p-10">
-              <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">Preview</div>
-              <h2 className="mt-3 text-3xl md:text-4xl font-display font-bold tracking-tight text-balance">{project.name}</h2>
-              <p className="mt-2 text-sm text-muted-foreground max-w-md text-pretty">
-                Tell yawB in the chat what to build. The first build will appear here.
-              </p>
-              <Button
-                type="button"
-                variant="hero"
-                className="mt-5 touch-manipulation"
-                onClick={onStartBuild}
-                disabled={starting}
-              >
-                {starting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                {starting ? "Queuing…" : "Start a build"}
-              </Button>
+          {iframeSrc ? (
+            <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden">
+              <iframe
+                title={`${project.name} preview`}
+                src={iframeSrc}
+                className="w-full h-full block bg-background"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-gradient-card shadow-elevated aspect-[16/10] overflow-hidden">
+              <div className="h-full flex flex-col items-center justify-center text-center p-10">
+                <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">Preview</div>
+                <h2 className="mt-3 text-3xl md:text-4xl font-display font-bold tracking-tight text-balance">{project.name}</h2>
+                <p className="mt-2 text-sm text-muted-foreground max-w-md text-pretty">
+                  Tell yawB in the chat what to build. The first build will appear here.
+                </p>
+                <Button
+                  type="button"
+                  variant="hero"
+                  className="mt-5 touch-manipulation"
+                  onClick={onStartBuild}
+                  disabled={starting}
+                >
+                  {starting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                  {starting ? "Queuing…" : "Start a build"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
