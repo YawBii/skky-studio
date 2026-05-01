@@ -117,12 +117,40 @@ function Builder() {
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null);
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
+
+  // Project connections drive the active deploy URL for PreviewPane.
+  const connectionsApi = useProjectConnections(project?.id ?? null);
+  const activeDeployResolved = useMemo(
+    () => resolveDeployUrl(connectionsApi.connections),
+    [connectionsApi.connections],
+  );
+  const activeDeployUrl = activeDeployResolved.url;
+
+  useEffect(() => {
+    if (!project) return;
+    if (activeDeployUrl) {
+      console.info("[yawb] preview.deployUrl.resolved", {
+        source: activeDeployResolved.source,
+        url: activeDeployUrl,
+      });
+    } else {
+      console.info("[yawb] preview.deployUrl.missing", { projectId: project.id });
+    }
+  }, [activeDeployUrl, activeDeployResolved.source, project]);
+
   const { open: ccOpen, setOpen: setCcOpen, effectiveMode: ccMode } = useCommandCenterAutoOpen(ccState, {
     onJobSucceeded: (j) => {
       // After a successful build, return focus to Preview + flash a toast.
       if (j.type === "build.production" || j.type === "build.typecheck") {
         setTab("preview");
         toast.success("Build passed", { description: j.title });
+      }
+      // After a successful preview deploy, refresh connections to pick up
+      // the new deploy URL and switch back to Preview without a full reload.
+      if (j.type === "vercel.create_preview_deploy") {
+        void connectionsApi.refresh();
+        setTab("preview");
+        toast.success("Preview deploy ready");
       }
     },
   });
