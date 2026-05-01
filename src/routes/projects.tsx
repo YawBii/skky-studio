@@ -227,6 +227,7 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
       const created = await createProject({
         workspaceId,
         name: r.name,
+        slug: slugify(r.fullName),
         description: r.description ?? `Imported from ${r.fullName}`,
       });
       if (!created.ok) { toast.error(created.error); return; }
@@ -361,7 +362,7 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
     const name = normalized.split("/").pop()!;
     setBusy(true);
     try {
-      const created = await createProject({ workspaceId, name, description: `Imported from ${normalized}` });
+      const created = await createProject({ workspaceId, name, slug: slugify(normalized), description: `Imported from ${normalized}` });
       if (!created.ok) { toast.error(created.error); return; }
       const conn = await createConnection({
         projectId: created.project.id,
@@ -456,4 +457,8 @@ function ProviderListCard(props: {
 function formatDate(iso?: string | null) {
   if (!iso) return "—";
   try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || `proj-${Date.now()}`;
 }
