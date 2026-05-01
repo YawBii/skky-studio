@@ -382,8 +382,7 @@ async function runVercelDiagnostic(checkedAt: string): Promise<ProviderDiagnosti
 }
 
 async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnostic> {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const { url, anon } = readSupabaseEnv();
   const missing: string[] = [];
   if (!url) missing.push("SUPABASE_URL");
   if (!anon) missing.push("SUPABASE_PUBLISHABLE_KEY");
