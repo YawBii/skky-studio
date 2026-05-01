@@ -19,7 +19,7 @@ export type StepStatus =
   | "succeeded" | "failed" | "skipped" | "cancelled";
 export type QuestionKind = "single_choice" | "multi_choice" | "text" | "confirm";
 
-interface JobRow {
+export interface JobRow {
   id: string; project_id: string; workspace_id: string; type: string;
   status: JobStatus; title: string; input: Record<string, unknown>;
 }
@@ -788,6 +788,9 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
           designSignature: gen.designSignature,
           previewReady: gen.previewReady,
         };
+        try {
+          await sb.from("project_jobs").update({ output: result.output }).eq("id", job.id);
+        } catch { /* best-effort mirror */ }
         result.log = `${result.log ?? "build ok"}; archetype=${gen.archetype ?? "default"} wrote ${gen.written.join(", ") || "<no files>"}`;
       } catch { /* best-effort */ }
     }
