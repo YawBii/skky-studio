@@ -36,6 +36,23 @@ type Msg = {
 };
 
 const TERMINAL_JOB_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
+
+function formatSummaryHeadline(j: Job): string {
+  const label = j.title || j.type;
+  switch (j.status) {
+    case "succeeded":
+      return `yawB finished **${label}** — done. Proof below.`;
+    case "failed":
+      return `yawB hit an error on **${label}**. See proof + retry below.`;
+    case "waiting_for_input":
+      return `yawB needs an answer to continue **${label}**. See details below.`;
+    case "cancelled":
+      return `**${label}** was cancelled.`;
+    default:
+      return `Update on **${label}**.`;
+  }
+}
+
 const SUMMARIZED_KEY = (projectId: string) => `yawb:chat:summarized-jobs:${projectId}`;
 
 function loadSummarized(projectId: string | null | undefined): Set<string> {
