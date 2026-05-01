@@ -20,6 +20,7 @@ export interface PreviewPaneProps {
 type IframeState = "idle" | "loading" | "loaded" | "failed";
 
 const IFRAME_LOAD_TIMEOUT_MS = 8000;
+const IFRAME_SOFT_HINT_MS = 3000;
 
 export function PreviewPane({
   device,
