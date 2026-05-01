@@ -215,8 +215,8 @@ function WorkspaceShell() {
         <div className="flex-1 min-h-0">
           <SplitPane
             initialRightWidth={rightWidth}
-            minRightWidth={320}
-            minLeftWidth={320}
+            minRightWidth={280}
+            minLeftWidth={240}
             onChange={(w) => { setRightWidth(w); update({ workspaceSplit: { "chat-width-px": w } }); }}
             left={
               <main className="h-full overflow-y-auto scrollbar-thin">
