@@ -245,10 +245,10 @@ export async function pingSupabase(): Promise<ProviderStatus> {
 }
 
 export async function getBuildRunnerStatus(): Promise<ProviderStatus> {
-  const url = process.env.BUILD_RUNNER_URL;
-  const token = process.env.BUILD_RUNNER_TOKEN;
+  const url = process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL;
+  const token = process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN;
   const missing: string[] = [];
-  if (!url) missing.push("BUILD_RUNNER_URL");
+  if (!url) missing.push("YAWB_BUILD_RUNNER_URL");
   const out: ProviderStatus = {
     provider: "build-runner",
     configured: !!url,
