@@ -13,6 +13,26 @@ const TRANSIENT_ERROR_PATTERNS = [
   /no bearer token/i,
 ];
 
+/**
+ * Known placeholder / "feature gap" failures that should NOT be treated as
+ * actionable runtime failures. They represent a backend feature that isn't
+ * wired yet — surfacing them as "Action needed" / "Retry failed step" is
+ * misleading. Suggestion engine emits a single low-priority "wire it" hint
+ * instead, and Command Center treats them as resolved.
+ */
+const PLACEHOLDER_FAILURES: Array<{ type: string; pattern: RegExp }> = [
+  { type: "ai.plan", pattern: /provider call is not wired yet/i },
+];
+
+/** True if a failed job matches a known placeholder feature gap. */
+export function isPlaceholderFailure(failed: Job): boolean {
+  if (failed.status !== "failed") return false;
+  const errText = failed.error ?? "";
+  return PLACEHOLDER_FAILURES.some(
+    (p) => failed.type === p.type && p.pattern.test(errText),
+  );
+}
+
 function ts(j: Job): number {
   const t = Date.parse(j.createdAt);
   return Number.isFinite(t) ? t : 0;
