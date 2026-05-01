@@ -249,7 +249,23 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     }
   }
 
-  // Build runner not configured but no failure yet → only suggest if user is
+  // Placeholder feature gaps — surface a single low-priority "wire it" hint
+  // instead of noisy retry chips. These failures are filtered out of the
+  // active-failure set above (isFailedJobResolved returns true for them).
+  const aiPlanPlaceholder = jobs.find(
+    (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
+  );
+  if (aiPlanPlaceholder) {
+    out.push({
+      id: "wire-ai-planner-provider",
+      label: "Wire AI planner provider",
+      category: "build_next",
+      priority: CATEGORY_BASE.build_next - 5,
+      action: { kind: "open_server_setup" },
+      reason: "ai.plan job exists but provider execution is not implemented yet.",
+      explanation: "ai.plan job exists but provider execution is not implemented yet.",
+    });
+  }
   // about to need it (e.g., started a build attempt or is on Deploy tab).
   if (buildRunnerConfigured === false && (jobs.some((j) => j.type.startsWith("build.")) || currentBuilderTab === "deploy")) {
     out.push({
