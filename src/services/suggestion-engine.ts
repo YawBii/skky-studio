@@ -213,8 +213,9 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   }
 
-  // Failed job → fix it. Use exact error label if available.
-  const failed = jobs.find((j) => j.status === "failed");
+  // Failed job → fix it. Skip "resolved" failures (newer same-type success,
+  // or transient runner errors when a newer build.production has succeeded).
+  const failed = jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs));
   if (failed) {
     const errText = (failed.error ?? "").toLowerCase();
     const isRunnerErr = errText.includes("build runner") || errText.includes("runner is not configured");
