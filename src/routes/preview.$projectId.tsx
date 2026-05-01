@@ -57,6 +57,8 @@ function LocalPreview() {
     };
   }, []);
 
+  const [indexHtml, setIndexHtml] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -70,10 +72,26 @@ function LocalPreview() {
       if (data) {
         setProject({ id: data.id, name: data.name, description: data.description });
       }
-      // Generated files are not wired yet — placeholder hook for future use.
-      setHasFiles(false);
+      // Try to load the latest generated index.html. Falls back to placeholder
+      // when no project_files row exists.
+      try {
+        const { data: file } = await supabase
+          .from("project_files")
+          .select("content")
+          .eq("project_id", projectId)
+          .eq("path", "index.html")
+          .maybeSingle();
+        if (!cancelled && file && typeof file.content === "string" && file.content.length > 0) {
+          setIndexHtml(file.content);
+          setHasFiles(true);
+        } else {
+          setHasFiles(false);
+        }
+      } catch {
+        setHasFiles(false);
+      }
       setLoading(false);
-      console.info("[yawb] preview.local.rendered", { projectId, hasFiles: false });
+      console.info("[yawb] preview.local.rendered", { projectId, hasFiles: !!indexHtml });
     })();
     return () => {
       cancelled = true;
