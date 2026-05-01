@@ -57,6 +57,8 @@ function LocalPreview() {
     };
   }, []);
 
+  const [indexHtml, setIndexHtml] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -70,10 +72,26 @@ function LocalPreview() {
       if (data) {
         setProject({ id: data.id, name: data.name, description: data.description });
       }
-      // Generated files are not wired yet — placeholder hook for future use.
-      setHasFiles(false);
+      // Try to load the latest generated index.html. Falls back to placeholder
+      // when no project_files row exists.
+      try {
+        const { data: file } = await supabase
+          .from("project_files")
+          .select("content")
+          .eq("project_id", projectId)
+          .eq("path", "index.html")
+          .maybeSingle();
+        if (!cancelled && file && typeof file.content === "string" && file.content.length > 0) {
+          setIndexHtml(file.content);
+          setHasFiles(true);
+        } else {
+          setHasFiles(false);
+        }
+      } catch {
+        setHasFiles(false);
+      }
       setLoading(false);
-      console.info("[yawb] preview.local.rendered", { projectId, hasFiles: false });
+      console.info("[yawb] preview.local.rendered", { projectId, hasFiles: !!indexHtml });
     })();
     return () => {
       cancelled = true;
@@ -94,6 +112,8 @@ function LocalPreview() {
       'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   };
 
+  const projectName = project?.name ?? "Project";
+
   if (loading) {
     return (
       <div data-testid="preview-embed-root" style={wrapperStyle}>
@@ -102,7 +122,21 @@ function LocalPreview() {
     );
   }
 
-  const projectName = project?.name ?? "Project";
+  // If we have a saved index.html, render it inline as the page content via
+  // an iframe srcDoc so the project's own CSS owns the viewport (no yawB chrome).
+  if (indexHtml) {
+    return (
+      <iframe
+        data-testid="preview-embed-root"
+        title={`${projectName} local preview`}
+        srcDoc={indexHtml}
+        sandbox=""
+        referrerPolicy="no-referrer"
+        style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, background: "#0b0f14" }}
+      />
+    );
+  }
+
 
   return (
     <div data-testid="preview-embed-root" style={wrapperStyle}>

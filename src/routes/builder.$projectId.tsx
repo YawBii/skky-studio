@@ -19,6 +19,7 @@ import {
   useCommandCenterAutoOpen,
 } from "@/components/command-center";
 import { useProjectConnections } from "@/hooks/use-project-connections";
+import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
@@ -139,6 +140,9 @@ function Builder() {
     }
   }, [activeDeployUrl, activeDeployResolved.source, project]);
 
+  // Per-project generated files for Local Preview.
+  const filesApi = useProjectFiles(project?.id ?? null);
+
   const { open: ccOpen, setOpen: setCcOpen, effectiveMode: ccMode } = useCommandCenterAutoOpen(ccState, {
     onJobSucceeded: (j) => {
       // After a successful build, return focus to Preview + flash a toast.
@@ -152,6 +156,13 @@ function Builder() {
         void connectionsApi.refresh();
         setTab("preview");
         toast.success("Preview deploy ready");
+      }
+      // After build.production or ai.generate_changes succeeds, refresh
+      // the project_files cache and tell the user the local preview updated.
+      if (j.type === "build.production" || j.type === "ai.generate_changes") {
+        void filesApi.refresh().then(() => {
+          toast.success("Local preview updated");
+        });
       }
     },
   });
@@ -331,6 +342,7 @@ function Builder() {
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {tab === "preview"  && (
           <PreviewPane
+            key={`preview-${filesApi.version}`}
             device={device}
             setDevice={setDevice}
             project={project}
@@ -339,7 +351,7 @@ function Builder() {
             selectedPage={selectedPage}
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
-            generated={null}
+            generated={filesApi.generated}
           />
         )}
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
