@@ -13,6 +13,46 @@ export interface ProviderStatus {
   checkedAt: string;
 }
 
+// Rich diagnostic snapshot for the "Test" button on /integrations.
+// Captures HTTP status, raw response body (truncated), normalized error,
+// and timing. Tokens are NEVER included.
+export interface ProviderDiagnostic {
+  provider: ProviderId;
+  status: "ok" | "warn" | "err" | "off";
+  configured: boolean;
+  reachable: boolean | null;
+  account: string | null;
+  checkedAt: string;
+  durationMs: number;
+  target: string | null;        // request URL (no secrets)
+  httpStatus: number | null;    // HTTP response code if a request was made
+  responseBody: string | null;  // truncated body for failures
+  normalizedError: string | null;
+  missing: string[];
+}
+
+const MAX_BODY = 2000;
+
+async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; ms: number }> {
+  const start = Date.now();
+  const value = await fn();
+  return { value, ms: Date.now() - start };
+}
+
+function classify(s: ProviderStatus): ProviderDiagnostic["status"] {
+  if (!s.configured) return "off";
+  if (s.reachable === false) return "err";
+  if (s.reachable === true) return "ok";
+  return "warn";
+}
+
+async function readBodySafe(res: Response): Promise<string | null> {
+  try {
+    const txt = await res.text();
+    return txt.length > MAX_BODY ? txt.slice(0, MAX_BODY) + `…(+${txt.length - MAX_BODY} bytes)` : txt;
+  } catch { return null; }
+}
+
 export interface GithubRepoSummary {
   id: number;
   fullName: string;
