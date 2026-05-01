@@ -1,0 +1,237 @@
+// Server-only provider clients. Reads workspace tokens from process.env.
+// Never imported by client code. Returns plain JSON shapes — never tokens.
+
+export type ProviderId = "github" | "vercel" | "supabase" | "build-runner";
+
+export interface ProviderStatus {
+  provider: ProviderId;
+  configured: boolean;     // token / env present
+  reachable: boolean | null; // result of a real API ping (null when not configured)
+  account: string | null;
+  error: string | null;
+  missing: string[];       // env var names missing for this provider
+  checkedAt: string;
+}
+
+export interface GithubRepoSummary {
+  id: number;
+  fullName: string;
+  name: string;
+  owner: string;
+  private: boolean;
+  defaultBranch: string;
+  htmlUrl: string;
+  description: string | null;
+  pushedAt: string | null;
+  stars: number;
+}
+
+export interface VercelProjectSummary {
+  id: string;
+  name: string;
+  framework: string | null;
+  productionUrl: string | null;
+  updatedAt: string | null;
+  link: { type?: string; repo?: string | null } | null;
+}
+
+const HEADERS_GITHUB = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+  "User-Agent": "yawb-integrations",
+});
+
+const HEADERS_VERCEL = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+  "User-Agent": "yawb-integrations",
+});
+
+export async function getGithubStatus(): Promise<ProviderStatus> {
+  const token = process.env.GITHUB_TOKEN;
+  const out: ProviderStatus = {
+    provider: "github",
+    configured: !!token,
+    reachable: null,
+    account: null,
+    error: null,
+    missing: token ? [] : ["GITHUB_TOKEN"],
+    checkedAt: new Date().toISOString(),
+  };
+  if (!token) return out;
+  try {
+    const res = await fetch("https://api.github.com/user", { headers: HEADERS_GITHUB(token) });
+    if (!res.ok) {
+      out.reachable = false;
+      out.error = `GitHub API ${res.status} ${res.statusText}`;
+      return out;
+    }
+    const json = (await res.json()) as { login?: string };
+    out.reachable = true;
+    out.account = json.login ?? null;
+  } catch (e) {
+    out.reachable = false;
+    out.error = e instanceof Error ? e.message : String(e);
+  }
+  return out;
+}
+
+export async function listGithubRepos(opts: { perPage?: number } = {}): Promise<{
+  ok: boolean; repos: GithubRepoSummary[]; error?: string; missing?: string[];
+}> {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) return { ok: false, repos: [], error: "GITHUB_TOKEN missing", missing: ["GITHUB_TOKEN"] };
+  const per = Math.min(Math.max(opts.perPage ?? 50, 1), 100);
+  try {
+    const res = await fetch(
+      `https://api.github.com/user/repos?per_page=${per}&sort=updated&affiliation=owner,collaborator,organization_member`,
+      { headers: HEADERS_GITHUB(token) },
+    );
+    if (!res.ok) return { ok: false, repos: [], error: `GitHub API ${res.status} ${res.statusText}` };
+    const arr = (await res.json()) as Array<Record<string, unknown>>;
+    const repos: GithubRepoSummary[] = arr.map((r) => ({
+      id: Number(r.id),
+      fullName: String(r.full_name),
+      name: String(r.name),
+      owner: String((r.owner as Record<string, unknown> | undefined)?.login ?? ""),
+      private: Boolean(r.private),
+      defaultBranch: String(r.default_branch ?? "main"),
+      htmlUrl: String(r.html_url ?? ""),
+      description: (r.description as string | null) ?? null,
+      pushedAt: (r.pushed_at as string | null) ?? null,
+      stars: Number(r.stargazers_count ?? 0),
+    }));
+    return { ok: true, repos };
+  } catch (e) {
+    return { ok: false, repos: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function getVercelStatus(): Promise<ProviderStatus> {
+  const token = process.env.VERCEL_TOKEN;
+  const out: ProviderStatus = {
+    provider: "vercel",
+    configured: !!token,
+    reachable: null,
+    account: null,
+    error: null,
+    missing: token ? [] : ["VERCEL_TOKEN"],
+    checkedAt: new Date().toISOString(),
+  };
+  if (!token) return out;
+  try {
+    const res = await fetch("https://api.vercel.com/v2/user", { headers: HEADERS_VERCEL(token) });
+    if (!res.ok) {
+      out.reachable = false;
+      out.error = `Vercel API ${res.status} ${res.statusText}`;
+      return out;
+    }
+    const json = (await res.json()) as { user?: { username?: string; email?: string } };
+    out.reachable = true;
+    out.account = json.user?.username ?? json.user?.email ?? null;
+  } catch (e) {
+    out.reachable = false;
+    out.error = e instanceof Error ? e.message : String(e);
+  }
+  return out;
+}
+
+export async function listVercelProjects(opts: { teamId?: string; limit?: number } = {}): Promise<{
+  ok: boolean; projects: VercelProjectSummary[]; error?: string; missing?: string[];
+}> {
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) return { ok: false, projects: [], error: "VERCEL_TOKEN missing", missing: ["VERCEL_TOKEN"] };
+  const params = new URLSearchParams();
+  params.set("limit", String(Math.min(Math.max(opts.limit ?? 50, 1), 100)));
+  if (opts.teamId) params.set("teamId", opts.teamId);
+  try {
+    const res = await fetch(`https://api.vercel.com/v9/projects?${params.toString()}`, {
+      headers: HEADERS_VERCEL(token),
+    });
+    if (!res.ok) return { ok: false, projects: [], error: `Vercel API ${res.status} ${res.statusText}` };
+    const json = (await res.json()) as { projects?: Array<Record<string, unknown>> };
+    const projects: VercelProjectSummary[] = (json.projects ?? []).map((p) => {
+      const targets = p.targets as Record<string, { url?: string }> | undefined;
+      const prodUrl = targets?.production?.url ? `https://${targets.production.url}` : null;
+      const link = (p.link as { type?: string; repo?: string | null } | null) ?? null;
+      return {
+        id: String(p.id),
+        name: String(p.name),
+        framework: (p.framework as string | null) ?? null,
+        productionUrl: prodUrl,
+        updatedAt: p.updatedAt ? new Date(Number(p.updatedAt)).toISOString() : null,
+        link,
+      };
+    });
+    return { ok: true, projects };
+  } catch (e) {
+    return { ok: false, projects: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export function getSupabaseStatus(): ProviderStatus {
+  const env = process.env;
+  const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+  const anon = env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const service = env.SUPABASE_SERVICE_ROLE_KEY;
+  const missing: string[] = [];
+  if (!url) missing.push("SUPABASE_URL");
+  if (!anon) missing.push("SUPABASE_PUBLISHABLE_KEY");
+  // service is recommended but not required for "configured"
+  return {
+    provider: "supabase",
+    configured: !!url && !!anon,
+    reachable: null,
+    account: url ? safeHost(url) : null,
+    error: service ? null : "SUPABASE_SERVICE_ROLE_KEY not set (admin jobs disabled)",
+    missing,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+export async function pingSupabase(): Promise<ProviderStatus> {
+  const base = getSupabaseStatus();
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !anon) return base;
+  try {
+    const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/health`, {
+      headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+    });
+    return { ...base, reachable: res.ok, error: res.ok ? base.error : `Supabase auth/health ${res.status}` };
+  } catch (e) {
+    return { ...base, reachable: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function getBuildRunnerStatus(): Promise<ProviderStatus> {
+  const url = process.env.BUILD_RUNNER_URL;
+  const token = process.env.BUILD_RUNNER_TOKEN;
+  const missing: string[] = [];
+  if (!url) missing.push("BUILD_RUNNER_URL");
+  const out: ProviderStatus = {
+    provider: "build-runner",
+    configured: !!url,
+    reachable: null,
+    account: url ? safeHost(url) : null,
+    error: null,
+    missing,
+    checkedAt: new Date().toISOString(),
+  };
+  if (!url) return out;
+  try {
+    const res = await fetch(`${url.replace(/\/$/, "")}/health`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    out.reachable = res.ok;
+    if (!res.ok) out.error = `Build runner ${res.status} ${res.statusText}`;
+  } catch (e) {
+    out.reachable = false;
+    out.error = e instanceof Error ? e.message : String(e);
+  }
+  return out;
+}
+
+function safeHost(u: string): string {
+  try { return new URL(u).host; } catch { return "(invalid URL)"; }
+}
