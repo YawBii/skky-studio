@@ -65,6 +65,14 @@ function Builder() {
   const [device, setDevice] = useState<Device>("desktop");
   const [focusJobId, setFocusJobId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [selectedPage, setSelectedPage] = useState<string>("/");
+  const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
+  const navigate = useNavigate();
+
+  // Mirror UI state to the global hook so the chat panel reads it.
+  useEffect(() => {
+    setBuilderUIState({ selectedPage, selectedEnvironment, currentTab: tab });
+  }, [selectedPage, selectedEnvironment, tab]);
 
   useEffect(() => {
     let cancelled = false;
