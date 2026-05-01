@@ -8,7 +8,7 @@ import {
   Popover, PopoverTrigger, PopoverContent,
 } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
-import { enqueueJob, retryJob, JOB_TYPES, type JobType } from "@/services/jobs";
+import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useDiagnostics } from "@/lib/diagnostics";
@@ -16,6 +16,7 @@ import { useMemo } from "react";
 import { buildSmartSuggestions, dismissSuggestion, type SmartSuggestion } from "@/services/suggestion-engine";
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
+import { TaskSummaryCard } from "@/components/task-summary-card";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -25,7 +26,33 @@ type Handoff = {
   next: string[];
   verify: string[];
 };
-type Msg = { role: "user" | "assistant"; content: string; proof?: ProofItem[]; handoff?: Handoff };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  proof?: ProofItem[];
+  handoff?: Handoff;
+  /** When set, render a TaskSummaryCard for this job below the message. */
+  summaryJobId?: string;
+};
+
+const TERMINAL_JOB_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
+const SUMMARIZED_KEY = (projectId: string) => `yawb:chat:summarized-jobs:${projectId}`;
+
+function loadSummarized(projectId: string | null | undefined): Set<string> {
+  if (!projectId || typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(SUMMARIZED_KEY(projectId));
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as string[];
+    return new Set(arr);
+  } catch { return new Set(); }
+}
+
+function persistSummarized(projectId: string, ids: Set<string>) {
+  try {
+    window.localStorage.setItem(SUMMARIZED_KEY(projectId), JSON.stringify([...ids]));
+  } catch { /* ignore */ }
+}
 
 const DEFAULT_CHECKLIST: { id: string; label: string; enabled: boolean }[] = [
   { id: "typecheck",  label: "TypeScript check",      enabled: true  },
@@ -73,6 +100,38 @@ export function AssistantPanel() {
   const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null);
   const connState = useProjectConnections(project?.id ?? null);
   const diag = useDiagnostics();
+
+  // Track which jobs have already been summarized in chat (per-project, persisted).
+  const summarizedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    summarizedRef.current = loadSummarized(project?.id);
+  }, [project?.id]);
+
+  // When a job reaches a terminal state, append exactly one summary message.
+  useEffect(() => {
+    if (!project) return;
+    for (const j of jobsState.jobs) {
+      if (!TERMINAL_JOB_STATUSES.has(j.status)) continue;
+      if (summarizedRef.current.has(j.id)) continue;
+      // Only summarize jobs visible in the recent window — useProjectJobs
+      // already returns the latest 50 — and avoid spamming on first mount
+      // by skipping jobs older than 30 minutes.
+      const ageMs = Date.now() - Date.parse(j.createdAt);
+      if (Number.isFinite(ageMs) && ageMs > 30 * 60 * 1000) {
+        summarizedRef.current.add(j.id);
+        continue;
+      }
+      summarizedRef.current.add(j.id);
+      persistSummarized(project.id, summarizedRef.current);
+      // Lazily refresh steps for the proof block.
+      void jobsState.refreshSteps(j.id);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "", summaryJobId: j.id },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobsState.jobs, project?.id]);
 
   const ui = useBuilderUIState();
   const [, forceTick] = useState(0);
@@ -327,9 +386,28 @@ export function AssistantPanel() {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-5 space-y-4">
-        {messages.map((m, i) => (
-          <Message key={i} msg={m} />
-        ))}
+        {messages.map((m, i) => {
+          const job: Job | undefined = m.summaryJobId ? jobsState.jobs.find((j) => j.id === m.summaryJobId) : undefined;
+          const steps = m.summaryJobId ? (jobsState.stepsByJob[m.summaryJobId] ?? []) : [];
+          const nextActions = job
+            ? (job.status === "failed"
+                ? [{ id: "retry", label: "Retry job", onClick: async () => {
+                    const r = await retryJob(job.id);
+                    if (r.ok) toast.success("Job re-queued"); else toast.error(`Retry failed: ${r.error}`);
+                  } }]
+                : job.status === "waiting_for_input"
+                ? [{ id: "open-jobs", label: "Open Jobs tab", onClick: () => {
+                    window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "jobs", focusJobId: job.id } }));
+                  } }]
+                : [])
+            : [];
+          return (
+            <div key={i}>
+              <Message msg={m} />
+              {job && <TaskSummaryCard job={job} steps={steps} nextActions={nextActions} />}
+            </div>
+          );
+        })}
       </div>
 
       {/* Composer */}

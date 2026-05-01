@@ -13,7 +13,7 @@ import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useDiagnostics } from "@/lib/diagnostics";
 import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
 import { getBuildRunnerConfig, type BuildRunnerConfigSnapshot } from "@/services/build-runner.functions";
-import { partitionFailures } from "@/lib/job-resolution";
+import { partitionFailures, getResolvingSuccess } from "@/lib/job-resolution";
 
 interface JobsPanelProps {
   projectId: string | null;
@@ -39,6 +39,7 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);
   const [buildCfg, setBuildCfg] = useState<BuildRunnerConfigSnapshot | null>(null);
+  const [showResolvedHistory, setShowResolvedHistory] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +123,23 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
           const { resolvedFailed } = partitionFailures(jobs);
           const resolvedIds = new Set(resolvedFailed.map((j) => j.id));
           const activeJobs = jobs.filter((j) => !resolvedIds.has(j.id));
+          // Group resolved failures by job type
+          const groups = new Map<string, Job[]>();
+          for (const j of resolvedFailed) {
+            const arr = groups.get(j.type) ?? [];
+            arr.push(j);
+            groups.set(j.type, arr);
+          }
+          const focusJob = (id: string) => {
+            setExpanded((p) => ({ ...p, [id]: true }));
+            void refreshSteps(id);
+            void refreshQuestions(id);
+            void refreshAttempts(id);
+            requestAnimationFrame(() => {
+              const el = document.getElementById(`job-row-${id}`);
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+          };
           const renderRow = (j: Job) => (
             <JobRow key={j.id}
               job={j}
@@ -149,22 +167,118 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
           );
           return (
             <>
+              {jobs.length > 0 && (
+                <JobTimeline jobs={jobs} onJobClick={focusJob} />
+              )}
+              {resolvedFailed.length > 0 && (
+                <div className="px-4 py-2 border-b border-white/5 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowResolvedHistory((v) => !v)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                  >
+                    {showResolvedHistory
+                      ? `Hide resolved history (${resolvedFailed.length})`
+                      : `Show resolved history (${resolvedFailed.length})`}
+                  </button>
+                </div>
+              )}
               <ul className="divide-y divide-white/5">
                 {activeJobs.map(renderRow)}
               </ul>
-              {resolvedFailed.length > 0 && (
-                <details className="border-t border-white/5">
-                  <summary className="px-4 py-2.5 text-[11.5px] text-muted-foreground cursor-pointer hover:text-foreground select-none">
-                    Resolved history ({resolvedFailed.length}) · superseded by a later success
-                  </summary>
-                  <ul className="divide-y divide-white/5 opacity-70">
-                    {resolvedFailed.map(renderRow)}
-                  </ul>
-                </details>
+              {showResolvedHistory && resolvedFailed.length > 0 && (
+                <div className="border-t border-white/5">
+                  {Array.from(groups.entries()).map(([type, list]) => (
+                    <details key={type} open className="border-b border-white/5">
+                      <summary className="px-4 py-2 text-[11.5px] text-muted-foreground cursor-pointer hover:text-foreground select-none">
+                        Resolved {type} failures ({list.length}) · superseded by a later success
+                      </summary>
+                      <ul className="divide-y divide-white/5 opacity-70">
+                        {list.map((j) => {
+                          const r = getResolvingSuccess(j, jobs);
+                          return (
+                            <div key={j.id}>
+                              {renderRow(j)}
+                              {r && (
+                                <div className="px-4 pb-2 -mt-1 ml-10 text-[10.5px] font-mono text-muted-foreground">
+                                  superseded by <button onClick={() => focusJob(r.id)} className="underline hover:text-foreground">{r.id.slice(0, 8)}</button> · {new Date(r.createdAt).toLocaleTimeString()}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </ul>
+                    </details>
+                  ))}
+                </div>
               )}
             </>
           );
         })()}
+      </div>
+    </div>
+  );
+}
+
+/** Compact horizontal timeline of recent jobs as colored dots with tooltips. */
+function JobTimeline({ jobs, onJobClick }: { jobs: Job[]; onJobClick: (id: string) => void }) {
+  // Latest 12 in chronological order (oldest left → newest right)
+  const recent = [...jobs].slice(0, 12).reverse();
+  if (recent.length === 0) return null;
+  const resolvedSet = new Set(partitionFailures(jobs).resolvedFailed.map((j) => j.id));
+  return (
+    <div className="px-4 py-2.5 border-b border-white/5">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Timeline · last {recent.length}</div>
+      <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-thin">
+        {recent.map((j, i) => {
+          const isResolvedFail = j.status === "failed" && resolvedSet.has(j.id);
+          const resolvedBy = isResolvedFail ? getResolvingSuccess(j, jobs) : null;
+          // Connector to next dot of same type
+          const next = recent[i + 1];
+          const sameTypeNext = next && next.type === j.type;
+          const dotClass =
+            j.status === "running" || j.status === "queued"
+              ? "bg-primary animate-pulse"
+              : j.status === "waiting_for_input"
+              ? "bg-warning"
+              : j.status === "succeeded"
+              ? "bg-success"
+              : isResolvedFail
+              ? "bg-muted-foreground/40"
+              : j.status === "failed"
+              ? "bg-destructive"
+              : "bg-white/20";
+          const title = [
+            j.title,
+            `type: ${j.type}`,
+            `status: ${j.status}`,
+            `created: ${new Date(j.createdAt).toLocaleString()}`,
+            resolvedBy ? `Superseded by success ${resolvedBy.id.slice(0, 8)}` : "",
+          ].filter(Boolean).join("\n");
+          return (
+            <div key={j.id} className="flex items-center shrink-0">
+              <button
+                type="button"
+                title={title}
+                onClick={() => onJobClick(j.id)}
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full ring-1 ring-white/10 hover:ring-white/30 transition",
+                  dotClass,
+                  isResolvedFail && "line-through opacity-60",
+                )}
+                aria-label={`${j.type} ${j.status}`}
+              />
+              {i < recent.length - 1 && (
+                <span
+                  className={cn(
+                    "h-px w-3 mx-0.5",
+                    sameTypeNext ? "bg-white/20" : "bg-white/5",
+                  )}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -203,7 +317,7 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
   const openQuestion = questions.find((q) => !q.answeredAt);
 
   return (
-    <li className="px-4 py-2.5">
+    <li id={`job-row-${job.id}`} className="px-4 py-2.5">
       <div className="flex items-center gap-2">
         <button onClick={onToggle} className="text-muted-foreground hover:text-foreground">
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}

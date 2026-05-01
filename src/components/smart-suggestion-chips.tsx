@@ -58,7 +58,7 @@ export function SmartSuggestionChips({ suggestions, onAction, onDismiss, classNa
             <button
               type="button"
               disabled={disabled}
-              title={s.disabledReason ?? s.reason}
+              title={s.disabledReason ?? s.explanation ?? s.reason}
               onClick={() => {
                 console.info("[yawb] suggestion.clicked", { id: s.id, label: s.label, action: s.action.kind, reason: s.reason });
                 void onAction(s);
@@ -70,6 +70,14 @@ export function SmartSuggestionChips({ suggestions, onAction, onDismiss, classNa
             >
               <Icon className="h-3 w-3 text-primary" />
               {s.label}
+              {s.category === "fix_failure" && s.unresolvedReason && (
+                <span
+                  className="ml-1 inline-flex items-center px-1 py-0.5 rounded-full text-[9.5px] font-mono uppercase tracking-wide bg-destructive/15 text-destructive border border-destructive/30"
+                  title={s.unresolvedReason}
+                >
+                  unresolved
+                </span>
+              )}
             </button>
             {onDismiss && (
               <button

@@ -15,7 +15,7 @@ import type { ProjectConnection } from "@/services/project-connections";
 import type { Workspace } from "@/services/workspaces";
 import type { Project } from "@/services/projects";
 import type { DiagState } from "@/lib/diagnostics";
-import { isFailedJobResolved, latestFailedJob, latestSucceededJob } from "@/lib/job-resolution";
+import { isFailedJobResolved, latestFailedJob, latestSucceededJob, describeUnresolvedReason, getResolvingSuccess, partitionFailures } from "@/lib/job-resolution";
 
 export type SuggestionCategory =
   | "blocking"
@@ -76,6 +76,12 @@ export interface SmartSuggestion {
   action: SmartSuggestionAction;
   reason: string; // diagnostic explanation
   disabledReason?: string;
+  /** Short human-readable explanation shown as a pill on retry chips. */
+  explanation?: string;
+  /** When set, the failure was resolved by this succeeded job id. */
+  resolvingJobId?: string;
+  /** When set, why the failure is still considered active (no resolving success). */
+  unresolvedReason?: string;
 }
 
 export interface SuggestionContext {
@@ -229,13 +235,16 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
         reason: `Latest job failed: ${failed.error}`,
       });
     } else {
+      const unresolvedReason = describeUnresolvedReason(failed, jobs);
       out.push({
         id: `retry-${failed.id}`,
         label: failed.error ? `Retry: ${truncate(failed.error, 40)}` : "Retry failed step",
         category: "fix_failure",
         priority: CATEGORY_BASE.fix_failure,
         action: { kind: "retry_job", jobId: failed.id },
-        reason: `Last job ${failed.id} failed.`,
+        reason: `Last job ${failed.id} failed. ${unresolvedReason}`,
+        explanation: unresolvedReason,
+        unresolvedReason,
       });
     }
   }
@@ -503,10 +512,16 @@ function finalize(list: SmartSuggestion[], projectId: string | null, jobs: Job[]
     .slice(0, 4);
   const lf = latestFailedJob(jobs);
   const ls = latestSucceededJob(jobs);
+  const { resolvedFailed } = partitionFailures(jobs);
+  const skippedResolvedFailures = resolvedFailed.map((f) => {
+    const r = getResolvingSuccess(f, jobs);
+    return { failedId: f.id, type: f.type, resolvedById: r?.id ?? null };
+  });
   console.info("[yawb] suggestions.generated", {
-    suggestions: sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason })),
+    suggestions: sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason, explanation: s.explanation })),
     latestFailed: lf ? { id: lf.id, type: lf.type, createdAt: lf.createdAt, error: lf.error } : null,
     latestSucceeded: ls ? { id: ls.id, type: ls.type, createdAt: ls.createdAt } : null,
+    skippedResolvedFailures,
   });
   return sorted;
 }

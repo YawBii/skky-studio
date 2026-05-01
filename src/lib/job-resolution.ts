@@ -10,6 +10,7 @@ import type { Job } from "@/services/jobs";
 
 const TRANSIENT_ERROR_PATTERNS = [
   /invalid bearer token/i,
+  /no bearer token/i,
 ];
 
 function ts(j: Job): number {
@@ -40,24 +41,34 @@ export function latestFailedJob(jobs: Job[], type?: string): Job | null {
 }
 
 /**
- * A failed job is "resolved" when:
- *   1. A newer succeeded job of the SAME type exists, OR
- *   2. Its error matches a known transient pattern AND a newer
- *      build.production has succeeded (runner was fixed).
+ * Returns the succeeded Job that "resolves" a given failed job, or null.
+ *  - Same-type success newer than the failure, OR
+ *  - For transient runner/auth errors on build.production: the next successful
+ *    build.production after it.
  */
-export function isFailedJobResolved(failed: Job, allJobs: Job[]): boolean {
-  if (failed.status !== "failed") return false;
+export function getResolvingSuccess(failed: Job, allJobs: Job[]): Job | null {
+  if (failed.status !== "failed") return null;
   const failedAt = ts(failed);
 
   const sameTypeSuccess = latestSucceededJob(allJobs, failed.type);
-  if (sameTypeSuccess && ts(sameTypeSuccess) > failedAt) return true;
+  if (sameTypeSuccess && ts(sameTypeSuccess) > failedAt) return sameTypeSuccess;
 
   const errText = failed.error ?? "";
-  if (TRANSIENT_ERROR_PATTERNS.some((re) => re.test(errText))) {
+  if (
+    failed.type === "build.production" &&
+    TRANSIENT_ERROR_PATTERNS.some((re) => re.test(errText))
+  ) {
     const buildSuccess = latestSucceededJob(allJobs, "build.production");
-    if (buildSuccess && ts(buildSuccess) > failedAt) return true;
+    if (buildSuccess && ts(buildSuccess) > failedAt) return buildSuccess;
   }
-  return false;
+  return null;
+}
+
+/**
+ * A failed job is "resolved" when getResolvingSuccess returns a non-null Job.
+ */
+export function isFailedJobResolved(failed: Job, allJobs: Job[]): boolean {
+  return getResolvingSuccess(failed, allJobs) !== null;
 }
 
 /** Partition failed jobs into active (needs attention) vs resolved (history). */
@@ -70,4 +81,32 @@ export function partitionFailures(jobs: Job[]): { activeFailed: Job[]; resolvedF
     else activeFailed.push(j);
   }
   return { activeFailed, resolvedFailed };
+}
+
+/** Group resolved failures by job type. Order preserved within each group. */
+export function groupResolvedFailuresByType(jobs: Job[]): Map<string, Job[]> {
+  const out = new Map<string, Job[]>();
+  const { resolvedFailed } = partitionFailures(jobs);
+  for (const j of resolvedFailed) {
+    const arr = out.get(j.type) ?? [];
+    arr.push(j);
+    out.set(j.type, arr);
+  }
+  return out;
+}
+
+/**
+ * Compute an "unresolved reason" for a failed job that explains why it is
+ * still considered active (no newer same-type success).
+ */
+export function describeUnresolvedReason(failed: Job, allJobs: Job[]): string {
+  if (failed.status !== "failed") return "Not a failed job.";
+  const sameTypeSuccess = latestSucceededJob(allJobs, failed.type);
+  if (!sameTypeSuccess) {
+    return `No newer ${failed.type} success yet.`;
+  }
+  if (ts(sameTypeSuccess) <= ts(failed)) {
+    return `Latest failure is newer than latest ${failed.type} success.`;
+  }
+  return "Failure is resolved.";
 }
