@@ -185,7 +185,7 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       action: { kind: "navigate", to: "/projects" },
       reason: "No project selected; nothing else can be suggested.",
     });
-    return finalize(out, null);
+    return finalize(out, null, jobs);
   }
 
   // SQL tables missing → blocking, must run migration before any job.
