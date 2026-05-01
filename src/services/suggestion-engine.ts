@@ -15,6 +15,7 @@ import type { ProjectConnection } from "@/services/project-connections";
 import type { Workspace } from "@/services/workspaces";
 import type { Project } from "@/services/projects";
 import type { DiagState } from "@/lib/diagnostics";
+import { isFailedJobResolved, latestFailedJob, latestSucceededJob } from "@/lib/job-resolution";
 
 export type SuggestionCategory =
   | "blocking"
