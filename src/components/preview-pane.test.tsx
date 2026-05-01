@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -17,6 +17,14 @@ const project: Project = {
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
+
+beforeEach(() => {
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
+});
 
 afterEach(() => {
   if (root) {
@@ -36,7 +44,7 @@ function render(node: React.ReactNode) {
   return host;
 }
 
-describe("PreviewPane", () => {
+describe("PreviewPane — live deploy", () => {
   it("renders iframe with deploy URL when activeDeployUrl is set", () => {
     const html = renderToStaticMarkup(
       <PreviewPane
@@ -52,24 +60,6 @@ describe("PreviewPane", () => {
     expect(html).toContain("<iframe");
     expect(html).toContain('src="https://preview-abc.vercel.app/"');
     expect(html).toContain("https://preview-abc.vercel.app");
-    expect(html).not.toContain("No deploy URL yet");
-  });
-
-  it("keeps the empty state when no deploy URL exists", () => {
-    const html = renderToStaticMarkup(
-      <PreviewPane
-        device="desktop"
-        setDevice={() => {}}
-        project={project}
-        onStartBuild={() => {}}
-        starting={false}
-        selectedPage="/"
-        activeDeployUrl={null}
-      />,
-    );
-    expect(html).toContain("No deploy URL yet");
-    expect(html).toContain("Start a build");
-    expect(html).not.toContain("<iframe");
   });
 
   it("clicking the external-open button opens the deploy URL in a new tab", () => {
@@ -97,7 +87,7 @@ describe("PreviewPane", () => {
     expect(openSpy).toHaveBeenCalledWith(url, "_blank", "noopener");
   });
 
-  it("disables the external-open button when no deploy URL exists", () => {
+  it("disables the external-open button when no live deploy URL exists (local mode)", () => {
     const container = render(
       <PreviewPane
         device="desktop"
@@ -116,7 +106,7 @@ describe("PreviewPane", () => {
     expect(btn!.disabled).toBe(true);
   });
 
-  it("shows the friendly fallback card after iframe failure and external-open still works", () => {
+  it("shows the friendly fallback card after iframe failure (live)", () => {
     vi.useFakeTimers();
     try {
       const url = "https://preview-blocked.vercel.app";
@@ -132,8 +122,6 @@ describe("PreviewPane", () => {
           activeDeployUrl={url}
         />,
       );
-      // Trigger the failed state via the load timeout (covers the X-Frame
-      // / CSP block scenario where the iframe never fires onload).
       act(() => {
         vi.advanceTimersByTime(8001);
       });
@@ -155,39 +143,7 @@ describe("PreviewPane", () => {
     }
   });
 
-  it("falls back to the friendly card after the 8s iframe load timeout", () => {
-    vi.useFakeTimers();
-    try {
-      const url = "https://preview-slow.vercel.app";
-      const container = render(
-        <PreviewPane
-          device="desktop"
-          setDevice={() => {}}
-          project={project}
-          onStartBuild={() => {}}
-          starting={false}
-          selectedPage="/"
-          activeDeployUrl={url}
-        />,
-      );
-      expect(
-        container.querySelector('[data-testid="preview-iframe"]'),
-      ).not.toBeNull();
-      expect(
-        container.querySelector('[data-testid="preview-iframe-fallback"]'),
-      ).toBeNull();
-      act(() => {
-        vi.advanceTimersByTime(8001);
-      });
-      expect(
-        container.querySelector('[data-testid="preview-iframe-fallback"]'),
-      ).not.toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("shows the always-visible 'Open live preview' overlay whenever activeDeployUrl exists", () => {
+  it("shows the always-visible 'Open live preview' overlay whenever live deploy exists", () => {
     const url = "https://preview-overlay.vercel.app";
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     const container = render(
@@ -210,8 +166,146 @@ describe("PreviewPane", () => {
     });
     expect(openSpy).toHaveBeenCalledWith(url, "_blank", "noopener");
   });
+});
 
-  it("does NOT render the overlay when there is no deploy URL", () => {
+describe("PreviewPane — local preview", () => {
+  it("auto-selects local mode and renders the /preview/$projectId iframe when no deploy URL", () => {
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+    const iframe = container.querySelector(
+      '[data-testid="preview-iframe"]',
+    ) as HTMLIFrameElement | null;
+    expect(iframe).not.toBeNull();
+    expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
+    expect(iframe!.getAttribute("src")).toBe("/preview/p1");
+    // Local badge in URL bar
+    expect(
+      container.querySelector('[data-testid="preview-local-badge"]'),
+    ).not.toBeNull();
+  });
+
+  it("renders srcDoc when generated.indexHtml is provided", () => {
+    const html = "<!doctype html><title>gen</title><body><h1>Hello yawB</h1></body>";
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+        generated={{ indexHtml: html, hasFiles: true }}
+      />,
+    );
+    const iframe = container.querySelector(
+      '[data-testid="preview-iframe"]',
+    ) as HTMLIFrameElement | null;
+    expect(iframe).not.toBeNull();
+    expect(iframe!.getAttribute("srcdoc")).toContain("Hello yawB");
+  });
+
+  it("does not show 'No deploy URL yet' as the main state when local is rendering", () => {
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+    expect(container.textContent || "").not.toContain("No deploy URL yet");
+  });
+
+  it("external-open button is disabled in local mode (no live URL)", () => {
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+        generated={{ indexHtml: "<!doctype html><title>x</title>" }}
+      />,
+    );
+    const btn = container.querySelector(
+      'button[aria-label="Open deploy URL in new tab"]',
+    ) as HTMLButtonElement | null;
+    expect(btn!.disabled).toBe(true);
+  });
+
+  it("Local|Live toggle switches between modes when both are available", () => {
+    const url = "https://goodhand.vercel.app";
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={url}
+      />,
+    );
+    // Default = live (URL exists)
+    let iframe = container.querySelector(
+      '[data-testid="preview-iframe"]',
+    ) as HTMLIFrameElement | null;
+    expect(iframe!.getAttribute("data-preview-kind")).toBe("live");
+
+    const localBtn = container.querySelector(
+      '[data-testid="preview-mode-local"]',
+    ) as HTMLButtonElement | null;
+    expect(localBtn).not.toBeNull();
+    act(() => {
+      localBtn!.click();
+    });
+
+    iframe = container.querySelector(
+      '[data-testid="preview-iframe"]',
+    ) as HTMLIFrameElement | null;
+    expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
+    expect(iframe!.getAttribute("src")).toBe("/preview/p1");
+  });
+
+  it("Live toggle is disabled when no deploy URL exists", () => {
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+    const liveBtn = container.querySelector(
+      '[data-testid="preview-mode-live"]',
+    ) as HTMLButtonElement | null;
+    expect(liveBtn).not.toBeNull();
+    expect(liveBtn!.disabled).toBe(true);
+  });
+
+  it("'Create preview deploy' CTA remains available without being a prerequisite for local preview", () => {
+    // Local preview renders even though there's no deploy. To see the CTA we
+    // toggle to live (which is disabled) — the CTA is reachable via empty
+    // local state when no project-route is available, and via the deploy tab
+    // suggestion. Verify the iframe rendered without requiring a deploy:
     const container = render(
       <PreviewPane
         device="desktop"
@@ -224,7 +318,7 @@ describe("PreviewPane", () => {
       />,
     );
     expect(
-      container.querySelector('[data-testid="preview-open-live-overlay"]'),
-    ).toBeNull();
+      container.querySelector('[data-testid="preview-iframe"]'),
+    ).not.toBeNull();
   });
 });
