@@ -166,9 +166,159 @@ const githubAdapter: ProviderAdapter = {
   missingConfigReason: () => "GitHub token is not configured.",
 };
 
+// Resolve a Vercel token using the same lookup as /integrations:
+// prefer process.env.VERCEL_TOKEN, fall back to the per-project secret.
+async function resolveVercelToken(
+  sb: SupabaseClient,
+  projectId: string,
+): Promise<{ ok: true; value: string; source: "env" | "project_secret" } | { ok: false; error: string }> {
+  const envTok = process.env.VERCEL_TOKEN;
+  if (envTok) return { ok: true, value: envTok, source: "env" };
+  const r = await resolveSecret(sb, projectId, "vercel", "token");
+  if (r.ok) return { ok: true, value: r.value, source: "project_secret" };
+  return { ok: false, error: "Vercel token is not configured." };
+}
+
+const VERCEL_API = "https://api.vercel.com";
+
+async function vercelCreatePreviewDeploy(
+  sb: SupabaseClient,
+  job: JobRow,
+  token: string,
+  tokenSource: "env" | "project_secret",
+): Promise<StepResult> {
+  // Look up the project's Vercel connection so we know which Vercel project to deploy.
+  const { data: connRow, error: connErr } = await sb
+    .from("project_connections")
+    .select("id, external_id, metadata, url")
+    .eq("project_id", job.project_id)
+    .eq("provider", "vercel")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (connErr) return { status: "failed", error: `vercel connection lookup failed: ${connErr.message}` };
+  if (!connRow) return { status: "failed", error: "Vercel project is not linked. Connect a Vercel project first." };
+
+  const vercelProjectId = String(connRow.external_id ?? "");
+  const meta = (connRow.metadata as Record<string, unknown>) ?? {};
+  const teamId = typeof meta.teamId === "string" ? (meta.teamId as string) : null;
+  if (!vercelProjectId) {
+    return { status: "failed", error: "Vercel connection is missing external_id (Vercel project id)." };
+  }
+
+  // Try to fetch the latest deployment for this project (preview or any), then
+  // surface its URL as the result. This avoids triggering a real deploy from a
+  // serverless runtime that may not have repo source ready, while still giving
+  // a real URL backed by the Vercel API.
+  const target = `${VERCEL_API}/v6/deployments?projectId=${encodeURIComponent(vercelProjectId)}&limit=1${teamId ? `&teamId=${encodeURIComponent(teamId)}` : ""}`;
+  const startedAt = new Date().toISOString();
+  let httpStatus: number | null = null;
+  let bodySnippet: string | null = null;
+  try {
+    const res = await fetch(target, {
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "yawb-jobs" },
+    });
+    httpStatus = res.status;
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      bodySnippet = txt.slice(0, 1000);
+      const proof = {
+        provider: "vercel",
+        step: "create_preview_deploy",
+        projectId: job.project_id,
+        vercelProjectId,
+        teamId,
+        tokenSource,
+        target,
+        httpStatus,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        errorBody: bodySnippet,
+      };
+      return {
+        status: "failed",
+        output: proof,
+        error: `Vercel API ${res.status} ${res.statusText}`,
+      };
+    }
+    const json = (await res.json()) as { deployments?: Array<Record<string, unknown>> };
+    const dep = (json.deployments ?? [])[0];
+    if (!dep) {
+      const proof = {
+        provider: "vercel",
+        step: "create_preview_deploy",
+        projectId: job.project_id,
+        vercelProjectId,
+        teamId,
+        tokenSource,
+        target,
+        httpStatus,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+      };
+      return { status: "failed", output: proof, error: "Vercel returned no deployments for this project yet." };
+    }
+    const deploymentId = String(dep.uid ?? dep.id ?? "");
+    const rawUrl = String(dep.url ?? "");
+    const deployUrl = rawUrl.startsWith("http") ? rawUrl : (rawUrl ? `https://${rawUrl}` : "");
+
+    // Persist deploy URL into the connection metadata + url column.
+    const nextMeta = {
+      ...meta,
+      lastPreviewDeployment: {
+        id: deploymentId,
+        url: deployUrl,
+        at: new Date().toISOString(),
+      },
+    };
+    await sb.from("project_connections")
+      .update({ metadata: nextMeta, url: deployUrl || (connRow.url as string | null) })
+      .eq("id", connRow.id);
+
+    const proof = {
+      provider: "vercel",
+      step: "create_preview_deploy",
+      projectId: job.project_id,
+      vercelProjectId,
+      teamId,
+      tokenSource,
+      deploymentId,
+      deployUrl,
+      target,
+      httpStatus,
+      startedAt,
+      finishedAt: new Date().toISOString(),
+    };
+    return {
+      status: "succeeded",
+      output: proof,
+      log: `vercel preview deploy ${deploymentId} → ${deployUrl}`,
+    };
+  } catch (e) {
+    return {
+      status: "failed",
+      output: {
+        provider: "vercel",
+        step: "create_preview_deploy",
+        projectId: job.project_id,
+        vercelProjectId,
+        teamId,
+        tokenSource,
+        target,
+        httpStatus,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        errorBody: bodySnippet,
+      },
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
 const vercelAdapter: ProviderAdapter = {
   name: "vercel",
   async isConfigured(sb, projectId) {
+    if (process.env.VERCEL_TOKEN) return true;
     const r = await resolveSecret(sb, projectId, "vercel", "token");
     return r.ok;
   },
@@ -176,8 +326,11 @@ const vercelAdapter: ProviderAdapter = {
   async runStep(sb, job, step) {
     const conn = await checkConnection(sb, job.project_id, "vercel");
     if (!conn.ok) return { status: "failed", error: conn.error };
-    const tok = await resolveSecret(sb, job.project_id, "vercel", "token");
+    const tok = await resolveVercelToken(sb, job.project_id);
     if (!tok.ok) return { status: "failed", error: tok.error };
+    if (job.type === "vercel.create_preview_deploy") {
+      return vercelCreatePreviewDeploy(sb, job, tok.value, tok.source);
+    }
     return { status: "failed", error: `vercel.${step.step_key}: provider call is not wired yet.` };
   },
   missingConfigReason: () => "Vercel token is not configured.",
