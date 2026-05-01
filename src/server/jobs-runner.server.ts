@@ -23,7 +23,13 @@ export interface JobRow {
   id: string; project_id: string; workspace_id: string; type: string;
   status: JobStatus; title: string; input: Record<string, unknown>;
 }
-export type ProjectFilesSupabaseLike = Pick<SupabaseClient, "from">;
+export interface ProjectFilesSupabaseLike {
+  from(table: string): {
+    select?: (...args: unknown[]) => unknown;
+    upsert?: (...args: unknown[]) => Promise<{ error: { message: string } | null }>;
+    update?: (...args: unknown[]) => unknown;
+  } & Record<string, unknown>;
+}
 interface StepRow {
   id: string; job_id: string; step_key: string; title: string;
   status: StepStatus; position: number; input: Record<string, unknown>;
