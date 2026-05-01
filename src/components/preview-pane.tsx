@@ -487,15 +487,21 @@ export function PreviewPane({
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div className="rounded-2xl border border-white/10 bg-background shadow-elevated h-full min-h-[inherit] overflow-hidden relative">
               <iframe
-                title={`${project.name} preview`}
+                title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
                 srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
                 data-testid="preview-iframe"
                 data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}
                 onError={onIframeError}
+                referrerPolicy="no-referrer"
+                loading="lazy"
                 className="h-full w-full border-0 block bg-background"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                sandbox={
+                  resolved.kind === "local"
+                    ? "" /* CSP-locked srcDoc, no scripts/forms needed */
+                    : "allow-scripts allow-same-origin allow-forms allow-popups"
+                }
               />
               {iframeState === "loading" && (
                 <div
