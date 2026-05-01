@@ -33,6 +33,17 @@ export function useProjectFiles(projectId: string | null | undefined): UseProjec
     setLoading(true);
     const r = await listProjectFiles(projectId);
     if (cancelledRef.current) return;
+    console.info("[yawb] project_files.loaded", {
+      projectId,
+      paths: r.files.map((f) => f.path),
+    });
+    const index = r.files.find((f) => f.path === "index.html");
+    if (index?.content) {
+      console.info("[yawb] project_files.index.loaded", {
+        projectId,
+        bytes: index.content.length,
+      });
+    }
     setFiles(r.files);
     setTableMissing(Boolean(r.tableMissing));
     setError(r.error);
