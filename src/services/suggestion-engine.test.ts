@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildSmartSuggestions } from "./suggestion-engine";
+import { buildSmartSuggestions, extractPlanActions } from "./suggestion-engine";
 import type { Job, JobStatus } from "@/services/jobs";
 
-function mkJob(p: { id: string; type: string; status: JobStatus; createdAt: string; error?: string }): Job {
+function mkJob(p: { id: string; type: string; status: JobStatus; createdAt: string; error?: string; output?: Record<string, unknown> }): Job {
   return {
     id: p.id, projectId: "p", workspaceId: "w", type: p.type, status: p.status,
-    title: p.id, input: {}, output: {}, error: p.error ?? null, retryCount: 0,
+    title: p.id, input: {}, output: p.output ?? {}, error: p.error ?? null, retryCount: 0,
     createdBy: "u", createdAt: p.createdAt, startedAt: null, finishedAt: null,
   };
 }
