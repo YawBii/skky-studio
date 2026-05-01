@@ -38,11 +38,11 @@ const TOGGLE_KEY = (projectId: string) => `yawb:preview:mode:${projectId}`;
 
 const DEVICE_VIEWPORTS: Record<
   PreviewDevice,
-  { width: string; maxWidth: string; minHeight: number; label: string }
+  { width: string; maxWidth: string; minWidth: number; minHeight: number; label: string }
 > = {
-  desktop: { width: "100%", maxWidth: "100%", minHeight: 640, label: "Desktop 100%" },
-  tablet: { width: "820px", maxWidth: "100%", minHeight: 640, label: "Tablet 820px" },
-  mobile: { width: "390px", maxWidth: "100%", minHeight: 720, label: "Mobile 390px" },
+  desktop: { width: "100%", maxWidth: "none", minWidth: 0, minHeight: 640, label: "Desktop 100%" },
+  tablet: { width: "820px", maxWidth: "100%", minWidth: 0, minHeight: 640, label: "Tablet 820px" },
+  mobile: { width: "390px", maxWidth: "100%", minWidth: 0, minHeight: 720, label: "Mobile 390px" },
 };
 
 /**
