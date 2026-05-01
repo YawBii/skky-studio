@@ -101,6 +101,38 @@ export function AssistantPanel() {
   const connState = useProjectConnections(project?.id ?? null);
   const diag = useDiagnostics();
 
+  // Track which jobs have already been summarized in chat (per-project, persisted).
+  const summarizedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    summarizedRef.current = loadSummarized(project?.id);
+  }, [project?.id]);
+
+  // When a job reaches a terminal state, append exactly one summary message.
+  useEffect(() => {
+    if (!project) return;
+    for (const j of jobsState.jobs) {
+      if (!TERMINAL_JOB_STATUSES.has(j.status)) continue;
+      if (summarizedRef.current.has(j.id)) continue;
+      // Only summarize jobs visible in the recent window — useProjectJobs
+      // already returns the latest 50 — and avoid spamming on first mount
+      // by skipping jobs older than 30 minutes.
+      const ageMs = Date.now() - Date.parse(j.createdAt);
+      if (Number.isFinite(ageMs) && ageMs > 30 * 60 * 1000) {
+        summarizedRef.current.add(j.id);
+        continue;
+      }
+      summarizedRef.current.add(j.id);
+      persistSummarized(project.id, summarizedRef.current);
+      // Lazily refresh steps for the proof block.
+      void jobsState.refreshSteps(j.id);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "", summaryJobId: j.id },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobsState.jobs, project?.id]);
+
   const ui = useBuilderUIState();
   const [, forceTick] = useState(0);
 
