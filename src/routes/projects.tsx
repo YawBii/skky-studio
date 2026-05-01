@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import { z } from "zod";
-import { Plus, FolderKanban, AlertCircle, Check, Github, Triangle, RefreshCw, ExternalLink, Download, Loader2 } from "lucide-react";
+import {
+  Plus, FolderKanban, AlertCircle, Check, Github, Triangle, RefreshCw,
+  ExternalLink, Download, Loader2, Link as LinkIcon, X, Copy,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,7 +18,11 @@ import {
   listVercelProjectsFn,
 } from "@/services/providers.functions";
 import { createProject } from "@/services/projects";
-import { createConnection } from "@/services/project-connections";
+import {
+  upsertConnection,
+  findConnectionByExternalId,
+  type ProjectConnection,
+} from "@/services/project-connections";
 import { cn } from "@/lib/utils";
 
 const TabSchema = z.object({
@@ -34,6 +41,8 @@ export const Route = createFileRoute("/projects")({
 });
 
 type TabKey = "projects" | "github" | "vercel" | "import";
+
+/* -------------------- Page shell -------------------- */
 
 function ProjectsPage() {
   const { current: workspace, isReal: workspaceIsReal } = useWorkspaces();
@@ -159,7 +168,11 @@ function ProjectsPage() {
         </TabsContent>
 
         <TabsContent value="vercel" className="mt-5">
-          <VercelProjectsTab />
+          <VercelProjectsTab
+            workspaceId={workspace?.id ?? ""}
+            currentProjectId={current?.id ?? null}
+            currentProjectName={current?.name ?? null}
+          />
         </TabsContent>
 
         <TabsContent value="import" className="mt-5">
@@ -198,11 +211,14 @@ function ProjectsPage() {
 
 /* ---------- GitHub Repos tab ---------- */
 
+type GhRepo = Awaited<ReturnType<typeof listGithubReposFn>>["repos"][number];
+
 function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onImported: (id: string, name: string) => void }) {
-  const [state, setState] = useState<{ loading: boolean; error?: string; missing?: string[]; repos: Awaited<ReturnType<typeof listGithubReposFn>>["repos"] }>({
+  const [state, setState] = useState<{ loading: boolean; error?: string; missing?: string[]; repos: GhRepo[] }>({
     loading: true, repos: [],
   });
   const [importing, setImporting] = useState<string | null>(null);
+  const [proofs, setProofs] = useState<Record<string, ImportProof>>({});
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: undefined }));
@@ -220,29 +236,93 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
 
   useEffect(() => { void load(); }, [load]);
 
-  async function importRepo(r: { fullName: string; name: string; htmlUrl: string; defaultBranch: string; description: string | null }) {
+  async function importRepo(r: GhRepo) {
     if (!workspaceId) { toast.error("Select a workspace first"); return; }
     setImporting(r.fullName);
+    const startedAt = new Date().toISOString();
     try {
+      // Idempotency: if a connection for this repo already exists, reuse it.
+      const existing = await findConnectionByExternalId("github", String(r.id));
+      if (existing.ok && existing.connection) {
+        const conn = existing.connection;
+        setProofs((p) => ({
+          ...p,
+          [r.fullName]: {
+            kind: "ok",
+            createdProject: false,
+            projectId: conn.projectId,
+            connectionId: conn.id,
+            provider: "github",
+            externalId: String(r.id),
+            url: conn.url ?? r.htmlUrl,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+          },
+        }));
+        toast.success(`Already imported — opening ${r.name}`);
+        onImported(conn.projectId, r.name);
+        return;
+      }
       const created = await createProject({
         workspaceId,
         name: r.name,
         slug: slugify(r.fullName),
         description: r.description ?? `Imported from ${r.fullName}`,
       });
-      if (!created.ok) { toast.error(created.error); return; }
-      const conn = await createConnection({
+      if (!created.ok) {
+        setProofs((p) => ({ ...p, [r.fullName]: { kind: "err", error: created.error, startedAt, finishedAt: new Date().toISOString() } }));
+        toast.error(created.error);
+        return;
+      }
+      const conn = await upsertConnection({
         projectId: created.project.id,
         provider: "github",
+        externalId: String(r.id),
         status: "connected",
+        url: r.htmlUrl,
         repoFullName: r.fullName,
         repoUrl: r.htmlUrl,
         defaultBranch: r.defaultBranch,
-        metadata: { imported_from: "integrations" },
+        workspaceId,
+        tokenOwnerType: "workspace",
+        metadata: { imported_from: "integrations", repo_id: r.id, private: r.private },
       });
-      if (!conn.ok) toast.warning(`Project created, connection failed: ${conn.error}`);
-      else toast.success(`Imported ${r.fullName}`);
+      if (!conn.ok) {
+        setProofs((p) => ({
+          ...p,
+          [r.fullName]: {
+            kind: "warn",
+            createdProject: true,
+            projectId: created.project.id,
+            error: conn.error,
+            provider: "github",
+            externalId: String(r.id),
+            url: r.htmlUrl,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+          },
+        }));
+        toast.warning(`Project created, connection failed: ${conn.error}`);
+      } else {
+        setProofs((p) => ({
+          ...p,
+          [r.fullName]: {
+            kind: "ok",
+            createdProject: true,
+            projectId: created.project.id,
+            connectionId: conn.connection.id,
+            provider: "github",
+            externalId: String(r.id),
+            url: r.htmlUrl,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+          },
+        }));
+        toast.success(`Imported ${r.fullName}`);
+      }
       onImported(created.project.id, created.project.name);
+    } catch (e) {
+      setProofs((p) => ({ ...p, [r.fullName]: { kind: "err", error: e instanceof Error ? e.message : String(e), startedAt, finishedAt: new Date().toISOString() } }));
     } finally {
       setImporting(null);
     }
@@ -259,40 +339,53 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
       empty={state.repos.length === 0 && !state.loading && !state.error}
       emptyMessage="No repositories visible to this token."
     >
-      {state.repos.map((r) => (
-        <div key={r.id} className="flex items-center gap-3 px-5 py-3 border-b border-white/5 last:border-b-0">
-          <Github className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm truncate">{r.fullName}</div>
-            <div className="text-[11.5px] text-muted-foreground truncate">
-              {r.private ? "Private · " : "Public · "}{r.defaultBranch}
-              {r.description ? ` · ${r.description}` : ""}
+      {state.repos.map((r) => {
+        const proof = proofs[r.fullName];
+        return (
+          <div key={r.id} className="border-b border-white/5 last:border-b-0">
+            <div className="flex items-center gap-3 px-5 py-3">
+              <Github className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{r.fullName}</div>
+                <div className="text-[11.5px] text-muted-foreground truncate">
+                  {r.private ? "Private · " : "Public · "}{r.defaultBranch}
+                  {r.description ? ` · ${r.description}` : ""}
+                </div>
+              </div>
+              <a href={r.htmlUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1">
+                View <ExternalLink className="h-3 w-3" />
+              </a>
+              <Button
+                variant="soft"
+                size="sm"
+                onClick={() => importRepo(r)}
+                disabled={importing === r.fullName}
+              >
+                {importing === r.fullName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                Import
+              </Button>
             </div>
+            {proof && <ProofBlock proof={proof} />}
           </div>
-          <a href={r.htmlUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1">
-            View <ExternalLink className="h-3 w-3" />
-          </a>
-          <Button
-            variant="soft"
-            size="sm"
-            onClick={() => importRepo(r)}
-            disabled={importing === r.fullName}
-          >
-            {importing === r.fullName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            Import
-          </Button>
-        </div>
-      ))}
+        );
+      })}
     </ProviderListCard>
   );
 }
 
 /* ---------- Vercel Projects tab ---------- */
 
-function VercelProjectsTab() {
-  const [state, setState] = useState<{ loading: boolean; error?: string; missing?: string[]; projects: Awaited<ReturnType<typeof listVercelProjectsFn>>["projects"] }>({
+type VercelP = Awaited<ReturnType<typeof listVercelProjectsFn>>["projects"][number];
+
+function VercelProjectsTab({
+  workspaceId, currentProjectId, currentProjectName,
+}: { workspaceId: string; currentProjectId: string | null; currentProjectName: string | null }) {
+  const [state, setState] = useState<{ loading: boolean; error?: string; missing?: string[]; projects: VercelP[] }>({
     loading: true, projects: [],
   });
+  const [linking, setLinking] = useState<string | null>(null);
+  // Sync health per Vercel project id.
+  const [health, setHealth] = useState<Record<string, { connection?: ProjectConnection; error?: string; checkedAt: string }>>({});
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: undefined }));
@@ -303,12 +396,56 @@ function VercelProjectsTab() {
         return;
       }
       setState({ loading: false, projects: res.projects });
+      // Hydrate sync health for each visible project.
+      const next: typeof health = {};
+      await Promise.all(res.projects.map(async (p) => {
+        const r = await findConnectionByExternalId("vercel", p.id);
+        if (r.ok && r.connection) next[p.id] = { connection: r.connection, checkedAt: new Date().toISOString() };
+      }));
+      setHealth(next);
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
     }
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function linkToCurrent(p: VercelP) {
+    if (!workspaceId) { toast.error("Select a workspace first"); return; }
+    if (!currentProjectId) {
+      toast.error("Open a yawB project first (My Projects → click a project)");
+      return;
+    }
+    setLinking(p.id);
+    try {
+      const res = await upsertConnection({
+        projectId: currentProjectId,
+        provider: "vercel",
+        externalId: p.id,
+        status: "connected",
+        url: p.productionUrl,
+        repoFullName: p.link?.repo ?? null,
+        repoUrl: p.link?.repo ? `https://github.com/${p.link.repo}` : null,
+        workspaceId,
+        tokenOwnerType: "workspace",
+        metadata: {
+          name: p.name,
+          framework: p.framework,
+          link: p.link,
+          updatedAt: p.updatedAt,
+        },
+      });
+      if (!res.ok) {
+        setHealth((h) => ({ ...h, [p.id]: { error: res.error, checkedAt: new Date().toISOString() } }));
+        toast.error(res.error);
+        return;
+      }
+      setHealth((h) => ({ ...h, [p.id]: { connection: res.connection, checkedAt: new Date().toISOString() } }));
+      toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
+    } finally {
+      setLinking(null);
+    }
+  }
 
   return (
     <ProviderListCard
@@ -321,22 +458,64 @@ function VercelProjectsTab() {
       empty={state.projects.length === 0 && !state.loading && !state.error}
       emptyMessage="No Vercel projects visible to this token."
     >
-      {state.projects.map((p) => (
-        <div key={p.id} className="flex items-center gap-3 px-5 py-3 border-b border-white/5 last:border-b-0">
-          <Triangle className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm truncate">{p.name}</div>
-            <div className="text-[11.5px] text-muted-foreground truncate">
-              {p.framework ?? "—"}{p.link?.repo ? ` · ${p.link.repo}` : ""}{p.updatedAt ? ` · updated ${formatDate(p.updatedAt)}` : ""}
-            </div>
-          </div>
-          {p.productionUrl && (
-            <a href={p.productionUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1">
-              Live <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
+      {!currentProjectId && (
+        <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
+          <span>
+            Open a yawB project first to enable linking. Use{" "}
+            <Link to="/projects" search={{ tab: "projects" } as never} className="text-primary">My Projects</Link>.
+          </span>
         </div>
-      ))}
+      )}
+      {state.projects.map((p) => {
+        const h = health[p.id];
+        const linked = h?.connection && h.connection.projectId === currentProjectId;
+        return (
+          <div key={p.id} className="border-b border-white/5 last:border-b-0">
+            <div className="flex items-center gap-3 px-5 py-3">
+              <Triangle className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{p.name}</div>
+                <div className="text-[11.5px] text-muted-foreground truncate">
+                  {p.framework ?? "—"}{p.link?.repo ? ` · ${p.link.repo}` : ""}{p.updatedAt ? ` · updated ${formatDate(p.updatedAt)}` : ""}
+                </div>
+              </div>
+              {p.productionUrl && (
+                <a href={p.productionUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1">
+                  Live <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+              <Button
+                variant="soft"
+                size="sm"
+                onClick={() => linkToCurrent(p)}
+                disabled={linking === p.id || !currentProjectId}
+                title={currentProjectId ? `Link to ${currentProjectName}` : "Open a yawB project first"}
+              >
+                {linking === p.id
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <LinkIcon className="h-3.5 w-3.5" />}
+                {linked ? "Re-link" : "Link to current"}
+              </Button>
+            </div>
+            {h && (
+              <div className={cn(
+                "px-5 pb-3 text-[11.5px] flex items-center gap-2",
+                h.error ? "text-destructive" : linked ? "text-success" : "text-muted-foreground",
+              )}>
+                {h.error ? <X className="h-3 w-3" /> : linked ? <Check className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                {h.error
+                  ? `Failed: ${h.error}`
+                  : linked
+                    ? `Linked to current project · last synced ${new Date(h.checkedAt).toLocaleTimeString()}`
+                    : h.connection
+                      ? `Linked to a different yawB project (${h.connection.projectId.slice(0, 8)}…)`
+                      : "Not linked"}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </ProviderListCard>
   );
 }
@@ -346,6 +525,7 @@ function VercelProjectsTab() {
 function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; onImported: (id: string, name: string) => void }) {
   const [repoUrl, setRepoUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [proof, setProof] = useState<ImportProof | null>(null);
 
   async function submit() {
     if (!workspaceId) { toast.error("Select a workspace first"); return; }
@@ -360,21 +540,68 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
       return;
     }
     const name = normalized.split("/").pop()!;
+    const url = `https://github.com/${normalized}`;
+    const startedAt = new Date().toISOString();
     setBusy(true);
+    setProof(null);
     try {
+      // Idempotency: external_id for "import existing" defaults to the
+      // owner/repo string when we don't have a numeric repo id.
+      const existing = await findConnectionByExternalId("github", normalized);
+      if (existing.ok && existing.connection) {
+        setProof({
+          kind: "ok",
+          createdProject: false,
+          projectId: existing.connection.projectId,
+          connectionId: existing.connection.id,
+          provider: "github",
+          externalId: normalized,
+          url: existing.connection.url ?? url,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+        });
+        toast.success(`Already imported — opening ${name}`);
+        onImported(existing.connection.projectId, name);
+        return;
+      }
       const created = await createProject({ workspaceId, name, slug: slugify(normalized), description: `Imported from ${normalized}` });
-      if (!created.ok) { toast.error(created.error); return; }
-      const conn = await createConnection({
+      if (!created.ok) {
+        setProof({ kind: "err", error: created.error, startedAt, finishedAt: new Date().toISOString() });
+        toast.error(created.error);
+        return;
+      }
+      const conn = await upsertConnection({
         projectId: created.project.id,
         provider: "github",
+        externalId: normalized,
         status: "connected",
+        url,
         repoFullName: normalized,
-        repoUrl: `https://github.com/${normalized}`,
+        repoUrl: url,
+        workspaceId,
+        tokenOwnerType: "workspace",
+        metadata: { imported_from: "import-existing" },
       });
-      if (!conn.ok) toast.warning(`Project created, connection failed: ${conn.error}`);
-      else toast.success(`Imported ${normalized}`);
+      if (!conn.ok) {
+        setProof({
+          kind: "warn", createdProject: true, projectId: created.project.id,
+          error: conn.error, provider: "github", externalId: normalized, url,
+          startedAt, finishedAt: new Date().toISOString(),
+        });
+        toast.warning(`Project created, connection failed: ${conn.error}`);
+      } else {
+        setProof({
+          kind: "ok", createdProject: true, projectId: created.project.id,
+          connectionId: conn.connection.id, provider: "github",
+          externalId: normalized, url,
+          startedAt, finishedAt: new Date().toISOString(),
+        });
+        toast.success(`Imported ${normalized}`);
+      }
       setRepoUrl("");
       onImported(created.project.id, created.project.name);
+    } catch (e) {
+      setProof({ kind: "err", error: e instanceof Error ? e.message : String(e), startedAt, finishedAt: new Date().toISOString() });
     } finally {
       setBusy(false);
     }
@@ -384,7 +611,7 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
     <div className="rounded-2xl border border-white/5 bg-gradient-card p-6 max-w-2xl">
       <h2 className="font-display font-semibold text-lg">Import an existing repository</h2>
       <p className="text-sm text-muted-foreground mt-1">
-        Paste a GitHub URL or <code>owner/repo</code>. Creates a yawB project and links the repo.
+        Paste a GitHub URL or <code>owner/repo</code>. Creates a yawB project and links the repo (idempotent).
       </p>
       <div className="grid sm:grid-cols-[1fr_auto] gap-3 mt-4">
         <input
@@ -397,10 +624,17 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Import
         </Button>
       </div>
+      {proof && (
+        <div className="mt-4">
+          <ProofBlock proof={proof} />
+        </div>
+      )}
       <div className="mt-4 text-[11.5px] text-muted-foreground">
-        Want to browse all visible repos instead? See the <button className="text-primary underline" onClick={() => {
-          const url = new URL(window.location.href); url.searchParams.set("tab", "github"); window.history.pushState({}, "", url); window.location.reload();
-        }}>GitHub Repos</button> tab.
+        Want to browse all visible repos? See the{" "}
+        <Link to="/projects" search={{ tab: "github" } as never} className="text-primary underline">
+          GitHub Repos
+        </Link>{" "}
+        tab.
       </div>
     </div>
   );
@@ -454,6 +688,84 @@ function ProviderListCard(props: {
   );
 }
 
+/* ---------- Proof block ---------- */
+
+type ImportProof =
+  | {
+      kind: "ok";
+      createdProject: boolean;
+      projectId: string;
+      connectionId: string;
+      provider: "github" | "vercel";
+      externalId: string;
+      url: string | null;
+      startedAt: string;
+      finishedAt: string;
+    }
+  | {
+      kind: "warn";
+      createdProject: boolean;
+      projectId: string;
+      error: string;
+      provider: "github" | "vercel";
+      externalId: string;
+      url: string | null;
+      startedAt: string;
+      finishedAt: string;
+    }
+  | {
+      kind: "err";
+      error: string;
+      startedAt: string;
+      finishedAt: string;
+    };
+
+function ProofBlock({ proof }: { proof: ImportProof }) {
+  const tone =
+    proof.kind === "ok"   ? "border-success/30 bg-success/5 text-success" :
+    proof.kind === "warn" ? "border-warning/30 bg-warning/5 text-warning" :
+                            "border-destructive/30 bg-destructive/5 text-destructive";
+  const Icon = proof.kind === "ok" ? Check : proof.kind === "warn" ? AlertCircle : X;
+  const summary =
+    proof.kind === "ok"   ? `Done in ${ms(proof.startedAt, proof.finishedAt)}` :
+    proof.kind === "warn" ? `Partial in ${ms(proof.startedAt, proof.finishedAt)}` :
+                            `Failed in ${ms(proof.startedAt, proof.finishedAt)}`;
+
+  const text =
+    proof.kind === "err"
+      ? `ERROR: ${proof.error}`
+      : [
+          `provider: ${proof.provider}`,
+          `external_id: ${proof.externalId}`,
+          `url: ${proof.url ?? "—"}`,
+          `project_id: ${proof.projectId} (${proof.createdProject ? "created" : "existing"})`,
+          proof.kind === "ok" ? `connection_id: ${proof.connectionId}` : `connection_error: ${proof.error}`,
+          `sync: ${proof.kind === "ok" ? "linked" : "failed"}`,
+        ].join("\n");
+
+  return (
+    <div className={cn("mx-5 mb-3 rounded-lg border px-3 py-2 text-[11.5px]", tone)}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="inline-flex items-center gap-1.5 font-medium">
+          <Icon className="h-3.5 w-3.5" /> {summary}
+        </div>
+        <button
+          type="button"
+          onClick={() => { void navigator.clipboard.writeText(text); toast("Copied proof to clipboard"); }}
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
+        >
+          <Copy className="h-3 w-3" /> Copy
+        </button>
+      </div>
+      <pre className="mt-1.5 font-mono text-[10.5px] text-muted-foreground whitespace-pre-wrap break-all">
+        {text}
+      </pre>
+    </div>
+  );
+}
+
+/* ---------- helpers ---------- */
+
 function formatDate(iso?: string | null) {
   if (!iso) return "—";
   try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
@@ -461,4 +773,8 @@ function formatDate(iso?: string | null) {
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || `proj-${Date.now()}`;
+}
+
+function ms(a: string, b: string): string {
+  try { return `${new Date(b).getTime() - new Date(a).getTime()}ms`; } catch { return "?"; }
 }

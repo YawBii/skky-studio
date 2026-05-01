@@ -13,6 +13,46 @@ export interface ProviderStatus {
   checkedAt: string;
 }
 
+// Rich diagnostic snapshot for the "Test" button on /integrations.
+// Captures HTTP status, raw response body (truncated), normalized error,
+// and timing. Tokens are NEVER included.
+export interface ProviderDiagnostic {
+  provider: ProviderId;
+  status: "ok" | "warn" | "err" | "off";
+  configured: boolean;
+  reachable: boolean | null;
+  account: string | null;
+  checkedAt: string;
+  durationMs: number;
+  target: string | null;        // request URL (no secrets)
+  httpStatus: number | null;    // HTTP response code if a request was made
+  responseBody: string | null;  // truncated body for failures
+  normalizedError: string | null;
+  missing: string[];
+}
+
+const MAX_BODY = 2000;
+
+async function timed<T>(fn: () => Promise<T>): Promise<{ value: T; ms: number }> {
+  const start = Date.now();
+  const value = await fn();
+  return { value, ms: Date.now() - start };
+}
+
+function classify(s: ProviderStatus): ProviderDiagnostic["status"] {
+  if (!s.configured) return "off";
+  if (s.reachable === false) return "err";
+  if (s.reachable === true) return "ok";
+  return "warn";
+}
+
+async function readBodySafe(res: Response): Promise<string | null> {
+  try {
+    const txt = await res.text();
+    return txt.length > MAX_BODY ? txt.slice(0, MAX_BODY) + `…(+${txt.length - MAX_BODY} bytes)` : txt;
+  } catch { return null; }
+}
+
 export interface GithubRepoSummary {
   id: number;
   fullName: string;
@@ -235,3 +275,186 @@ export async function getBuildRunnerStatus(): Promise<ProviderStatus> {
 function safeHost(u: string): string {
   try { return new URL(u).host; } catch { return "(invalid URL)"; }
 }
+
+// =============================================================================
+// Per-provider diagnostic test (powers the "Test" button on /integrations).
+// Captures: target URL, HTTP status, raw response body (truncated), timing,
+// normalized error, and missing env. Never returns the token.
+// =============================================================================
+
+export async function runDiagnostic(provider: ProviderId): Promise<ProviderDiagnostic> {
+  const checkedAt = new Date().toISOString();
+  switch (provider) {
+    case "github":   return runGithubDiagnostic(checkedAt);
+    case "vercel":   return runVercelDiagnostic(checkedAt);
+    case "supabase": return runSupabaseDiagnostic(checkedAt);
+    case "build-runner": return runBuildRunnerDiagnostic(checkedAt);
+  }
+}
+
+async function runGithubDiagnostic(checkedAt: string): Promise<ProviderDiagnostic> {
+  const token = process.env.GITHUB_TOKEN;
+  const target = "https://api.github.com/user";
+  if (!token) {
+    return {
+      provider: "github", status: "off", configured: false, reachable: null,
+      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
+      responseBody: null, normalizedError: "GITHUB_TOKEN not set",
+      missing: ["GITHUB_TOKEN"],
+    };
+  }
+  try {
+    const { value: res, ms } = await timed(() => fetch(target, { headers: HEADERS_GITHUB(token) }));
+    if (!res.ok) {
+      const body = await readBodySafe(res);
+      return {
+        provider: "github", status: "err", configured: true, reachable: false,
+        account: null, checkedAt, durationMs: ms, target, httpStatus: res.status,
+        responseBody: body, normalizedError: `GitHub API ${res.status} ${res.statusText}`,
+        missing: [],
+      };
+    }
+    const json = (await res.json()) as { login?: string };
+    return {
+      provider: "github", status: "ok", configured: true, reachable: true,
+      account: json.login ?? null, checkedAt, durationMs: ms, target,
+      httpStatus: res.status, responseBody: null, normalizedError: null, missing: [],
+    };
+  } catch (e) {
+    return {
+      provider: "github", status: "err", configured: true, reachable: false,
+      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
+      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      missing: [],
+    };
+  }
+}
+
+async function runVercelDiagnostic(checkedAt: string): Promise<ProviderDiagnostic> {
+  const token = process.env.VERCEL_TOKEN;
+  const target = "https://api.vercel.com/v2/user";
+  if (!token) {
+    return {
+      provider: "vercel", status: "off", configured: false, reachable: null,
+      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
+      responseBody: null, normalizedError: "VERCEL_TOKEN not set",
+      missing: ["VERCEL_TOKEN"],
+    };
+  }
+  try {
+    const { value: res, ms } = await timed(() => fetch(target, { headers: HEADERS_VERCEL(token) }));
+    if (!res.ok) {
+      const body = await readBodySafe(res);
+      return {
+        provider: "vercel", status: "err", configured: true, reachable: false,
+        account: null, checkedAt, durationMs: ms, target, httpStatus: res.status,
+        responseBody: body, normalizedError: `Vercel API ${res.status} ${res.statusText}`,
+        missing: [],
+      };
+    }
+    const json = (await res.json()) as { user?: { username?: string; email?: string } };
+    return {
+      provider: "vercel", status: "ok", configured: true, reachable: true,
+      account: json.user?.username ?? json.user?.email ?? null, checkedAt,
+      durationMs: ms, target, httpStatus: res.status, responseBody: null,
+      normalizedError: null, missing: [],
+    };
+  } catch (e) {
+    return {
+      provider: "vercel", status: "err", configured: true, reachable: false,
+      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
+      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      missing: [],
+    };
+  }
+}
+
+async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnostic> {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anon = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const missing: string[] = [];
+  if (!url) missing.push("SUPABASE_URL");
+  if (!anon) missing.push("SUPABASE_PUBLISHABLE_KEY");
+  if (!url || !anon) {
+    return {
+      provider: "supabase", status: "off", configured: false, reachable: null,
+      account: null, checkedAt, durationMs: 0, target: url ?? null, httpStatus: null,
+      responseBody: null, normalizedError: `Missing ${missing.join(", ")}`,
+      missing,
+    };
+  }
+  const target = `${url.replace(/\/$/, "")}/auth/v1/health`;
+  try {
+    const { value: res, ms } = await timed(() => fetch(target, {
+      headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+    }));
+    if (!res.ok) {
+      const body = await readBodySafe(res);
+      return {
+        provider: "supabase", status: "err", configured: true, reachable: false,
+        account: safeHost(url), checkedAt, durationMs: ms, target,
+        httpStatus: res.status, responseBody: body,
+        normalizedError: `Supabase auth/health ${res.status}`, missing: [],
+      };
+    }
+    const serviceWarn = process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? null
+      : "SUPABASE_SERVICE_ROLE_KEY not set (admin jobs disabled)";
+    return {
+      provider: "supabase", status: serviceWarn ? "warn" : "ok",
+      configured: true, reachable: true, account: safeHost(url), checkedAt,
+      durationMs: ms, target, httpStatus: res.status, responseBody: null,
+      normalizedError: serviceWarn, missing: [],
+    };
+  } catch (e) {
+    return {
+      provider: "supabase", status: "err", configured: true, reachable: false,
+      account: safeHost(url), checkedAt, durationMs: 0, target, httpStatus: null,
+      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      missing: [],
+    };
+  }
+}
+
+async function runBuildRunnerDiagnostic(checkedAt: string): Promise<ProviderDiagnostic> {
+  const url = process.env.BUILD_RUNNER_URL;
+  const token = process.env.BUILD_RUNNER_TOKEN;
+  if (!url) {
+    return {
+      provider: "build-runner", status: "off", configured: false, reachable: null,
+      account: null, checkedAt, durationMs: 0, target: null, httpStatus: null,
+      responseBody: null, normalizedError: "BUILD_RUNNER_URL not set",
+      missing: ["BUILD_RUNNER_URL"],
+    };
+  }
+  const target = `${url.replace(/\/$/, "")}/health`;
+  try {
+    const { value: res, ms } = await timed(() => fetch(target, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }));
+    if (!res.ok) {
+      const body = await readBodySafe(res);
+      return {
+        provider: "build-runner", status: "err", configured: true, reachable: false,
+        account: safeHost(url), checkedAt, durationMs: ms, target,
+        httpStatus: res.status, responseBody: body,
+        normalizedError: `Build runner ${res.status} ${res.statusText}`, missing: [],
+      };
+    }
+    return {
+      provider: "build-runner", status: "ok", configured: true, reachable: true,
+      account: safeHost(url), checkedAt, durationMs: ms, target,
+      httpStatus: res.status, responseBody: null, normalizedError: null,
+      missing: [],
+    };
+  } catch (e) {
+    return {
+      provider: "build-runner", status: "err", configured: true, reachable: false,
+      account: safeHost(url), checkedAt, durationMs: 0, target, httpStatus: null,
+      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      missing: [],
+    };
+  }
+}
+
+export { classify };

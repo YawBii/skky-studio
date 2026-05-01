@@ -20,6 +20,21 @@ export interface ProvidersOverview {
   buildRunner: ProviderStatusDTO;
 }
 
+export interface ProviderDiagnosticDTO {
+  provider: "github" | "vercel" | "supabase" | "build-runner";
+  status: "ok" | "warn" | "err" | "off";
+  configured: boolean;
+  reachable: boolean | null;
+  account: string | null;
+  checkedAt: string;
+  durationMs: number;
+  target: string | null;
+  httpStatus: number | null;
+  responseBody: string | null;
+  normalizedError: string | null;
+  missing: string[];
+}
+
 export const getProvidersOverview = createServerFn({ method: "GET" }).handler(
   async (): Promise<ProvidersOverview> => {
     const m = await import("../server/providers.server");
@@ -32,6 +47,17 @@ export const getProvidersOverview = createServerFn({ method: "GET" }).handler(
     return { github, vercel, supabase, buildRunner };
   },
 );
+
+export const runProviderDiagnosticFn = createServerFn({ method: "POST" })
+  .inputValidator((d) =>
+    z.object({
+      provider: z.enum(["github", "vercel", "supabase", "build-runner"]),
+    }).parse(d),
+  )
+  .handler(async ({ data }): Promise<ProviderDiagnosticDTO> => {
+    const m = await import("../server/providers.server");
+    return m.runDiagnostic(data.provider);
+  });
 
 export const listGithubReposFn = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ perPage: z.number().int().min(1).max(100).optional() }).parse(d ?? {}))
@@ -48,3 +74,4 @@ export const listVercelProjectsFn = createServerFn({ method: "GET" })
     const m = await import("../server/providers.server");
     return m.listVercelProjects({ teamId: data.teamId, limit: data.limit });
   });
+
