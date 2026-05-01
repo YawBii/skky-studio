@@ -426,6 +426,16 @@ export function AssistantPanel() {
             </div>
           </PopoverContent>
         </Popover>
+        <button
+          type="button"
+          onClick={showRecentSummaries}
+          disabled={!project}
+          className="ml-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground rounded-md px-1.5 py-1 hover:bg-white/5 disabled:opacity-50"
+          title="Show summaries for recent jobs"
+        >
+          <FileEdit className="h-3.5 w-3.5" /> Summaries
+        </button>
+
       </div>
 
       {/* Messages */}
