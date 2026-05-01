@@ -112,6 +112,8 @@ function LocalPreview() {
       'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   };
 
+  const projectName = project?.name ?? "Project";
+
   if (loading) {
     return (
       <div data-testid="preview-embed-root" style={wrapperStyle}>
