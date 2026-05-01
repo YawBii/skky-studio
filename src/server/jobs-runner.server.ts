@@ -23,6 +23,7 @@ export interface JobRow {
   id: string; project_id: string; workspace_id: string; type: string;
   status: JobStatus; title: string; input: Record<string, unknown>;
 }
+export type ProjectFilesSupabaseLike = Pick<SupabaseClient, "from">;
 interface StepRow {
   id: string; job_id: string; step_key: string; title: string;
   status: StepStatus; position: number; input: Record<string, unknown>;
@@ -621,7 +622,7 @@ import {
  * PreviewPane/project_files do not need to change.
  */
 export async function generateAndPersistProjectFiles(
-  sb: SupabaseClient,
+  sb: ProjectFilesSupabaseLike,
   job: JobRow,
 ): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string; generator: "monster-brain-v1"; previewReady: boolean }> {
   const { data: proj, error: pErr } = await sb
