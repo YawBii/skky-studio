@@ -13,7 +13,7 @@ import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useDiagnostics } from "@/lib/diagnostics";
 import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
 import { getBuildRunnerConfig, type BuildRunnerConfigSnapshot } from "@/services/build-runner.functions";
-import { partitionFailures } from "@/lib/job-resolution";
+import { partitionFailures, getResolvingSuccess } from "@/lib/job-resolution";
 
 interface JobsPanelProps {
   projectId: string | null;
@@ -39,6 +39,7 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);
   const [buildCfg, setBuildCfg] = useState<BuildRunnerConfigSnapshot | null>(null);
+  const [showResolvedHistory, setShowResolvedHistory] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
