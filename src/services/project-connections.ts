@@ -61,6 +61,11 @@ function rowToConnection(r: Record<string, unknown>): ProjectConnection {
     createdBy: String(r.created_by),
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
+    workspaceId: (r.workspace_id as string | null) ?? null,
+    externalId: (r.external_id as string | null) ?? null,
+    url: (r.url as string | null) ?? null,
+    tokenOwnerType: (r.token_owner_type as "workspace" | "user" | null) ?? null,
+    providerAccountId: (r.provider_account_id as string | null) ?? null,
   };
 }
 
