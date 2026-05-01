@@ -663,6 +663,24 @@ const aiAdapter: ProviderAdapter = {
     return { ok: true };
   },
   async runStep(sb, job, step) {
+    // ai.generate_changes uses the deterministic generator and does NOT
+    // require the Lovable AI Gateway. Handle it before the planner gate.
+    if (job.type === "ai.generate_changes") {
+      const r = await generateAndPersistProjectFiles(sb, job);
+      if (!r.ok) {
+        return { status: "failed", error: r.error ?? "generate failed", output: { filesWritten: r.written } };
+      }
+      try {
+        await sb.from("project_jobs").update({
+          output: { filesWritten: r.written, generator: "deterministic" },
+        }).eq("id", job.id);
+      } catch { /* best-effort */ }
+      return {
+        status: "succeeded",
+        output: { filesWritten: r.written, generator: "deterministic" },
+        log: `ai.generate_changes ok: wrote ${r.written.join(", ")}`,
+      };
+    }
     if (!isAiPlannerConfigured()) {
       return { status: "failed", error: AI_PLANNER_NOT_CONFIGURED_ERROR };
     }
