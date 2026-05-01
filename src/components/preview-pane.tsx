@@ -434,12 +434,12 @@ export function PreviewPane({
 
       <div className="flex-1 overflow-auto p-8 grid place-items-start justify-center bg-[oklch(0.13_0_0)]">
         <div style={{ width: widths[device] }} className="transition-all w-full max-w-full">
-          {(iframeSrc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
+          {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div className="rounded-2xl border border-white/10 bg-background shadow-elevated aspect-[16/10] overflow-hidden relative">
               <iframe
                 title={`${project.name} preview`}
-                src={iframeSrc ?? undefined}
-                srcDoc={resolved.srcDoc}
+                src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
+                srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
                 data-testid="preview-iframe"
                 data-preview-kind={resolved.kind}
                 onLoad={onIframeLoad}
