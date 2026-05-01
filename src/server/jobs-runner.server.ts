@@ -436,13 +436,13 @@ export function getBuildRunnerConfigServer(): {
 } {
   const mode = buildRunnerMode();
   const reason =
-    mode === "external" ? "External build worker configured (BUILD_RUNNER_URL set)."
+    mode === "external" ? "External build worker configured (YAWB_BUILD_RUNNER_URL or BUILD_RUNNER_URL set)."
       : mode === "local" ? "Local mode set (BUILD_RUNNER_MODE=local). Requires a Node host that supports child_process; will fail on Worker runtimes."
-        : "Build runner is not configured. Set BUILD_RUNNER_URL (recommended) or BUILD_RUNNER_MODE=local.";
+        : "Build runner is not configured. Set YAWB_BUILD_RUNNER_URL (recommended) or BUILD_RUNNER_MODE=local.";
   return {
     mode,
-    hasBuildRunnerUrl: Boolean(process.env.BUILD_RUNNER_URL),
-    hasBuildRunnerToken: Boolean(process.env.BUILD_RUNNER_TOKEN),
+    hasBuildRunnerUrl: Boolean(process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL),
+    hasBuildRunnerToken: Boolean(process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN),
     hasBuildRunnerMode: Boolean(process.env.BUILD_RUNNER_MODE),
     hasBuildCommand: Boolean(process.env.BUILD_COMMAND),
     hasTypecheckCommand: Boolean(process.env.TYPECHECK_COMMAND),
