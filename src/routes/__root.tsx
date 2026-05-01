@@ -79,11 +79,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isBare = BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // Use matched route ids — works correctly during SSR. `location.pathname`
+  // can be "/" on the SSR pass for nested routes in some TanStack versions,
+  // which caused the preview iframe to render the full yawB workspace shell.
+  const { pathname, routeIds } = useRouterState({
+    select: (s) => ({
+      pathname: s.location.pathname,
+      routeIds: s.matches.map((m) => m.routeId),
+    }),
+  });
+  const isBare =
+    BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
+    routeIds.some((id) => BARE_ROUTES.includes(id));
   // Chrome-less local preview route — render the project output ONLY,
   // with no yawB sidebar/topbar/chat/diagnostics around it.
-  const isPreviewEmbed = pathname.startsWith("/preview/");
+  const isPreviewEmbed =
+    pathname.startsWith("/preview/") ||
+    routeIds.includes("/preview/$projectId");
 
   if (isPreviewEmbed) {
     return (
