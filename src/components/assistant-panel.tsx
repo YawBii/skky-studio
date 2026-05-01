@@ -171,20 +171,11 @@ export function AssistantPanel() {
         case "open_diagnostics":
           window.dispatchEvent(new CustomEvent("yawb:open-diagnostics"));
           break;
-        case "open_dialog":
-          if (a.dialog === "sql_migrations") {
-            toast("Run the SQL files in docs/sql/ in your Supabase SQL editor.");
-          } else if (a.dialog === "audit_buttons") {
-            toast("Audit: every builder button must do something or say so.");
-          } else if (a.dialog === "create_project") {
-            await navigate({ to: "/projects" });
-          }
-          break;
         case "noop":
           toast(s.disabledReason ?? "Not wired yet.");
           break;
       }
-      console.info("[yawb] suggestion.action.success", { suggestion: s.id, intent: s.intent });
+      console.info("[yawb] suggestion.action.success", { suggestion: s.id, category: s.category });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[yawb] suggestion.action.error", { suggestion: s.id, error: msg });
