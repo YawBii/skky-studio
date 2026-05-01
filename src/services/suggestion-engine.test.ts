@@ -187,3 +187,59 @@ describe("stale suggestion suppression", () => {
   });
 });
 
+describe("ai.plan recommendedActions stale filtering", () => {
+  function vercelConn() {
+    return {
+      id: "c1", projectId: "p", provider: "vercel", status: "connected",
+      repoFullName: null, repoUrl: null, defaultBranch: null,
+      metadata: {}, createdBy: "u", createdAt: "", updatedAt: "",
+      workspaceId: null, externalId: null, url: null,
+      tokenOwnerType: null, providerAccountId: null,
+    } as never;
+  }
+
+  it("removes 'Connect Vercel' style AI recs when Vercel is connected", () => {
+    const jobs = [
+      mkJob({
+        id: "p1", type: "ai.plan", status: "succeeded",
+        createdAt: "2026-05-01T12:00:00Z",
+        output: {
+          plan: {
+            recommendedActions: [
+              { label: "Connect Vercel project", reason: "deploy", confidence: 0.9, risk: "low", category: "connect_provider", prompt: "Link Vercel project to this app", requiredProviders: [] },
+              { label: "Build /discover feed", reason: "homepage", confidence: 0.9, risk: "low", category: "build_next", prompt: "Build /discover", requiredProviders: [] },
+            ],
+          },
+        },
+      }),
+    ];
+    const out = buildSmartSuggestions({ ...baseCtx, jobs, connections: [vercelConn()] });
+    const aiSugg = out.filter((s) => s.id.startsWith("ai-plan-p1-"));
+    const labels = aiSugg.map((s) => s.label);
+    expect(labels).toContain("Build /discover feed");
+    expect(labels.find((l) => /vercel/i.test(l))).toBeUndefined();
+  });
+
+  it("removes AI provider setup AI recs after a successful ai.plan", () => {
+    const jobs = [
+      mkJob({
+        id: "p1", type: "ai.plan", status: "succeeded",
+        createdAt: "2026-05-01T12:00:00Z",
+        output: {
+          plan: {
+            recommendedActions: [
+              { label: "Configure AI provider key", reason: "setup", confidence: 0.9, risk: "low", category: "blocking", prompt: "Set LOVABLE_API_KEY", requiredProviders: [] },
+              { label: "Add review queue", reason: "safety", confidence: 0.9, risk: "low", category: "improve_quality", prompt: "Build /review", requiredProviders: [] },
+            ],
+          },
+        },
+      }),
+    ];
+    const out = buildSmartSuggestions({ ...baseCtx, jobs });
+    const aiSugg = out.filter((s) => s.id.startsWith("ai-plan-p1-"));
+    const labels = aiSugg.map((s) => s.label);
+    expect(labels).toContain("Add review queue");
+    expect(labels.find((l) => /ai provider/i.test(l))).toBeUndefined();
+  });
+});
+

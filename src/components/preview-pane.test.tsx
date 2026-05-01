@@ -186,4 +186,45 @@ describe("PreviewPane", () => {
       vi.useRealTimers();
     }
   });
+
+  it("shows the always-visible 'Open live preview' overlay whenever activeDeployUrl exists", () => {
+    const url = "https://preview-overlay.vercel.app";
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={url}
+      />,
+    );
+    const overlay = container.querySelector(
+      '[data-testid="preview-open-live-overlay"]',
+    ) as HTMLButtonElement | null;
+    expect(overlay).not.toBeNull();
+    act(() => {
+      overlay!.click();
+    });
+    expect(openSpy).toHaveBeenCalledWith(url, "_blank", "noopener");
+  });
+
+  it("does NOT render the overlay when there is no deploy URL", () => {
+    const container = render(
+      <PreviewPane
+        device="desktop"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+      />,
+    );
+    expect(
+      container.querySelector('[data-testid="preview-open-live-overlay"]'),
+    ).toBeNull();
+  });
 });

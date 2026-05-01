@@ -292,15 +292,69 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       reason: "ai.plan job exists but provider execution is not implemented yet.",
       explanation: "ai.plan job exists but provider execution is not implemented yet.",
     });
+  } else if (
+    hasSuccessfulAiPlan &&
+    jobs.some(
+      (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
+    )
+  ) {
+    console.info("[yawb] suggestions.filtered.stale", {
+      id: "wire-ai-planner-provider",
+      reason: "ai-plan-success-supersedes-placeholder",
+    });
   }
 
   // Prefer recommendations from the most recent successful ai.plan job. These
   // are model-generated, project-specific, and outrank the heuristic
-  // build_next chips below.
+  // build_next chips below. We filter out stale/impossible recs:
+  //   - provider-setup actions for already-connected providers
+  //   - AI provider setup actions when ai.plan has succeeded
+  //   - Vercel link/connect actions when a connected Vercel row exists
+  const connectedProviders = new Set(
+    connections.filter((c) => c.status === "connected").map((c) => c.provider),
+  );
+  const vercelHealthConnected =
+    diagnostics.providerConnectionStatus?.vercel === "connected" ||
+    diagnostics.providerConnectionStatus?.vercel === "Connected";
   const latestAiPlan = latestSucceededJob(jobs, "ai.plan");
   if (latestAiPlan) {
     const planActions = extractPlanActions(latestAiPlan.output);
-    for (const a of planActions.slice(0, 4)) {
+    const filtered = planActions.filter((a) => {
+      const label = a.label.toLowerCase();
+      const prompt = a.prompt.toLowerCase();
+      const blob = `${label} ${prompt}`;
+      // AI provider setup is irrelevant — ai.plan just succeeded.
+      if (/\bai (provider|gateway|key|planner)\b|lovable_api_key|ai_gateway_key/.test(blob)) {
+        console.info("[yawb] suggestions.filtered.stale", {
+          id: `ai-plan-${latestAiPlan.id}-${slug(a.label)}`,
+          reason: "ai-provider-setup-after-success",
+        });
+        return false;
+      }
+      // Vercel link/connect — already connected.
+      if (/(connect|link)\s+vercel|vercel\s+(link|connect|setup|project)/.test(blob)) {
+        if (connectedProviders.has("vercel") || vercelHealthConnected) {
+          console.info("[yawb] suggestions.filtered.stale", {
+            id: `ai-plan-${latestAiPlan.id}-${slug(a.label)}`,
+            reason: "vercel-already-connected",
+          });
+          return false;
+        }
+      }
+      // Generic "connect <provider>" filtering for already-connected.
+      for (const p of connectedProviders) {
+        const re = new RegExp(`(connect|link)\\s+${p}\\b|${p}\\s+(link|connect|setup)`);
+        if (re.test(blob)) {
+          console.info("[yawb] suggestions.filtered.stale", {
+            id: `ai-plan-${latestAiPlan.id}-${slug(a.label)}`,
+            reason: `provider-already-connected:${p}`,
+          });
+          return false;
+        }
+      }
+      return true;
+    });
+    for (const a of filtered.slice(0, 4)) {
       out.push({
         id: `ai-plan-${latestAiPlan.id}-${slug(a.label)}`,
         label: a.label || "AI suggestion",
@@ -542,7 +596,7 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   }
   const vercel = connections.find((c) => c.provider === "vercel" && c.status === "connected");
-  if (!vercel && triedDeploy) {
+  if (!vercel && !vercelHealthConnected && triedDeploy) {
     out.push({
       id: "connect-vercel",
       label: "Connect Vercel",
@@ -550,6 +604,11 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       priority: CATEGORY_BASE.connect_provider + 4,
       action: { kind: "navigate", to: "/connectors" },
       reason: "Deploy requires Vercel.",
+    });
+  } else if ((vercel || vercelHealthConnected) && triedDeploy) {
+    console.info("[yawb] suggestions.filtered.stale", {
+      id: "connect-vercel",
+      reason: vercel ? "vercel-row-connected" : "vercel-health-connected",
     });
   }
 

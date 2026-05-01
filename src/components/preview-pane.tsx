@@ -20,6 +20,7 @@ export interface PreviewPaneProps {
 type IframeState = "idle" | "loading" | "loaded" | "failed";
 
 const IFRAME_LOAD_TIMEOUT_MS = 8000;
+const IFRAME_SOFT_HINT_MS = 3000;
 
 export function PreviewPane({
   device,
@@ -48,7 +49,9 @@ export function PreviewPane({
   }, [activeDeployUrl, selectedPage]);
 
   const [iframeState, setIframeState] = useState<IframeState>("idle");
+  const [softHintVisible, setSoftHintVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset + start the load timer whenever the iframe URL changes.
   useEffect(() => {
@@ -56,20 +59,38 @@ export function PreviewPane({
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    if (softHintRef.current) {
+      clearTimeout(softHintRef.current);
+      softHintRef.current = null;
+    }
+    setSoftHintVisible(false);
     if (!iframeSrc) {
       setIframeState("idle");
       return;
     }
     setIframeState("loading");
     console.info("[yawb] preview.iframe.loading", { url: iframeSrc });
+    // Soft hint: even if iframe says loaded, cross-origin embeds can be
+    // visually blank. Show non-blocking overlay after 3s regardless.
+    softHintRef.current = setTimeout(() => {
+      setSoftHintVisible(true);
+      console.info("[yawb] preview.fallback.visible", {
+        url: iframeSrc,
+        reason: "soft-hint-3s",
+      });
+    }, IFRAME_SOFT_HINT_MS);
     timeoutRef.current = setTimeout(() => {
-      // If still loading after the timeout, treat as failed (likely
+      // If still loading after the hard timeout, treat as failed (likely
       // X-Frame-Options/CSP block — do NOT mark deploy itself as failed).
       setIframeState((cur) => {
         if (cur === "loading") {
           console.info("[yawb] preview.iframe.failed", {
             url: iframeSrc,
             reason: "timeout",
+          });
+          console.info("[yawb] preview.fallback.visible", {
+            url: iframeSrc,
+            reason: "iframe-timeout",
           });
           return "failed";
         }
@@ -81,6 +102,10 @@ export function PreviewPane({
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      if (softHintRef.current) {
+        clearTimeout(softHintRef.current);
+        softHintRef.current = null;
+      }
     };
   }, [iframeSrc]);
 
@@ -90,7 +115,12 @@ export function PreviewPane({
       timeoutRef.current = null;
     }
     setIframeState("loaded");
+    // Cross-origin iframe load events fire even when the embedded page is
+    // visually blocked (CSP/X-Frame-Options sometimes still trigger onload).
+    // We can't introspect contentDocument cross-origin, so treat this as
+    // "loaded but unverified" and keep the open-live-preview affordance.
     console.info("[yawb] preview.iframe.loaded", { url: iframeSrc });
+    console.info("[yawb] preview.iframe.loaded_unverified", { url: iframeSrc });
   };
 
   const onIframeError = () => {
@@ -203,6 +233,41 @@ export function PreviewPane({
                   className="absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-sm pointer-events-none"
                 >
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {/* Always-visible "Open live preview" overlay button — works
+                  whether the iframe loaded, is loading, or is silently blank. */}
+              {activeDeployUrl && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  data-testid="preview-open-live-overlay"
+                  aria-label="Open live preview"
+                  onClick={onExternalOpen}
+                  className="absolute top-3 right-3 h-7 px-2.5 text-[11px] gap-1 shadow-elevated"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open live preview
+                </Button>
+              )}
+              {/* Soft hint after 3s — non-blocking, suggests opening externally
+                  if the iframe looks blank/blocked. */}
+              {softHintVisible && activeDeployUrl && (
+                <div
+                  data-testid="preview-iframe-soft-hint"
+                  className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 backdrop-blur px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated"
+                >
+                  <span className="flex-1">
+                    If preview looks blank or blocked, open live preview.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onExternalOpen}
+                    className="text-foreground hover:underline font-medium whitespace-nowrap"
+                  >
+                    Open ↗
+                  </button>
                 </div>
               )}
             </div>
