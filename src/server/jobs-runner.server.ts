@@ -339,7 +339,7 @@ async function execLocalBuild(command: string): Promise<BuildRunnerExecResult> {
       ok: false, exitCode: null, stdout: "", stderr: "",
       durationMs: Date.now() - startedAt,
       error: /not implemented|unenv/i.test(msg)
-        ? "Build runner requires an external worker. Configure BUILD_RUNNER_URL."
+        ? "Build runner requires an external worker. Configure YAWB_BUILD_RUNNER_URL (or BUILD_RUNNER_URL)."
         : `local build failed: ${msg}`,
     };
   }
