@@ -20,10 +20,10 @@ interface Props {
  */
 export function SplitPane({
   left, right,
-  initialRightWidth = 460,
-  minRightWidth = 320,
+  initialRightWidth = 380,
+  minRightWidth = 280,
   maxRightWidth,
-  minLeftWidth = 360,
+  minLeftWidth = 240,
   onChange,
 }: Props) {
   const [rightWidth, setRightWidth] = useState(initialRightWidth);
