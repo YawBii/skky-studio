@@ -81,6 +81,17 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isBare = BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // Chrome-less local preview route — render the project output ONLY,
+  // with no yawB sidebar/topbar/chat/diagnostics around it.
+  const isPreviewEmbed = pathname.startsWith("/preview/");
+
+  if (isPreviewEmbed) {
+    return (
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
+    );
+  }
 
   if (isBare) {
     return (

@@ -105,7 +105,7 @@ function buildLocal(
   if (project) {
     return {
       kind: "local",
-      url: `/preview/${project.id}`,
+      url: `/preview/${project.id}?embed=1`,
       label: "Local preview",
       externalOpenable: false,
       reason: hasLocalPreview(generated) ? "local:route+files" : "local:route-empty",

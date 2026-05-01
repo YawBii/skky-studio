@@ -186,7 +186,7 @@ describe("PreviewPane — local preview", () => {
     ) as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
-    expect(iframe!.getAttribute("src")).toBe("/preview/p1");
+    expect(iframe!.getAttribute("src")).toBe("/preview/p1?embed=1");
     // Local badge in URL bar
     expect(
       container.querySelector('[data-testid="preview-local-badge"]'),
@@ -279,7 +279,7 @@ describe("PreviewPane — local preview", () => {
       '[data-testid="preview-iframe"]',
     ) as HTMLIFrameElement | null;
     expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
-    expect(iframe!.getAttribute("src")).toBe("/preview/p1");
+    expect(iframe!.getAttribute("src")).toBe("/preview/p1?embed=1");
   });
 
   it("Live toggle is disabled when no deploy URL exists", () => {
