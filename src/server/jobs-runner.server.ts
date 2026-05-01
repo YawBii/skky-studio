@@ -256,8 +256,8 @@ async function execExternalBuild(payload: {
   stepId: string;
   projectId: string;
 }): Promise<BuildRunnerExecResult> {
-  const url = process.env.BUILD_RUNNER_URL!;
-  const token = process.env.BUILD_RUNNER_TOKEN;
+  const url = (process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL)!;
+  const token = process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN;
   const startedAt = Date.now();
   try {
     const res = await fetch(url, {
