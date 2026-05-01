@@ -338,6 +338,8 @@ function Builder() {
             starting={starting}
             selectedPage={selectedPage}
             activeDeployUrl={activeDeployUrl}
+            connections={connectionsApi.connections}
+            generated={null}
           />
         )}
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
