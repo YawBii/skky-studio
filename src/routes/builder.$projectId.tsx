@@ -282,7 +282,7 @@ function Builder() {
           </PopoverContent>
         </Popover>
 
-        <span className="text-muted-foreground/40 text-xs">/</span>
+        <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
         {/* Environment picker */}
         <Popover onOpenChange={(o) => o && (console.info("[yawb] environmentPicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "environment-picker" }))}>
