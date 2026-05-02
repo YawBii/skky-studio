@@ -41,6 +41,10 @@ function render(node: React.ReactNode) {
   return host;
 }
 
+async function flushAuth() {
+  await act(async () => { await Promise.resolve(); });
+}
+
 describe("MobileBootstrapPanel", () => {
   it("renders all required diagnostic rows", () => {
     const c = render(
@@ -79,21 +83,24 @@ describe("MobileBootstrapPanel", () => {
     expect(err.className).toMatch(/text-destructive/);
   });
 
-  it("hasSession=false shows sign-in state", () => {
+  it("hasSession=false shows sign-in state", async () => {
     const c = render(<MobileBootstrapPanel projectsCount={0} workspacesCount={0} />);
+    await flushAuth();
     expect(c.querySelector('[data-testid="mobile-bootstrap-state-title"]')?.textContent).toBe("Not signed in on this device");
     expect(c.querySelector('[data-testid="mobile-bootstrap-sign-in"]')).toBeTruthy();
   });
 
-  it("workspace_members empty shows membership debug state", () => {
+  it("workspace_members empty shows membership debug state", async () => {
     authMock.session = { userId: "user-1", email: "user@example.com", displayName: "User" };
     const c = render(<MobileBootstrapPanel workspacesCount={0} projectsCount={0} />);
+    await flushAuth();
     expect(c.textContent).toContain("No workspace membership found for this account");
   });
 
-  it("projects query empty shows projects debug state when workspace exists", () => {
+  it("projects query empty shows projects debug state when workspace exists", async () => {
     authMock.session = { userId: "user-1", email: "user@example.com", displayName: "User" };
     const c = render(<MobileBootstrapPanel selectedWorkspaceId="workspace-1" workspacesCount={1} projectsCount={0} />);
+    await flushAuth();
     expect(c.textContent).toContain("Workspace found but no projects returned");
     expect(c.textContent).toContain("workspace-1");
   });
