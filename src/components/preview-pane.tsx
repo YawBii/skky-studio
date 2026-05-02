@@ -146,6 +146,7 @@ export function PreviewPane({
   generated,
   onRegenerateDesign,
   regenerating,
+  onRefreshLocalPreview,
 }: PreviewPaneProps) {
   const viewport = DEVICE_VIEWPORTS[device];
 
