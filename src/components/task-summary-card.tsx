@@ -113,6 +113,13 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
       "",
       files.length ? "Files touched:" : "",
       ...files.map((f) => `  • ${f}`),
+      hasGenerator ? "" : "",
+      hasGenerator ? "Generator:" : "",
+      generator ? `  generator: ${generator}` : "",
+      archetype ? `  archetype: ${archetype}` : "",
+      designSignature ? `  designSignature: ${designSignature}` : "",
+      filesWritten ? `  filesWritten: ${filesWritten.join(", ")}` : "",
+      previewReady !== null ? `  previewReady: ${previewReady}` : "",
     ].filter(Boolean).join("\n");
     void navigator.clipboard.writeText(parts);
     toast.success("Summary copied");
