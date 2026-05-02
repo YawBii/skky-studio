@@ -423,6 +423,22 @@ export function PreviewPane({
             Regenerate design
           </Button>
         )}
+        {onRefreshLocalPreview && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
+            data-testid="preview-refresh-local"
+            onClick={() => {
+              console.info("[yawb] preview.refreshLocal.clicked", { projectId: project.id });
+              onRefreshLocalPreview();
+            }}
+            title="Reload project_files into the local preview"
+          >
+            Refresh local preview
+          </Button>
+        )}
 
         {/* Local | Live toggle */}
         <div
