@@ -7,9 +7,13 @@ export type DiagState = {
   hasSession: boolean | null;
   userId: string | null;
   workspaceId: string | null;
+  workspaceSource: string | null;
   projectId: string | null;
+  projectsSource: string | null;
   projectsCount: number | null;
   workspacesCount: number | null;
+  workspaceMembersError: unknown;
+  projectsQueryError: unknown;
   workspaceInsertPayload: unknown;
   workspaceInsertError: unknown;
   workspaceSelectError: unknown;
@@ -38,9 +42,13 @@ const initialState: DiagState = {
   hasSession: null,
   userId: null,
   workspaceId: null,
+  workspaceSource: null,
   projectId: null,
+  projectsSource: null,
   projectsCount: null,
   workspacesCount: null,
+  workspaceMembersError: undefined,
+  projectsQueryError: undefined,
   workspaceInsertPayload: undefined,
   workspaceInsertError: undefined,
   workspaceSelectError: undefined,
