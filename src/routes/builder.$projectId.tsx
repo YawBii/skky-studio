@@ -320,9 +320,9 @@ function Builder() {
           </PopoverContent>
         </Popover>
 
-        <div className="h-4 w-px bg-white/5 mx-1" />
+        <div className="hidden md:block h-4 w-px bg-white/5 mx-1" />
 
-        <div className="flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           {TABS.map((t) => (
             <button
               key={t.id}
