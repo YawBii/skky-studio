@@ -52,9 +52,9 @@ describe("MobileBootstrapPanel", () => {
     expect(c.querySelector('[data-testid="mobile-bootstrap-panel"]')).toBeTruthy();
     const keys = [
       "authLoading", "hasSession", "userId", "userEmail",
-      "membershipsCount", "selectedWorkspaceId", "projectsCount",
-      "activeProjectId", "urlProjectId", "supabaseUrlHost",
-      "supabaseEnvOk", "lastSupabaseError",
+      "selectedWorkspaceId", "workspaceSource", "workspacesCount", "projectsCount",
+      "projectsSource", "activeProjectId", "routeProjectId", "supabaseUrlProjectRef",
+      "latestWorkspaceMembersError", "latestProjectsQueryError", "lastSupabaseError",
     ];
     for (const k of keys) {
       expect(
@@ -62,9 +62,9 @@ describe("MobileBootstrapPanel", () => {
         `missing row ${k}`,
       ).toBeTruthy();
     }
-    expect(c.querySelector('[data-testid="mbp-urlProjectId-value"]')?.textContent).toBe("abc-123");
+    expect(c.querySelector('[data-testid="mbp-routeProjectId-value"]')?.textContent).toBe("abc-123");
     expect(c.querySelector('[data-testid="mbp-lastSupabaseError-value"]')?.textContent).toBe("boom");
-    expect(c.querySelector('[data-testid="mbp-supabaseUrlHost-value"]')?.textContent).toBe("test.supabase.co");
+    expect(c.querySelector('[data-testid="mbp-supabaseUrlProjectRef-value"]')?.textContent).toBe("test.supabase.co / test");
   });
 
   it("highlights hasSession=false and lastSupabaseError as error tone", () => {
@@ -73,5 +73,22 @@ describe("MobileBootstrapPanel", () => {
     const err = c.querySelector('[data-testid="mbp-lastSupabaseError-value"]') as HTMLElement;
     expect(session.className).toMatch(/text-destructive/);
     expect(err.className).toMatch(/text-destructive/);
+  });
+
+  it("hasSession=false shows sign-in state", () => {
+    const c = render(<MobileBootstrapPanel projectsCount={0} workspacesCount={0} />);
+    expect(c.querySelector('[data-testid="mobile-bootstrap-state-title"]')?.textContent).toBe("Not signed in on this device");
+    expect(c.querySelector('[data-testid="mobile-bootstrap-sign-in"]')).toBeTruthy();
+  });
+
+  it("workspace_members empty shows membership debug state", () => {
+    const c = render(<MobileBootstrapPanel workspacesCount={0} projectsCount={0} />);
+    expect(c.textContent).toContain("No workspace membership found for this account");
+  });
+
+  it("projects query empty shows projects debug state when workspace exists", () => {
+    const c = render(<MobileBootstrapPanel selectedWorkspaceId="workspace-1" workspacesCount={1} projectsCount={0} />);
+    expect(c.textContent).toContain("Workspace found but no projects returned");
+    expect(c.textContent).toContain("workspace-1");
   });
 });
