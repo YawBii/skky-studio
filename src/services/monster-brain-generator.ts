@@ -133,6 +133,7 @@ interface Blueprint {
   copy: Copy;
   /** Ordered list of section render keys. */
   sections: SectionKey[];
+  fingerprint: VisualFingerprint;
 }
 
 type SectionKey =
