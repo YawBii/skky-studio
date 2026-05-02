@@ -233,7 +233,7 @@ function Builder() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative z-40 h-11 border-b border-white/5 px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto">
+      <div className="relative z-40 h-11 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto min-w-0 flex-nowrap overflow-hidden">
         {/* Project selector — currently jumps to the project list, will become a switcher. */}
         <button
           type="button"
