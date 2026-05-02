@@ -482,7 +482,7 @@ export function PreviewPane({
 
         <div
           data-testid="preview-url-bar"
-          className="flex-1 mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono"
+          className="flex-1 min-w-[120px] mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono overflow-hidden"
         >
           <ExternalLink className="h-3 w-3" />
           {resolved.kind === "live" && activeDeployUrl ? (
