@@ -21,7 +21,7 @@ import {
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
-import { regenerateOutcome } from "@/lib/regenerate-watcher";
+
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
   { path: "/",          label: "Home" },
