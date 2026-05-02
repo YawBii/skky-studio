@@ -44,6 +44,8 @@ export interface MonsterBrainContext {
   connectedProviders?: string[] | null;
   /** Files already produced — generator may preserve or evolve them later. */
   previousFiles?: { path: string }[] | null;
+  /** Previously generated index.html — fingerprint is parsed and avoided. */
+  previousIndexHtml?: string | null;
   /** Last few job summaries — used as proof block hints. */
   recentJobs?: Array<{ type: string; status: string; summary?: string | null }> | null;
   /** Per-regeneration entropy — when present, every regen produces a distinct design. */
