@@ -1585,7 +1585,7 @@ export function designSignature(
 ): string {
   const seedBasis = buildSeedBasis(project, context);
   const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  const fp = chooseVisualFingerprint(archetype, seedBasis, previous);
+  const fp = chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
   const seedTag = context?.regenerationSeed
     ? `:seed${Math.abs(hash(context.regenerationSeed)).toString(36).slice(0, 6)}`
     : "";
@@ -1601,7 +1601,7 @@ export function computeVisualFingerprint(
   const archetype = inferProjectArchetype(project, context ?? null);
   const seedBasis = buildSeedBasis(project, context);
   const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  return chooseVisualFingerprint(archetype, seedBasis, previous);
+  return chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
 }
 
 export function generateProjectFiles(
@@ -1614,9 +1614,9 @@ export function generateProjectFiles(
   const theme = shiftedTheme(baseTheme, seedBasis);
   const copy = copyFor(archetype, project);
   const baseSections = sectionsFor(archetype);
-  const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant);
+  const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant) || Boolean(context?.designMode);
   const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous);
+  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
   const sections = variance
     ? fingerprint.sectionOrder
     : applyVariance(baseSections, archetype, seedBasis, false);
