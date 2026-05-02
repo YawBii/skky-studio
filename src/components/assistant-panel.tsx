@@ -309,6 +309,38 @@ export function AssistantPanel() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  // Deep-link target: scroll to (or append + scroll to) a summary card for a
+  // specific job id. Triggered from PreviewSummaryStrip's "Show in chat".
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ jobId?: string }>).detail;
+      const jobId = detail?.jobId;
+      if (!jobId || !project) return;
+      // Ensure a summary message exists for this job; append one if missing.
+      setMessages((m) => {
+        if (m.some((msg) => msg.summaryJobId === jobId)) return m;
+        const j = jobsState.jobs.find((x) => x.id === jobId);
+        if (!j) return m;
+        summarizedRef.current.add(jobId);
+        persistSummarized(project.id, summarizedRef.current);
+        void jobsState.refreshSteps(jobId);
+        return [...m, { role: "assistant", content: formatSummaryHeadline(j), summaryJobId: jobId }];
+      });
+      // Scroll to the matching card on next frame.
+      requestAnimationFrame(() => {
+        const node = document.querySelector(`[data-summary-job-id="${jobId}"]`);
+        if (node && "scrollIntoView" in node) {
+          (node as HTMLElement).scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+        }
+      });
+    };
+    window.addEventListener("yawb:focus-summary", handler as EventListener);
+    return () => window.removeEventListener("yawb:focus-summary", handler as EventListener);
+  }, [project, jobsState]);
+
+
   const persistChecklist = (next: typeof checklist) => {
     setChecklist(next);
     try { window.localStorage.setItem(STORE_KEY, JSON.stringify(next.map((c) => ({ id: c.id, enabled: c.enabled })))); } catch {}
