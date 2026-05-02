@@ -236,6 +236,15 @@ export function PreviewPane({
   const localAvailable = !!project; // route always works; srcDoc is bonus
   const generatedHasContent = hasLocalPreview(generated ?? null);
 
+  // GitHub-linked projects already have a real codebase — yawB should NOT
+  // offer to regenerate them from scratch. We hide regenerate + start-build
+  // CTAs and surface a "Linked to repo" hint instead.
+  const githubConnection = useMemo(
+    () => effectiveConnections.find((c) => c.provider === "github"),
+    [effectiveConnections],
+  );
+  const isGithubLinked = !!githubConnection;
+
   // Persisted toggle. If live is unavailable, default to local. If local is
   // unavailable, default to live.
   const [mode, setMode] = useState<PreviewMode>(() => {
