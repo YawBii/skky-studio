@@ -1,9 +1,7 @@
 // Monster job runner shim.
 //
-// This file replaces the ai.generate_changes path without deleting the legacy
-// runner yet. Non-Monster job types still delegate to the legacy runner, so
-// existing GitHub/Vercel/Supabase/build behavior stays intact while Monster
-// generation starts writing blueprint + frontend + backend + proof together.
+// This file routes command-first build jobs through Monster generation while
+// preserving the legacy runner for provider/build jobs that already existed.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runNextJobStepServer as runLegacyNextJobStepServer } from "./jobs-runner.server";
@@ -84,12 +82,13 @@ async function findNextJob(sb: SupabaseClient, projectId: string): Promise<JobRo
   return (data as JobRow | null) ?? null;
 }
 
-async function findGenerateStep(sb: SupabaseClient, jobId: string): Promise<StepRow | null> {
+async function findMonsterStep(sb: SupabaseClient, job: JobRow): Promise<StepRow | null> {
+  const keys = job.type === "ai.plan" ? ["plan", "generate"] : ["generate", "plan"];
   const { data, error } = await sb
     .from("project_job_steps")
     .select("id, job_id, step_key, title, status, position, input, output, logs")
-    .eq("job_id", jobId)
-    .eq("step_key", "generate")
+    .eq("job_id", job.id)
+    .in("step_key", keys)
     .in("status", ["queued", "running"])
     .order("position", { ascending: true })
     .limit(1)
@@ -98,13 +97,33 @@ async function findGenerateStep(sb: SupabaseClient, jobId: string): Promise<Step
   return (data as StepRow | null) ?? null;
 }
 
+function isBuildIntent(job: JobRow): boolean {
+  const input = (job.input ?? {}) as Record<string, unknown>;
+  const text = [
+    job.title ?? "",
+    typeof input.chatRequest === "string" ? input.chatRequest : "",
+    typeof input.prompt === "string" ? input.prompt : "",
+    typeof input.message === "string" ? input.message : "",
+    typeof input.request === "string" ? input.request : "",
+  ].join(" ");
+  return /\b(build|create|generate|make|ship|design|app|website|dashboard|admin|backend|supabase|auth|payments?|full first version|first version)\b/i.test(text);
+}
+
+function shouldMonsterHandle(job: JobRow): boolean {
+  if (job.type === "ai.generate_changes") return true;
+  if (job.type === "ai.plan" && isBuildIntent(job)) return true;
+  return false;
+}
+
 async function listConnectedProviders(sb: SupabaseClient, projectId: string): Promise<string[]> {
   const { data } = await sb
     .from("project_connections")
     .select("provider, status")
     .eq("project_id", projectId)
     .eq("status", "connected");
-  return (data ?? []).map((row: { provider?: string }) => String(row.provider ?? "")).filter(Boolean);
+  return (data ?? [])
+    .map((row: { provider?: string }) => String(row.provider ?? ""))
+    .filter(Boolean);
 }
 
 async function readPreviousIndexHtml(sb: SupabaseClient, projectId: string): Promise<string | null> {
@@ -155,7 +174,7 @@ async function runMonsterGenerateChanges(input: {
     jobId: input.job.id,
     stepId: input.step.id,
     status: "running",
-    log: "Monster generation started.",
+    log: `Monster generation started from ${input.job.type}.`,
   });
 
   const { data: project, error: projectErr } = await input.sb
@@ -170,9 +189,12 @@ async function runMonsterGenerateChanges(input: {
   }
 
   const jobInput = (input.job.input ?? {}) as Record<string, unknown>;
-  const chatRequest = typeof jobInput.chatRequest === "string"
-    ? jobInput.chatRequest
-    : typeof jobInput.prompt === "string" ? jobInput.prompt : null;
+  const chatRequest =
+    typeof jobInput.chatRequest === "string" ? jobInput.chatRequest
+      : typeof jobInput.prompt === "string" ? jobInput.prompt
+        : typeof jobInput.message === "string" ? jobInput.message
+          : typeof jobInput.request === "string" ? jobInput.request
+            : input.job.title;
   const regenerationSeed = typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
   const forceVariant = jobInput.forceVariant === true || Boolean(regenerationSeed);
   const requestedDesignMode = typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
@@ -215,6 +237,8 @@ async function runMonsterGenerateChanges(input: {
     const output = {
       ...(persisted.output ?? generation.output),
       written: persisted.written,
+      handledJobType: input.job.type,
+      handledStepKey: input.step.step_key,
     };
     await markJobAndStep({
       sb: input.sb,
@@ -239,10 +263,10 @@ export async function runNextJobStepServer(input: {
 }): Promise<MonsterRunnerTickResult> {
   const sb = buildUserScopedClient(input.accessToken);
   const job = await findNextJob(sb, input.projectId);
-  if (!job || job.type !== "ai.generate_changes") {
+  if (!job || !shouldMonsterHandle(job)) {
     return runLegacyNextJobStepServer(input);
   }
-  const step = await findGenerateStep(sb, job.id);
+  const step = await findMonsterStep(sb, job);
   if (!step) {
     return runLegacyNextJobStepServer(input);
   }
