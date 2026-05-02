@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
+import { MobileProjectPicker } from "@/components/mobile-project-picker";
 import type { ConnectionProvider, ConnectionStatus, ProjectConnection } from "@/services/project-connections";
 
 export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
@@ -60,6 +63,8 @@ export function WorkspaceTopBar({
   const extra = Math.max(0, collaborators.length - visible.length);
   const { projects, project: currentProject, selectProject } = useSelectedProject();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
 
   const onPickProject = (id: string) => {
     console.info("[yawb] topbar.projectSwitcher.pick", { id });
@@ -67,69 +72,84 @@ export function WorkspaceTopBar({
     void navigate({ to: "/builder/$projectId", params: { projectId: id } });
   };
 
+  const SwitcherButton = (
+    <button
+      type="button"
+      data-testid="topbar-project-switcher"
+      onClick={isMobile ? () => setMobilePickerOpen(true) : undefined}
+      className="group flex items-center gap-2 rounded-lg hover:bg-white/[0.04] px-2 h-8 transition min-w-0 touch-manipulation"
+      title="Switch project"
+    >
+      {workspaceName && (
+        <>
+          <span className="hidden sm:inline text-[11.5px] text-muted-foreground truncate max-w-[120px]">{workspaceName}</span>
+          <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
+        </>
+      )}
+      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground sm:hidden shrink-0" />
+      <span className="text-[13px] font-medium tracking-tight max-w-[150px] sm:max-w-[220px] truncate">{projectName}</span>
+      <span className="hidden sm:inline text-muted-foreground/50 text-xs">/</span>
+      <span className="hidden sm:inline text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{environment}</span>
+      <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+    </button>
+  );
+
   return (
     <header className="sticky top-0 z-30 h-12 border-b border-white/5 bg-background/70 backdrop-blur-xl">
       <div className="h-full px-3 sm:px-4 flex items-center gap-2 sm:gap-3 min-w-0">
-        {/* Workspace + Project switcher */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              data-testid="topbar-project-switcher"
-              className="group flex items-center gap-2 rounded-lg hover:bg-white/[0.04] px-2 h-8 transition min-w-0 touch-manipulation"
-              title="Switch project"
-            >
-              {workspaceName && (
-                <>
-                  <span className="hidden sm:inline text-[11.5px] text-muted-foreground truncate max-w-[120px]">{workspaceName}</span>
-                  <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
-                </>
+        {/* Workspace + Project switcher: mobile = full-screen sheet, desktop = popover */}
+        {isMobile ? (
+          SwitcherButton
+        ) : (
+          <Popover>
+            <PopoverTrigger asChild>{SwitcherButton}</PopoverTrigger>
+            <PopoverContent align="start" className="w-72 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Switch project</div>
+              {projects.length === 0 ? (
+                <div className="px-2 py-2 text-[12px] text-muted-foreground">No projects yet.</div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto scrollbar-thin">
+                  {projects.map((p) => {
+                    const isCurrent = currentProject?.id === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onPickProject(p.id)}
+                        data-testid={`topbar-project-item-${p.id}`}
+                        className={cn(
+                          "w-full text-left flex items-center gap-2 rounded-md px-2 py-2 text-[13px] hover:bg-white/[0.05] touch-manipulation min-h-11",
+                          isCurrent && "bg-white/[0.06] text-foreground",
+                        )}
+                      >
+                        <FolderKanban className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate flex-1">{p.name}</span>
+                        {isCurrent && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
-              <FolderKanban className="h-3.5 w-3.5 text-muted-foreground sm:hidden shrink-0" />
-              <span className="text-[13px] font-medium tracking-tight max-w-[150px] sm:max-w-[220px] truncate">{projectName}</span>
-              <span className="hidden sm:inline text-muted-foreground/50 text-xs">/</span>
-              <span className="hidden sm:inline text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{environment}</span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-72 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
-            <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Switch project</div>
-            {projects.length === 0 ? (
-              <div className="px-2 py-2 text-[12px] text-muted-foreground">No projects yet.</div>
-            ) : (
-              <div className="max-h-72 overflow-y-auto scrollbar-thin">
-                {projects.map((p) => {
-                  const isCurrent = currentProject?.id === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => onPickProject(p.id)}
-                      data-testid={`topbar-project-item-${p.id}`}
-                      className={cn(
-                        "w-full text-left flex items-center gap-2 rounded-md px-2 py-2 text-[13px] hover:bg-white/[0.05] touch-manipulation min-h-11",
-                        isCurrent && "bg-white/[0.06] text-foreground",
-                      )}
-                    >
-                      <FolderKanban className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="truncate flex-1">{p.name}</span>
-                      {isCurrent && <Check className="h-3.5 w-3.5 text-success shrink-0" />}
-                    </button>
-                  );
-                })}
+              <div className="border-t border-white/5 mt-1 pt-1">
+                <Link
+                  to="/projects"
+                  className="flex items-center gap-2 rounded-md px-2 py-2 text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] min-h-11 touch-manipulation"
+                >
+                  <FolderKanban className="h-3.5 w-3.5" />
+                  All projects…
+                </Link>
               </div>
-            )}
-            <div className="border-t border-white/5 mt-1 pt-1">
-              <Link
-                to="/projects"
-                className="flex items-center gap-2 rounded-md px-2 py-2 text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] min-h-11 touch-manipulation"
-              >
-                <FolderKanban className="h-3.5 w-3.5" />
-                All projects…
-              </Link>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        <MobileProjectPicker
+          open={mobilePickerOpen}
+          onOpenChange={setMobilePickerOpen}
+          projects={projects}
+          currentProjectId={currentProject?.id}
+          onSelect={selectProject}
+        />
 
         {/* Build status */}
         {buildStatus !== "unknown" && (
