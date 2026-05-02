@@ -643,6 +643,8 @@ export function PreviewPane({
         </div>
       </div>
 
+      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} />
+
       <div
         className={cn(
           "flex-1 min-h-0 bg-[oklch(0.13_0_0)]",
