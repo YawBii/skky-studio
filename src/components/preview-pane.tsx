@@ -563,7 +563,7 @@ export function PreviewPane({
                     : "allow-scripts allow-same-origin allow-forms allow-popups"
                 }
               />
-              {iframeState === "loading" && (
+              {iframeState === "loading" && resolved.kind === "live" && (
                 <div
                   data-testid="preview-iframe-loading"
                   className="absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-sm pointer-events-none"
