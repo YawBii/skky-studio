@@ -69,7 +69,7 @@ export function useWorkspaces() {
     current,
     source: result.source,
     error: result.error,
-    isReal: result.source === "supabase",
+    isReal: result.source === "supabase" || !!readDirectWorkspace(),
     // Both "no rows" and "query failed" should drop the user into the empty
     // state instead of silently showing the Skky Group demo.
     isEmpty:
