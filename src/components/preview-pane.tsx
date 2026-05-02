@@ -17,6 +17,27 @@ import {
 export type PreviewDevice = "desktop" | "tablet" | "mobile";
 export type PreviewMode = "live" | "local";
 
+export type DesignAngle =
+  | "editorial-luxury"
+  | "glass-dashboard"
+  | "civic-map"
+  | "neon-command"
+  | "magazine-cards"
+  | "minimal-light"
+  | "brutalist-data";
+
+export const DESIGN_ANGLES: { id: DesignAngle; label: string }[] = [
+  { id: "editorial-luxury", label: "Luxury Editorial" },
+  { id: "minimal-light",    label: "Clean Minimal" },
+  { id: "glass-dashboard",  label: "Glass Dashboard" },
+  { id: "neon-command",     label: "Neon Command" },
+  { id: "civic-map",        label: "Civic Impact" },
+  { id: "magazine-cards",   label: "Magazine Cards" },
+  { id: "brutalist-data",   label: "Brutalist Data" },
+];
+
+export const DESIGN_ANGLE_KEY = (projectId: string) => `yawb:design-angle:${projectId}`;
+
 export interface PreviewPaneProps {
   device: PreviewDevice;
   setDevice: (d: PreviewDevice) => void;
@@ -30,8 +51,8 @@ export interface PreviewPaneProps {
   connections?: ProjectConnection[] | null;
   /** Optional generated-files blob for in-browser local preview via srcDoc. */
   generated?: GeneratedFiles | null;
-  /** Optional handler for the "Regenerate design" toolbar action. */
-  onRegenerateDesign?: () => void;
+  /** Optional handler for the "Regenerate design" toolbar action. Receives the user-selected angle. */
+  onRegenerateDesign?: (angle: DesignAngle) => void;
   regenerating?: boolean;
   /** Optional handler for the "Refresh local preview" toolbar action. */
   onRefreshLocalPreview?: () => void;
@@ -43,6 +64,24 @@ export interface PreviewPaneProps {
   onJumpToJob?: (jobId: string) => void;
   /** Open the chat sheet and reveal the full TaskSummaryCard. */
   onOpenSummaryInChat?: (jobId: string) => void;
+}
+
+/** Parse yawb-* meta tags out of an index.html string for the proof pill. */
+export function parseDesignProof(html: string | null | undefined): {
+  designMode: string | null;
+  heroLayout: string | null;
+  palette: string | null;
+} {
+  if (!html) return { designMode: null, heroLayout: null, palette: null };
+  const get = (n: string) => {
+    const m = html.match(new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"));
+    return m ? m[1] : null;
+  };
+  return {
+    designMode: get("yawb-design-mode"),
+    heroLayout: get("yawb-hero-layout"),
+    palette: get("yawb-palette"),
+  };
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
