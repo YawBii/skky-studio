@@ -470,7 +470,8 @@ function renderHero(kind: SectionKey, name: string, copy: Copy): string {
   }
 }
 
-function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Archetype): string {
+function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Archetype, seed: string = "x"): string {
+  const rnd = rngFor(`${seed}:${key}`);
   switch (key) {
     case "scanner-feed":
       return `<section id="scanner" class="mb-section">
@@ -953,7 +954,7 @@ function renderHtml(blueprint: Blueprint, project: ProjectLike): string {
   const safeArchetype = esc(blueprint.archetype, 40);
   const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, project.id);
   const sectionsHtml = blueprint.sections
-    .map((k) => k.startsWith("hero-") ? renderHero(k, name, blueprint.copy) : renderSection(k, name, blueprint.copy, blueprint.archetype))
+    .map((k) => k.startsWith("hero-") ? renderHero(k, name, blueprint.copy) : renderSection(k, name, blueprint.copy, blueprint.archetype, project.id ?? project.name ?? "x"))
     .join("\n      ");
 
   return `<!doctype html>
