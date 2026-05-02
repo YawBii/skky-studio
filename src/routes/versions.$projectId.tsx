@@ -14,7 +14,11 @@ export const Route = createFileRoute("/versions/$projectId")({
   component: VersionsPage,
 });
 
-interface ProjectMeta { id: string; name: string; workspaceId: string }
+interface ProjectMeta {
+  id: string;
+  name: string;
+  workspaceId: string;
+}
 
 function VersionsPage() {
   const { projectId } = Route.useParams();
@@ -43,7 +47,9 @@ function VersionsPage() {
       setJobs(r.jobs);
       setLoadingJobs(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [projectId]);
 
   const githubConn = useMemo(() => connections.find((c) => c.provider === "github"), [connections]);
@@ -103,21 +109,28 @@ function VersionsPage() {
     <div className="px-6 md:px-10 py-8 max-w-[1000px] mx-auto">
       <div className="flex items-center gap-3 mb-1">
         <History className="h-5 w-5 text-muted-foreground" />
-        <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Version history</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Version history
+        </span>
       </div>
       <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight mb-1">
         {project?.name ?? projectId}
       </h1>
       <p className="text-muted-foreground mb-6">
-        {versions.length} generated {versions.length === 1 ? "version" : "versions"} — restore any one to overwrite the current preview.
+        {versions.length} generated {versions.length === 1 ? "version" : "versions"} — restore any
+        one to overwrite the current preview.
       </p>
 
       {githubConn && (
         <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.02] p-4 flex items-center gap-3">
           <Github className="h-5 w-5 text-muted-foreground" />
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Linked repository</div>
-            <div className="text-sm font-mono truncate">{githubConn.repoFullName ?? githubConn.repoUrl ?? "GitHub"}</div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Linked repository
+            </div>
+            <div className="text-sm font-mono truncate">
+              {githubConn.repoFullName ?? githubConn.repoUrl ?? "GitHub"}
+            </div>
           </div>
           {githubConn.repoUrl && (
             <Button asChild variant="ghost" size="sm">
@@ -175,7 +188,11 @@ function VersionsPage() {
                   disabled={restoringId !== null || idx === 0}
                   onClick={() => void handleRestore(v)}
                   data-testid={`version-restore-${v.id}`}
-                  title={idx === 0 ? "This is the current version" : "Re-run this design as a new version"}
+                  title={
+                    idx === 0
+                      ? "This is the current version"
+                      : "Re-run this design as a new version"
+                  }
                 >
                   {restoringId === v.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

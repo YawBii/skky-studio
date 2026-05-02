@@ -1,4 +1,11 @@
-import { Outlet, createRootRoute, HeadContent, Link, Scripts, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createRootRoute,
+  HeadContent,
+  Link,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -32,7 +39,10 @@ function NotFoundComponent() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className="mt-6">
-          <Link to="/" className="inline-flex items-center justify-center rounded-md bg-gradient-brand px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-gradient-brand px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow"
+          >
             Go home
           </Link>
         </div>
@@ -47,13 +57,33 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "yawB — Production-first AI app builder | Skky Group" },
-      { name: "description", content: "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase." },
+      {
+        name: "description",
+        content:
+          "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase.",
+      },
       { property: "og:title", content: "yawB — Production-first AI app builder | Skky Group" },
       { name: "twitter:title", content: "yawB — Production-first AI app builder | Skky Group" },
-      { property: "og:description", content: "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase." },
-      { name: "twitter:description", content: "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/09c93461-caad-40d3-9cf7-f3a644f51a67/id-preview-9ef2faae--2ea374de-1fbe-4df1-a98f-4a6f64b99b62.lovable.app-1777477595751.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/09c93461-caad-40d3-9cf7-f3a644f51a67/id-preview-9ef2faae--2ea374de-1fbe-4df1-a98f-4a6f64b99b62.lovable.app-1777477595751.png" },
+      {
+        property: "og:description",
+        content:
+          "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/09c93461-caad-40d3-9cf7-f3a644f51a67/id-preview-9ef2faae--2ea374de-1fbe-4df1-a98f-4a6f64b99b62.lovable.app-1777477595751.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/09c93461-caad-40d3-9cf7-f3a644f51a67/id-preview-9ef2faae--2ea374de-1fbe-4df1-a98f-4a6f64b99b62.lovable.app-1777477595751.png",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
@@ -61,7 +91,10 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -72,7 +105,9 @@ export const Route = createRootRoute({
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <head><HeadContent /></head>
+      <head>
+        <HeadContent />
+      </head>
       <body>
         {children}
         <Scripts />
@@ -97,8 +132,7 @@ function RootComponent() {
   // Chrome-less local preview route — render the project output ONLY,
   // with no yawB sidebar/topbar/chat/diagnostics around it.
   const isPreviewEmbed =
-    pathname.startsWith("/preview/") ||
-    routeIds.includes("/preview/$projectId");
+    pathname.startsWith("/preview/") || routeIds.includes("/preview/$projectId");
 
   if (isPreviewEmbed) {
     return (
@@ -130,7 +164,11 @@ function WorkspaceShell() {
   const { session, loading: authLoading } = useAuth();
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
-    try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
+    try {
+      window.localStorage.removeItem("yawb:workspace-split");
+    } catch {
+      /* ignore */
+    }
   }, []);
   const { prefs, loaded, update } = useUserPreferences();
   const {
@@ -166,14 +204,23 @@ function WorkspaceShell() {
 
   const [rightWidth, setRightWidth] = useState(initialRightWidth);
   useEffect(() => {
-    if (loaded && typeof persistedWidth === "number" && persistedWidth >= 280 && persistedWidth <= 1600) {
+    if (
+      loaded &&
+      typeof persistedWidth === "number" &&
+      persistedWidth >= 280 &&
+      persistedWidth <= 1600
+    ) {
       setRightWidth(persistedWidth);
     }
   }, [loaded, persistedWidth]);
 
   // Real collaborators only — no demo fallback in the authenticated app.
   const collaborators = present.map((p) => ({
-    name: p.name, initials: p.initials, color: p.color, role: p.role, status: p.status,
+    name: p.name,
+    initials: p.initials,
+    color: p.color,
+    role: p.role,
+    status: p.status,
   }));
 
   // Only show real workspace/project names. No demo fallback.
@@ -187,7 +234,7 @@ function WorkspaceShell() {
       workspaceId: currentWorkspace?.id ?? null,
       projectId: currentProject?.id ?? null,
     });
-    // eslint-disable-next-line no-console
+
     console.info("[yawb] selection:", {
       selectedWorkspaceId: currentWorkspace?.id ?? null,
       selectedProjectId: currentProject?.id ?? null,
@@ -246,12 +293,11 @@ function WorkspaceShell() {
             initialRightWidth={rightWidth}
             minRightWidth={280}
             minLeftWidth={240}
-            onChange={(w) => { setRightWidth(w); update({ workspaceSplit: { "chat-width-px": w } }); }}
-            left={
-              <main className="h-full overflow-y-auto scrollbar-thin">
-                {mainContent}
-              </main>
-            }
+            onChange={(w) => {
+              setRightWidth(w);
+              update({ workspaceSplit: { "chat-width-px": w } });
+            }}
+            left={<main className="h-full overflow-y-auto scrollbar-thin">{mainContent}</main>}
             right={<AssistantPanel />}
           />
         </div>
@@ -271,8 +317,12 @@ function MobileSignedOutEmpty() {
   return (
     <div className="min-h-full grid place-items-center px-5 py-10">
       <div className="w-full max-w-md text-center">
-        <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Mobile session</div>
-        <h1 className="mt-2 text-2xl font-display font-semibold tracking-tight">Not signed in on this device</h1>
+        <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          Mobile session
+        </div>
+        <h1 className="mt-2 text-2xl font-display font-semibold tracking-tight">
+          Not signed in on this device
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Sign in to load your workspace and projects on this phone.
         </p>

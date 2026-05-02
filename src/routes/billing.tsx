@@ -4,14 +4,27 @@ import { useWorkspaces } from "@/hooks/use-workspaces";
 import { ProjectScopedEmpty } from "@/components/project-empty";
 
 export const Route = createFileRoute("/billing")({
-  head: () => ({ meta: [{ title: "Billing — yawB" }, { name: "description", content: "Plans, usage and invoices." }] }),
+  head: () => ({
+    meta: [
+      { title: "Billing — yawB" },
+      { name: "description", content: "Plans, usage and invoices." },
+    ],
+  }),
   component: BillingPage,
 });
 
 function BillingPage() {
   const { current, isReal } = useWorkspaces();
   if (!isReal || !current) {
-    return <ProjectScopedEmpty icon={CreditCard} eyebrow="Billing" title="Create a workspace first" hint="Billing is per workspace." cta={{ label: "Go home", to: "/" }} />;
+    return (
+      <ProjectScopedEmpty
+        icon={CreditCard}
+        eyebrow="Billing"
+        title="Create a workspace first"
+        hint="Billing is per workspace."
+        cta={{ label: "Go home", to: "/" }}
+      />
+    );
   }
   return (
     <ProjectScopedEmpty

@@ -9,8 +9,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity, Loader2, HelpCircle, AlertTriangle, CheckCircle2, X,
-  ChevronUp, ChevronDown, GripHorizontal,
+  Activity,
+  Loader2,
+  HelpCircle,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  ChevronUp,
+  ChevronDown,
+  GripHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,15 +41,25 @@ export function deriveCommandCenterState(jobs: Job[]): CommandCenterDerivedState
   const waiting = jobs.filter((j) => j.status === "waiting_for_input");
   // Only treat a failed job as "needs attention" if it isn't resolved by a
   // newer succeeded job of the same type. Stale failures get hidden.
-  const failedJob = jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs)) ?? null;
+  const failedJob =
+    jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs)) ?? null;
   const lastSucceeded = jobs.find((j) => j.status === "succeeded") ?? null;
 
   let mode: CommandCenterMode = "idle";
   let activeJob: Job | null = null;
-  if (waiting.length > 0) { mode = "waiting"; activeJob = waiting[0]; }
-  else if (running.length > 0) { mode = "running"; activeJob = running[0]; }
-  else if (failedJob) { mode = "failed"; activeJob = failedJob; }
-  else if (lastSucceeded) { mode = "succeeded"; activeJob = lastSucceeded; }
+  if (waiting.length > 0) {
+    mode = "waiting";
+    activeJob = waiting[0];
+  } else if (running.length > 0) {
+    mode = "running";
+    activeJob = running[0];
+  } else if (failedJob) {
+    mode = "failed";
+    activeJob = failedJob;
+  } else if (lastSucceeded) {
+    mode = "succeeded";
+    activeJob = lastSucceeded;
+  }
 
   return {
     mode,
@@ -75,16 +92,22 @@ export function CommandCenterPill({ state, open, onToggle }: PillProps) {
   const { mode, runningCount } = state;
 
   const Icon =
-    mode === "running" ? Loader2 :
-    mode === "waiting" ? HelpCircle :
-    mode === "failed" ? AlertTriangle :
-    mode === "succeeded" ? CheckCircle2 :
-    Activity;
+    mode === "running"
+      ? Loader2
+      : mode === "waiting"
+        ? HelpCircle
+        : mode === "failed"
+          ? AlertTriangle
+          : mode === "succeeded"
+            ? CheckCircle2
+            : Activity;
 
   const label =
-    mode === "running" && runningCount > 1 ? `Running ${runningCount} jobs` :
-    mode === "running" ? "Running 1 job" :
-    PILL_LABEL[mode];
+    mode === "running" && runningCount > 1
+      ? `Running ${runningCount} jobs`
+      : mode === "running"
+        ? "Running 1 job"
+        : PILL_LABEL[mode];
 
   return (
     <button
@@ -94,16 +117,22 @@ export function CommandCenterPill({ state, open, onToggle }: PillProps) {
       className={cn(
         "absolute bottom-3 left-3 z-30 inline-flex items-center gap-2 h-8 px-3 rounded-full",
         "text-[12px] font-medium border backdrop-blur-md shadow-elevated transition-colors",
-        mode === "idle" && "bg-white/[0.06] border-white/10 text-foreground/80 hover:bg-white/[0.1]",
+        mode === "idle" &&
+          "bg-white/[0.06] border-white/10 text-foreground/80 hover:bg-white/[0.1]",
         mode === "running" && "bg-primary/15 border-primary/40 text-primary hover:bg-primary/20",
         mode === "waiting" && "bg-warning/15 border-warning/40 text-warning hover:bg-warning/20",
-        mode === "failed" && "bg-destructive/15 border-destructive/40 text-destructive hover:bg-destructive/20",
+        mode === "failed" &&
+          "bg-destructive/15 border-destructive/40 text-destructive hover:bg-destructive/20",
         mode === "succeeded" && "bg-success/15 border-success/40 text-success hover:bg-success/20",
       )}
     >
       <Icon className={cn("h-3.5 w-3.5", mode === "running" && "animate-spin")} />
       <span>{label}</span>
-      {open ? <ChevronDown className="h-3 w-3 opacity-70" /> : <ChevronUp className="h-3 w-3 opacity-70" />}
+      {open ? (
+        <ChevronDown className="h-3 w-3 opacity-70" />
+      ) : (
+        <ChevronUp className="h-3 w-3 opacity-70" />
+      )}
     </button>
   );
 }
@@ -138,7 +167,12 @@ function loadHeight(defaultPx: number): number {
  * Supports a draggable top resize handle (pointer events) with persistence.
  */
 export function CommandCenterDrawer({
-  open, onClose, projectId, workspaceId, focusJobId, onOpenJobsTab,
+  open,
+  onClose,
+  projectId,
+  workspaceId,
+  focusJobId,
+  onOpenJobsTab,
 }: DrawerProps) {
   // Default height: ~45vh, clamped between min and 85vh.
   const defaultPx = typeof window !== "undefined" ? Math.round(window.innerHeight * 0.45) : 480;
@@ -163,7 +197,11 @@ export function CommandCenterDrawer({
       if (!draggingRef.current) return;
       draggingRef.current = false;
       startRef.current = null;
-      try { window.localStorage.setItem(HEIGHT_KEY, String(Math.round(height))); } catch { /* ignore */ }
+      try {
+        window.localStorage.setItem(HEIGHT_KEY, String(Math.round(height)));
+      } catch {
+        /* ignore */
+      }
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
     };
@@ -217,7 +255,13 @@ export function CommandCenterDrawer({
         >
           Open full Jobs tab
         </button>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose} aria-label="Close">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={onClose}
+          aria-label="Close"
+        >
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -267,7 +311,10 @@ export function useCommandCenterAutoOpen(
         opts.onJobSucceeded?.(activeJob);
         setShowSucceeded(activeJob.id);
         // Auto-collapse the pill back to "idle" after 4s.
-        const t = setTimeout(() => setShowSucceeded((id) => (id === activeJob.id ? null : id)), 4000);
+        const t = setTimeout(
+          () => setShowSucceeded((id) => (id === activeJob.id ? null : id)),
+          4000,
+        );
         // Also auto-close the drawer on success.
         setOpen(false);
         return () => clearTimeout(t);

@@ -1,9 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Globe, Loader2, ShieldCheck, X, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Globe,
+  Loader2,
+  ShieldCheck,
+  X,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -36,8 +49,13 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
   useEffect(() => {
     if (!open) {
       // reset on close
-      setStep("enter"); setDomain(""); setError(null);
-      setARoot("pending"); setAWww("pending"); setTxt("pending"); setSsl("pending");
+      setStep("enter");
+      setDomain("");
+      setError(null);
+      setARoot("pending");
+      setAWww("pending");
+      setTxt("pending");
+      setSsl("pending");
     }
   }, [open]);
 
@@ -64,7 +82,9 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
       setTimeout(() => tick(n + 1), 1400);
     };
     tick(1);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [step]);
 
   const validDomain = /^(?!-)([a-z0-9-]{1,63}\.)+[a-z]{2,}$/i.test(domain.trim());
@@ -102,19 +122,33 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
           </DialogDescription>
           <div className="mt-1 rounded-md border border-warning/20 bg-warning/5 px-2.5 py-1.5 text-[11px] text-warning/90 flex items-start gap-1.5">
             <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-            <span>Simulation — backend DNS &amp; SSL verification not connected yet. Records and statuses below are illustrative.</span>
+            <span>
+              Simulation — backend DNS &amp; SSL verification not connected yet. Records and
+              statuses below are illustrative.
+            </span>
           </div>
         </DialogHeader>
 
         {/* Stepper */}
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <Pill active={step === "enter"} done={step !== "enter"}>1 · Domain</Pill>
+          <Pill active={step === "enter"} done={step !== "enter"}>
+            1 · Domain
+          </Pill>
           <span>›</span>
-          <Pill active={step === "dns" || step === "verifying"} done={["ssl", "active"].includes(step)}>2 · DNS</Pill>
+          <Pill
+            active={step === "dns" || step === "verifying"}
+            done={["ssl", "active"].includes(step)}
+          >
+            2 · DNS
+          </Pill>
           <span>›</span>
-          <Pill active={step === "ssl"} done={step === "active"}>3 · SSL</Pill>
+          <Pill active={step === "ssl"} done={step === "active"}>
+            3 · SSL
+          </Pill>
           <span>›</span>
-          <Pill active={step === "active"} done={step === "active"}>4 · Live</Pill>
+          <Pill active={step === "active"} done={step === "active"}>
+            4 · Live
+          </Pill>
         </div>
 
         {step === "enter" && (
@@ -128,10 +162,18 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
               placeholder="portal.skky.group"
               className="w-full rounded-lg border border-white/10 bg-background/60 px-3 py-2 text-[13px] font-mono outline-none focus:border-primary/50"
             />
-            {error && <div className="text-[11.5px] text-destructive flex items-center gap-1.5"><AlertTriangle className="h-3 w-3" /> {error}</div>}
+            {error && (
+              <div className="text-[11.5px] text-destructive flex items-center gap-1.5">
+                <AlertTriangle className="h-3 w-3" /> {error}
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button variant="hero" size="sm" onClick={startVerification}>Continue</Button>
+              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button variant="hero" size="sm" onClick={startVerification}>
+                Continue
+              </Button>
             </div>
           </div>
         )}
@@ -139,7 +181,8 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
         {(step === "dns" || step === "verifying") && (
           <div className="mt-2 space-y-4">
             <div className="text-[12.5px] text-muted-foreground">
-              Add these records at your DNS provider for <span className="font-mono text-foreground">{domain}</span>.
+              Add these records at your DNS provider for{" "}
+              <span className="font-mono text-foreground">{domain}</span>.
             </div>
             <RecordRow type="A" name="@" value={TARGET_IP} onCopy={copy} />
             <RecordRow type="A" name="www" value={TARGET_IP} onCopy={copy} />
@@ -150,9 +193,17 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
             </div>
 
             <div className="flex justify-between gap-2 pt-1">
-              <Button variant="ghost" size="sm" onClick={() => setStep("enter")}>Back</Button>
+              <Button variant="ghost" size="sm" onClick={() => setStep("enter")}>
+                Back
+              </Button>
               <Button variant="hero" size="sm" onClick={() => setStep("verifying")}>
-                {step === "verifying" ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying…</> : "I've added the records"}
+                {step === "verifying" ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying…
+                  </>
+                ) : (
+                  "I've added the records"
+                )}
               </Button>
             </div>
 
@@ -191,11 +242,15 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
                 <AlertTriangle className="h-4 w-4" /> Simulated success for {domain}
               </div>
               <div className="text-[11.5px] text-muted-foreground mt-1">
-                This is a preview of what the live state will look like. We have <span className="text-foreground">not</span> actually verified DNS or issued an SSL certificate yet — that needs a real backend verification function.
+                This is a preview of what the live state will look like. We have{" "}
+                <span className="text-foreground">not</span> actually verified DNS or issued an SSL
+                certificate yet — that needs a real backend verification function.
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Close</Button>
+              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
               <Button
                 variant="hero"
                 size="sm"
@@ -214,8 +269,12 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
         {step === "failed" && (
           <div className="mt-2 space-y-3">
             <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-[12.5px]">
-              <div className="flex items-center gap-2 font-medium text-destructive"><X className="h-4 w-4" /> Verification failed</div>
-              <div className="mt-1 text-muted-foreground">Check your DNS records and try again.</div>
+              <div className="flex items-center gap-2 font-medium text-destructive">
+                <X className="h-4 w-4" /> Verification failed
+              </div>
+              <div className="mt-1 text-muted-foreground">
+                Check your DNS records and try again.
+              </div>
             </div>
             <div className="flex justify-end">
               <Button variant="hero" size="sm" onClick={() => setStep("dns")}>
@@ -229,37 +288,94 @@ export function ConnectDomainDialog({ open, onOpenChange, onConnected }: Props) 
   );
 }
 
-function Pill({ children, active, done }: { children: React.ReactNode; active?: boolean; done?: boolean }) {
+function Pill({
+  children,
+  active,
+  done,
+}: {
+  children: React.ReactNode;
+  active?: boolean;
+  done?: boolean;
+}) {
   return (
-    <span className={cn(
-      "px-2 py-0.5 rounded-full border",
-      done ? "border-success/30 bg-success/10 text-success" :
-      active ? "border-primary/40 bg-primary/10 text-foreground" :
-      "border-white/10 bg-white/[0.03] text-muted-foreground",
-    )}>{children}</span>
+    <span
+      className={cn(
+        "px-2 py-0.5 rounded-full border",
+        done
+          ? "border-success/30 bg-success/10 text-success"
+          : active
+            ? "border-primary/40 bg-primary/10 text-foreground"
+            : "border-white/10 bg-white/[0.03] text-muted-foreground",
+      )}
+    >
+      {children}
+    </span>
   );
 }
 
-function RecordRow({ type, name, value, onCopy }: { type: string; name: string; value: string; onCopy: (v: string, label: string) => void }) {
+function RecordRow({
+  type,
+  name,
+  value,
+  onCopy,
+}: {
+  type: string;
+  name: string;
+  value: string;
+  onCopy: (v: string, label: string) => void;
+}) {
   return (
     <div className="rounded-xl border border-white/5 bg-gradient-card p-3 grid grid-cols-12 gap-2 items-center text-[12px]">
-      <div className="col-span-2 text-muted-foreground">Type<br/><span className="font-mono text-foreground text-[12.5px]">{type}</span></div>
-      <div className="col-span-3 text-muted-foreground">Name<br/><span className="font-mono text-foreground text-[12.5px]">{name}</span></div>
-      <div className="col-span-6 text-muted-foreground min-w-0">Value<br/><span className="font-mono text-foreground text-[12.5px] truncate block">{value}</span></div>
-      <button onClick={() => onCopy(value, type)} className="col-span-1 inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-white/10" title="Copy value">
+      <div className="col-span-2 text-muted-foreground">
+        Type
+        <br />
+        <span className="font-mono text-foreground text-[12.5px]">{type}</span>
+      </div>
+      <div className="col-span-3 text-muted-foreground">
+        Name
+        <br />
+        <span className="font-mono text-foreground text-[12.5px]">{name}</span>
+      </div>
+      <div className="col-span-6 text-muted-foreground min-w-0">
+        Value
+        <br />
+        <span className="font-mono text-foreground text-[12.5px] truncate block">{value}</span>
+      </div>
+      <button
+        onClick={() => onCopy(value, type)}
+        className="col-span-1 inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-white/10"
+        title="Copy value"
+      >
         <Copy className="h-3.5 w-3.5" />
       </button>
     </div>
   );
 }
 
-function CheckItem({ label, status }: { label: string; status: "pending" | "issuing" | "ok" | "fail" }) {
+function CheckItem({
+  label,
+  status,
+}: {
+  label: string;
+  status: "pending" | "issuing" | "ok" | "fail";
+}) {
   return (
     <div className="flex items-center gap-2 text-[12px]">
-      {status === "ok" ? <Check className="h-3.5 w-3.5 text-success" /> :
-       status === "fail" ? <X className="h-3.5 w-3.5 text-destructive" /> :
-       <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-      <span className={cn(status === "ok" && "text-foreground", status !== "ok" && "text-muted-foreground")}>{label}</span>
+      {status === "ok" ? (
+        <Check className="h-3.5 w-3.5 text-success" />
+      ) : status === "fail" ? (
+        <X className="h-3.5 w-3.5 text-destructive" />
+      ) : (
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+      )}
+      <span
+        className={cn(
+          status === "ok" && "text-foreground",
+          status !== "ok" && "text-muted-foreground",
+        )}
+      >
+        {label}
+      </span>
     </div>
   );
 }

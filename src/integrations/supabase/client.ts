@@ -16,7 +16,8 @@ const PLACEHOLDER_URL = /YOUR-PROJECT-REF/i;
 const PLACEHOLDER_KEY = /YOUR-PUBLISHABLE-OR-ANON-KEY/i;
 
 const urlIsPlaceholder = !!SUPABASE_URL && PLACEHOLDER_URL.test(SUPABASE_URL);
-const keyIsPlaceholder = !!SUPABASE_PUBLISHABLE_KEY && PLACEHOLDER_KEY.test(SUPABASE_PUBLISHABLE_KEY);
+const keyIsPlaceholder =
+  !!SUPABASE_PUBLISHABLE_KEY && PLACEHOLDER_KEY.test(SUPABASE_PUBLISHABLE_KEY);
 const urlOk = !!SUPABASE_URL && !urlIsPlaceholder;
 const keyOk = !!SUPABASE_PUBLISHABLE_KEY && !keyIsPlaceholder;
 
@@ -48,7 +49,6 @@ export function getSupabaseDiagnostics(): SupabaseDiagnostics {
 
 // Temporary diagnostic — booleans + host only, never the key itself.
 if (typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
   console.info("[yawb] supabase env", {
     hasUrl: urlOk,
     hasKey: keyOk,

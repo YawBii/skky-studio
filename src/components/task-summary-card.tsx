@@ -3,7 +3,17 @@
 // produces a status, what-changed bullets, files touched (when reported),
 // proof, and 1–3 suggested next actions.
 import { useMemo, useState } from "react";
-import { Check, AlertTriangle, X, HelpCircle, ChevronDown, ChevronRight, ClipboardCopy, FileText, Sparkles } from "lucide-react";
+import {
+  Check,
+  AlertTriangle,
+  X,
+  HelpCircle,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCopy,
+  FileText,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Job, JobStep } from "@/services/jobs";
 import { toast } from "sonner";
@@ -59,9 +69,21 @@ function pickFiles(steps: JobStep[]): string[] {
 
 const STATUS_META: Record<SummaryStatus, { label: string; tone: string; Icon: typeof Check }> = {
   done: { label: "Done", tone: "text-success bg-success/10 border-success/30", Icon: Check },
-  failed: { label: "Failed", tone: "text-destructive bg-destructive/10 border-destructive/30", Icon: X },
-  needs_attention: { label: "Needs attention", tone: "text-warning bg-warning/10 border-warning/30", Icon: AlertTriangle },
-  waiting: { label: "Waiting for answer", tone: "text-warning bg-warning/10 border-warning/30", Icon: HelpCircle },
+  failed: {
+    label: "Failed",
+    tone: "text-destructive bg-destructive/10 border-destructive/30",
+    Icon: X,
+  },
+  needs_attention: {
+    label: "Needs attention",
+    tone: "text-warning bg-warning/10 border-warning/30",
+    Icon: AlertTriangle,
+  },
+  waiting: {
+    label: "Waiting for answer",
+    tone: "text-warning bg-warning/10 border-warning/30",
+    Icon: HelpCircle,
+  },
 };
 
 export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
@@ -87,8 +109,19 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
   const heroLayout = pickField<string>(steps, "heroLayout");
   const palette = pickField<string>(steps, "palette");
   const typography = pickField<string>(steps, "typography");
-  const hasGenerator = Boolean(generator || archetype || designSignature || filesWritten || previewReady !== null || regenerationSeed || visualFingerprint || designMode);
-  const isAiPlanUnwired = job.type === "ai.plan" && (job.error?.includes("not wired") || stdoutTail?.includes("not wired"));
+  const hasGenerator = Boolean(
+    generator ||
+    archetype ||
+    designSignature ||
+    filesWritten ||
+    previewReady !== null ||
+    regenerationSeed ||
+    visualFingerprint ||
+    designMode,
+  );
+  const isAiPlanUnwired =
+    job.type === "ai.plan" &&
+    (job.error?.includes("not wired") || stdoutTail?.includes("not wired"));
 
   const startedTs = job.startedAt ? Date.parse(job.startedAt) : Date.parse(job.createdAt);
   const finishedTs = job.finishedAt ? Date.parse(job.finishedAt) : Date.now();
@@ -100,7 +133,8 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
   } else {
     for (const s of steps) {
       if (s.status === "succeeded") changed.push(`${s.title} — ok`);
-      else if (s.status === "failed") changed.push(`${s.title} — failed${s.error ? `: ${s.error}` : ""}`);
+      else if (s.status === "failed")
+        changed.push(`${s.title} — failed${s.error ? `: ${s.error}` : ""}`);
       else if (s.status === "skipped") changed.push(`${s.title} — skipped`);
     }
     if (changed.length === 0) changed.push("No step-level changes recorded.");
@@ -126,14 +160,21 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
       designSignature ? `  designSignature: ${designSignature}` : "",
       filesWritten ? `  filesWritten: ${filesWritten.join(", ")}` : "",
       previewReady !== null ? `  previewReady: ${previewReady}` : "",
-    ].filter(Boolean).join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
     void navigator.clipboard.writeText(parts);
     toast.success("Summary copied");
   };
 
   return (
     <div className="mt-3 rounded-xl border border-white/10 bg-black/20 overflow-hidden">
-      <div className={cn("px-3 py-2 text-[11.5px] font-medium flex items-center gap-1.5 border-b border-white/5", meta.tone)}>
+      <div
+        className={cn(
+          "px-3 py-2 text-[11.5px] font-medium flex items-center gap-1.5 border-b border-white/5",
+          meta.tone,
+        )}
+      >
         <meta.Icon className="h-3.5 w-3.5" />
         Summary · {meta.label}
         <button
@@ -147,7 +188,9 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
       </div>
       <div className="p-3 space-y-2">
         <div>
-          <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">What changed</div>
+          <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">
+            What changed
+          </div>
           <ul className="space-y-0.5">
             {changed.map((c, i) => (
               <li key={i} className="text-[11.5px] text-foreground/85 flex gap-1.5">
@@ -167,7 +210,9 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
           ) : (
             <ul className="space-y-0.5">
               {files.map((f) => (
-                <li key={f} className="text-[11px] font-mono text-foreground/80 truncate">{f}</li>
+                <li key={f} className="text-[11px] font-mono text-foreground/80 truncate">
+                  {f}
+                </li>
               ))}
             </ul>
           )}
@@ -179,15 +224,60 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
               <Sparkles className="h-3 w-3 text-primary" /> Generator
             </div>
             <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[10.5px] font-mono">
-              {generator && (<><dt className="text-muted-foreground">generator</dt><dd className="text-foreground/90">{generator}</dd></>)}
-              {archetype && (<><dt className="text-muted-foreground">archetype</dt><dd className="text-foreground/90">{archetype}</dd></>)}
-              {designSignature && (<><dt className="text-muted-foreground">designSignature</dt><dd className="text-foreground/90 break-all">{designSignature}</dd></>)}
-              {regenerationSeed && (<><dt className="text-muted-foreground">regenerationSeed</dt><dd className="text-foreground/90 break-all">{regenerationSeed}</dd></>)}
-              {designMode && (<><dt className="text-muted-foreground">designMode</dt><dd className="text-foreground/90">{designMode}</dd></>)}
-              {heroLayout && (<><dt className="text-muted-foreground">heroLayout</dt><dd className="text-foreground/90">{heroLayout}</dd></>)}
-              {palette && (<><dt className="text-muted-foreground">palette</dt><dd className="text-foreground/90">{palette}</dd></>)}
-              {typography && (<><dt className="text-muted-foreground">typography</dt><dd className="text-foreground/90">{typography}</dd></>)}
-              {visualFingerprint && (<><dt className="text-muted-foreground">visualFingerprint</dt><dd className="text-foreground/90 break-all">{visualFingerprint}</dd></>)}
+              {generator && (
+                <>
+                  <dt className="text-muted-foreground">generator</dt>
+                  <dd className="text-foreground/90">{generator}</dd>
+                </>
+              )}
+              {archetype && (
+                <>
+                  <dt className="text-muted-foreground">archetype</dt>
+                  <dd className="text-foreground/90">{archetype}</dd>
+                </>
+              )}
+              {designSignature && (
+                <>
+                  <dt className="text-muted-foreground">designSignature</dt>
+                  <dd className="text-foreground/90 break-all">{designSignature}</dd>
+                </>
+              )}
+              {regenerationSeed && (
+                <>
+                  <dt className="text-muted-foreground">regenerationSeed</dt>
+                  <dd className="text-foreground/90 break-all">{regenerationSeed}</dd>
+                </>
+              )}
+              {designMode && (
+                <>
+                  <dt className="text-muted-foreground">designMode</dt>
+                  <dd className="text-foreground/90">{designMode}</dd>
+                </>
+              )}
+              {heroLayout && (
+                <>
+                  <dt className="text-muted-foreground">heroLayout</dt>
+                  <dd className="text-foreground/90">{heroLayout}</dd>
+                </>
+              )}
+              {palette && (
+                <>
+                  <dt className="text-muted-foreground">palette</dt>
+                  <dd className="text-foreground/90">{palette}</dd>
+                </>
+              )}
+              {typography && (
+                <>
+                  <dt className="text-muted-foreground">typography</dt>
+                  <dd className="text-foreground/90">{typography}</dd>
+                </>
+              )}
+              {visualFingerprint && (
+                <>
+                  <dt className="text-muted-foreground">visualFingerprint</dt>
+                  <dd className="text-foreground/90 break-all">{visualFingerprint}</dd>
+                </>
+              )}
               {filesWritten && (
                 <>
                   <dt className="text-muted-foreground">filesWritten</dt>
@@ -197,7 +287,12 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
               {previewReady !== null && (
                 <>
                   <dt className="text-muted-foreground">previewReady</dt>
-                  <dd className={cn("text-foreground/90", previewReady ? "text-success" : "text-warning")}>
+                  <dd
+                    className={cn(
+                      "text-foreground/90",
+                      previewReady ? "text-success" : "text-warning",
+                    )}
+                  >
                     {previewReady ? "✓ true" : "false"}
                   </dd>
                 </>
@@ -207,14 +302,32 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
         )}
 
         <div className="rounded-md border border-white/5 bg-black/30 p-2">
-          <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">Proof</div>
+          <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">
+            Proof
+          </div>
           <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[10.5px] font-mono">
-            <dt className="text-muted-foreground">job id</dt><dd className="text-foreground/90 break-all">{job.id}</dd>
-            <dt className="text-muted-foreground">type</dt><dd className="text-foreground/90">{job.type}</dd>
-            <dt className="text-muted-foreground">status</dt><dd className="text-foreground/90">{job.status}</dd>
-            <dt className="text-muted-foreground">duration</dt><dd className="text-foreground/90">{Math.round(durationMs / 100) / 10}s</dd>
-            {command && (<><dt className="text-muted-foreground">command</dt><dd className="text-foreground/90 break-all">{command}</dd></>)}
-            {typeof exitCode === "number" && (<><dt className="text-muted-foreground">exit</dt><dd className={cn("text-foreground/90", exitCode !== 0 && "text-destructive")}>{exitCode}</dd></>)}
+            <dt className="text-muted-foreground">job id</dt>
+            <dd className="text-foreground/90 break-all">{job.id}</dd>
+            <dt className="text-muted-foreground">type</dt>
+            <dd className="text-foreground/90">{job.type}</dd>
+            <dt className="text-muted-foreground">status</dt>
+            <dd className="text-foreground/90">{job.status}</dd>
+            <dt className="text-muted-foreground">duration</dt>
+            <dd className="text-foreground/90">{Math.round(durationMs / 100) / 10}s</dd>
+            {command && (
+              <>
+                <dt className="text-muted-foreground">command</dt>
+                <dd className="text-foreground/90 break-all">{command}</dd>
+              </>
+            )}
+            {typeof exitCode === "number" && (
+              <>
+                <dt className="text-muted-foreground">exit</dt>
+                <dd className={cn("text-foreground/90", exitCode !== 0 && "text-destructive")}>
+                  {exitCode}
+                </dd>
+              </>
+            )}
           </dl>
           {(stdoutTail || job.error) && (
             <button
@@ -222,20 +335,27 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
               onClick={() => setExpanded((v) => !v)}
               className="mt-1.5 inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
             >
-              {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {expanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
               {expanded ? "Hide raw output" : "Show raw output"}
             </button>
           )}
           {expanded && (stdoutTail || job.error) && (
             <pre className="mt-1 text-[10.5px] font-mono text-muted-foreground/90 whitespace-pre-wrap max-h-48 overflow-y-auto bg-black/40 rounded p-2">
-              {job.error ? `error: ${job.error}\n\n` : ""}{stdoutTail ?? ""}
+              {job.error ? `error: ${job.error}\n\n` : ""}
+              {stdoutTail ?? ""}
             </pre>
           )}
         </div>
 
         {nextActions.length > 0 && (
           <div>
-            <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">Next actions</div>
+            <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">
+              Next actions
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {nextActions.slice(0, 3).map((a) => (
                 <button

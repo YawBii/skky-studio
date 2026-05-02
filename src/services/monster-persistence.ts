@@ -1,6 +1,7 @@
 import type { MonsterGeneratedFile, MonsterGenerationResult } from "./monster-orchestrator";
 
 export interface MonsterSupabaseLike {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 
@@ -22,18 +23,16 @@ export async function persistMonsterGeneratedFiles(input: {
 }): Promise<PersistMonsterProjectResult> {
   const written: string[] = [];
   for (const file of input.generation.files) {
-    const { error } = await input.sb
-      .from("project_files")
-      .upsert(
-        {
-          project_id: input.projectId,
-          path: file.path,
-          content: file.content,
-          language: file.language,
-          kind: file.kind,
-        },
-        { onConflict: "project_id,path" },
-      );
+    const { error } = await input.sb.from("project_files").upsert(
+      {
+        project_id: input.projectId,
+        path: file.path,
+        content: file.content,
+        language: file.language,
+        kind: file.kind,
+      },
+      { onConflict: "project_id,path" },
+    );
     if (error) {
       return {
         ok: false,
@@ -61,7 +60,11 @@ export function splitMonsterGeneratedFiles(files: MonsterGeneratedFile[]): {
   backend: MonsterGeneratedFile[];
 } {
   return {
-    frontend: files.filter((file) => file.path === "index.html" || file.path === "styles.css" || file.path === "app.js"),
-    backend: files.filter((file) => file.path.startsWith("supabase/") || file.path.startsWith("docs/generated/")),
+    frontend: files.filter(
+      (file) => file.path === "index.html" || file.path === "styles.css" || file.path === "app.js",
+    ),
+    backend: files.filter(
+      (file) => file.path.startsWith("supabase/") || file.path.startsWith("docs/generated/"),
+    ),
   };
 }

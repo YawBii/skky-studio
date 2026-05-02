@@ -18,11 +18,18 @@ let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
 beforeEach(() => {
-  try { window.localStorage.clear(); } catch { /* ignore */ }
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
 });
 
 afterEach(() => {
-  if (root) { act(() => root!.unmount()); root = null; }
+  if (root) {
+    act(() => root!.unmount());
+    root = null;
+  }
   host?.remove();
   host = null;
   vi.restoreAllMocks();
@@ -67,7 +74,9 @@ describe("PreviewPane — local renders statically (no loading overlay)", () => 
         generated={{ indexHtml: "<!doctype html><title>x</title><body>ok</body>", hasFiles: true }}
       />,
     );
-    const staticCalls = info.mock.calls.filter((c) => c[0] === "[yawb] preview.local.render.static");
+    const staticCalls = info.mock.calls.filter(
+      (c) => c[0] === "[yawb] preview.local.render.static",
+    );
     expect(staticCalls.length).toBeGreaterThan(0);
     const loadingCalls = info.mock.calls.filter((c) => c[0] === "[yawb] preview.iframe.loading");
     expect(loadingCalls.length).toBe(0);
@@ -98,7 +107,10 @@ describe("PreviewPane — local renders statically (no loading overlay)", () => 
         starting={false}
         selectedPage="/"
         activeDeployUrl={null}
-        generated={{ indexHtml: "<!doctype html><title>x</title><body>same</body>", hasFiles: true }}
+        generated={{
+          indexHtml: "<!doctype html><title>x</title><body>same</body>",
+          hasFiles: true,
+        }}
       />,
     );
     // We can't read React's internal key, but we can prove the iframe element
@@ -114,7 +126,10 @@ describe("PreviewPane — local renders statically (no loading overlay)", () => 
           starting={false}
           selectedPage="/"
           activeDeployUrl={null}
-          generated={{ indexHtml: "<!doctype html><title>x</title><body>same</body>", hasFiles: true }}
+          generated={{
+            indexHtml: "<!doctype html><title>x</title><body>same</body>",
+            hasFiles: true,
+          }}
         />,
       );
     });

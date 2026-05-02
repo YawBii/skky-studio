@@ -33,23 +33,47 @@ function Forgot() {
   return (
     <div className="min-h-screen grid place-items-center px-6 py-10">
       <div className="w-full max-w-sm">
-        <Link to="/login" className="text-xs text-muted-foreground inline-flex items-center gap-1 mb-6 hover:text-foreground">
+        <Link
+          to="/login"
+          className="text-xs text-muted-foreground inline-flex items-center gap-1 mb-6 hover:text-foreground"
+        >
           <ArrowLeft className="h-3 w-3" /> Back to sign in
         </Link>
         <h1 className="text-2xl font-display font-bold tracking-tight mb-1">Reset your password</h1>
         <p className="text-sm text-muted-foreground mb-6">We'll email you a secure reset link.</p>
-        <form onSubmit={onSubmit} className="rounded-2xl border border-white/10 bg-gradient-card p-6 shadow-elevated space-y-4">
+        <form
+          onSubmit={onSubmit}
+          className="rounded-2xl border border-white/10 bg-gradient-card p-6 shadow-elevated space-y-4"
+        >
           {sent ? (
-            <div className="text-sm text-success">Check your inbox — we sent a reset link to {email}.</div>
+            <div className="text-sm text-success">
+              Check your inbox — we sent a reset link to {email}.
+            </div>
           ) : (
             <>
               <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-background/50 px-3 h-11">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@skky.group" autoComplete="email"
-                  className="flex-1 bg-transparent text-sm focus:outline-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@skky.group"
+                  autoComplete="email"
+                  className="flex-1 bg-transparent text-sm focus:outline-none"
+                />
               </div>
-              {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
-              <Button type="submit" variant="hero" size="lg" className="w-full justify-center" disabled={loading}>
+              {error && (
+                <p className="text-xs text-destructive" role="alert">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                variant="hero"
+                size="lg"
+                className="w-full justify-center"
+                disabled={loading}
+              >
                 {loading ? "Sending…" : "Send reset link"}
               </Button>
             </>

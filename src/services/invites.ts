@@ -20,7 +20,9 @@ function token() {
   return crypto.randomUUID().replace(/-/g, "");
 }
 
-export async function createInvite(input: InviteInput): Promise<{ ok: true } | { ok: false; reason: string }> {
+export async function createInvite(
+  input: InviteInput,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
   try {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return { ok: false, reason: "not-signed-in" };

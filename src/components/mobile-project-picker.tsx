@@ -18,7 +18,13 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-export function MobileProjectPicker({ open, onOpenChange, projects, currentProjectId, onSelect }: Props) {
+export function MobileProjectPicker({
+  open,
+  onOpenChange,
+  projects,
+  currentProjectId,
+  onSelect,
+}: Props) {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
 
@@ -31,13 +37,17 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return projects;
-    return projects.filter((p) => p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q));
+    return projects.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q),
+    );
   }, [projects, query]);
 
   if (!open) return null;
@@ -130,7 +140,9 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
                     <div className="flex-1 min-w-0">
                       <div className="text-[14px] font-medium truncate">{p.name}</div>
                       {p.description && (
-                        <div className="text-[12px] text-muted-foreground truncate">{p.description}</div>
+                        <div className="text-[12px] text-muted-foreground truncate">
+                          {p.description}
+                        </div>
                       )}
                     </div>
                     {isCurrent && <Check className="h-4 w-4 text-success shrink-0" />}

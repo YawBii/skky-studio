@@ -19,18 +19,32 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: { getUser: () => Promise.resolve({ data: { user: null }, error: null }) },
   },
   getSupabaseDiagnostics: () => ({
-    hasUrl: true, hasKey: true, urlHost: "test.supabase.co",
-    isPlaceholder: false, ok: true,
+    hasUrl: true,
+    hasKey: true,
+    urlHost: "test.supabase.co",
+    isPlaceholder: false,
+    ok: true,
   }),
 }));
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
-beforeEach(() => { authMock.session = null; try { window.localStorage.clear(); } catch { /* ignore */ } });
+beforeEach(() => {
+  authMock.session = null;
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
+});
 afterEach(() => {
-  if (root) { act(() => root!.unmount()); root = null; }
-  host?.remove(); host = null;
+  if (root) {
+    act(() => root!.unmount());
+    root = null;
+  }
+  host?.remove();
+  host = null;
 });
 
 function render(node: React.ReactNode) {
@@ -42,7 +56,9 @@ function render(node: React.ReactNode) {
 }
 
 async function flushAuth() {
-  await act(async () => { await Promise.resolve(); });
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 
 describe("MobileBootstrapPanel", () => {
@@ -59,20 +75,34 @@ describe("MobileBootstrapPanel", () => {
     );
     expect(c.querySelector('[data-testid="mobile-bootstrap-panel"]')).toBeTruthy();
     const keys = [
-      "authLoading", "hasSession", "userId", "userEmail",
-      "selectedWorkspaceId", "workspaceSource", "workspacesCount", "projectsCount",
-      "projectsSource", "activeProjectId", "routeProjectId", "supabaseUrlProjectRef",
-      "latestWorkspaceMembersError", "latestProjectsQueryError", "lastSupabaseError",
+      "authLoading",
+      "hasSession",
+      "userId",
+      "userEmail",
+      "selectedWorkspaceId",
+      "workspaceSource",
+      "workspacesCount",
+      "projectsCount",
+      "projectsSource",
+      "activeProjectId",
+      "routeProjectId",
+      "supabaseUrlProjectRef",
+      "latestWorkspaceMembersError",
+      "latestProjectsQueryError",
+      "lastSupabaseError",
     ];
     for (const k of keys) {
-      expect(
-        c.querySelector(`[data-testid="mbp-${k}-value"]`),
-        `missing row ${k}`,
-      ).toBeTruthy();
+      expect(c.querySelector(`[data-testid="mbp-${k}-value"]`), `missing row ${k}`).toBeTruthy();
     }
-    expect(c.querySelector('[data-testid="mbp-routeProjectId-value"]')?.textContent).toBe("abc-123");
-    expect(c.querySelector('[data-testid="mbp-lastSupabaseError-value"]')?.textContent).toBe("boom");
-    expect(c.querySelector('[data-testid="mbp-supabaseUrlProjectRef-value"]')?.textContent).toBe("test.supabase.co / test");
+    expect(c.querySelector('[data-testid="mbp-routeProjectId-value"]')?.textContent).toBe(
+      "abc-123",
+    );
+    expect(c.querySelector('[data-testid="mbp-lastSupabaseError-value"]')?.textContent).toBe(
+      "boom",
+    );
+    expect(c.querySelector('[data-testid="mbp-supabaseUrlProjectRef-value"]')?.textContent).toBe(
+      "test.supabase.co / test",
+    );
   });
 
   it("highlights hasSession=false and lastSupabaseError as error tone", () => {
@@ -86,7 +116,9 @@ describe("MobileBootstrapPanel", () => {
   it("hasSession=false shows sign-in state", async () => {
     const c = render(<MobileBootstrapPanel projectsCount={0} workspacesCount={0} />);
     await flushAuth();
-    expect(c.querySelector('[data-testid="mobile-bootstrap-state-title"]')?.textContent).toBe("Not signed in on this device");
+    expect(c.querySelector('[data-testid="mobile-bootstrap-state-title"]')?.textContent).toBe(
+      "Not signed in on this device",
+    );
     expect(c.querySelector('[data-testid="mobile-bootstrap-sign-in"]')).toBeTruthy();
   });
 
@@ -99,7 +131,13 @@ describe("MobileBootstrapPanel", () => {
 
   it("projects query empty shows projects debug state when workspace exists", async () => {
     authMock.session = { userId: "user-1", email: "user@example.com", displayName: "User" };
-    const c = render(<MobileBootstrapPanel selectedWorkspaceId="workspace-1" workspacesCount={1} projectsCount={0} />);
+    const c = render(
+      <MobileBootstrapPanel
+        selectedWorkspaceId="workspace-1"
+        workspacesCount={1}
+        projectsCount={0}
+      />,
+    );
     await flushAuth();
     expect(c.textContent).toContain("Workspace found but no projects returned");
     expect(c.textContent).toContain("workspace-1");

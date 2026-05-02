@@ -10,7 +10,11 @@ export const Route = createFileRoute("/server-setup")({
   head: () => ({
     meta: [
       { title: "Server Setup — yawB" },
-      { name: "description", content: "Inspect server-side environment variables yawB needs to run real builds and provider jobs." },
+      {
+        name: "description",
+        content:
+          "Inspect server-side environment variables yawB needs to run real builds and provider jobs.",
+      },
     ],
   }),
   component: ServerSetupPage,
@@ -36,24 +40,54 @@ function ServerSetupPage() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    void load();
+  }, []);
 
   const rows: Row[] = data
     ? [
-        { name: "BUILD_RUNNER_URL", configured: data.buildRunner.hasBuildRunnerUrl, required: true,
-          help: "HTTPS URL of an external Node worker that executes build/typecheck commands. yawB cannot run real builds without this." },
-        { name: "BUILD_RUNNER_TOKEN", configured: data.buildRunner.hasBuildRunnerToken, required: false,
-          help: "Bearer token sent to the build worker. Recommended whenever the worker is reachable from the public internet." },
-        { name: "SUPABASE_URL", configured: data.supabase.hasSupabaseUrl, required: true,
-          help: "Server-side Supabase project URL. Mirrors VITE_SUPABASE_URL." },
-        { name: "SUPABASE_PUBLISHABLE_KEY", configured: data.supabase.hasSupabasePublishableKey, required: true,
-          help: "Server-side anon/publishable key used by the runner to honor RLS. Mirrors VITE_SUPABASE_PUBLISHABLE_KEY." },
-        { name: "SUPABASE_SERVICE_ROLE_KEY", configured: data.supabase.hasSupabaseServiceRoleKey, required: false,
-          help: "Service-role key for admin jobs. Server-only — never expose to the browser." },
-        { name: "GITHUB_TOKEN", configured: data.providers.hasGithubToken, required: false,
-          help: "Personal access token (repo scope) for GitHub provider jobs (commits, PRs, repo creation)." },
-        { name: "VERCEL_TOKEN", configured: data.providers.hasVercelToken, required: false,
-          help: "Vercel API token for deploy provider jobs." },
+        {
+          name: "BUILD_RUNNER_URL",
+          configured: data.buildRunner.hasBuildRunnerUrl,
+          required: true,
+          help: "HTTPS URL of an external Node worker that executes build/typecheck commands. yawB cannot run real builds without this.",
+        },
+        {
+          name: "BUILD_RUNNER_TOKEN",
+          configured: data.buildRunner.hasBuildRunnerToken,
+          required: false,
+          help: "Bearer token sent to the build worker. Recommended whenever the worker is reachable from the public internet.",
+        },
+        {
+          name: "SUPABASE_URL",
+          configured: data.supabase.hasSupabaseUrl,
+          required: true,
+          help: "Server-side Supabase project URL. Mirrors VITE_SUPABASE_URL.",
+        },
+        {
+          name: "SUPABASE_PUBLISHABLE_KEY",
+          configured: data.supabase.hasSupabasePublishableKey,
+          required: true,
+          help: "Server-side anon/publishable key used by the runner to honor RLS. Mirrors VITE_SUPABASE_PUBLISHABLE_KEY.",
+        },
+        {
+          name: "SUPABASE_SERVICE_ROLE_KEY",
+          configured: data.supabase.hasSupabaseServiceRoleKey,
+          required: false,
+          help: "Service-role key for admin jobs. Server-only — never expose to the browser.",
+        },
+        {
+          name: "GITHUB_TOKEN",
+          configured: data.providers.hasGithubToken,
+          required: false,
+          help: "Personal access token (repo scope) for GitHub provider jobs (commits, PRs, repo creation).",
+        },
+        {
+          name: "VERCEL_TOKEN",
+          configured: data.providers.hasVercelToken,
+          required: false,
+          help: "Vercel API token for deploy provider jobs.",
+        },
       ]
     : [];
 
@@ -66,10 +100,12 @@ function ServerSetupPage() {
           <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-[0.2em] mb-1">
             <Server className="h-3 w-3" /> Server Setup
           </div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Server Setup</h1>
+          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
+            Server Setup
+          </h1>
           <p className="text-muted-foreground mt-1 max-w-2xl">
-            Live presence check of the environment variables yawB's server runner depends on.
-            Values are never shown — only whether each variable is configured.
+            Live presence check of the environment variables yawB's server runner depends on. Values
+            are never shown — only whether each variable is configured.
           </p>
         </div>
         <Button variant="soft" size="sm" onClick={load} disabled={loading}>
@@ -84,12 +120,14 @@ function ServerSetupPage() {
       )}
 
       {/* Build runner banner */}
-      <div className={cn(
-        "mb-6 rounded-2xl border p-5",
-        buildRunnerOk
-          ? "border-emerald-500/30 bg-emerald-500/5"
-          : "border-amber-500/30 bg-amber-500/5",
-      )}>
+      <div
+        className={cn(
+          "mb-6 rounded-2xl border p-5",
+          buildRunnerOk
+            ? "border-emerald-500/30 bg-emerald-500/5"
+            : "border-amber-500/30 bg-amber-500/5",
+        )}
+      >
         <div className="flex items-start gap-3">
           {buildRunnerOk ? (
             <Check className="h-5 w-5 text-emerald-400 mt-0.5" />
@@ -106,18 +144,29 @@ function ServerSetupPage() {
             {!buildRunnerOk && (
               <div className="mt-3 text-sm text-muted-foreground space-y-2">
                 <p>
-                  yawB <strong>cannot run real <code className="font-mono text-xs">build.typecheck</code> or
-                  <code className="font-mono text-xs"> build.production</code> jobs</strong> until
-                  <code className="font-mono text-xs"> BUILD_RUNNER_URL</code> points to an external Node worker.
-                  The Lovable runtime (Cloudflare Worker) does not allow spawning child processes, so an
-                  external host is required.
+                  yawB{" "}
+                  <strong>
+                    cannot run real <code className="font-mono text-xs">build.typecheck</code> or
+                    <code className="font-mono text-xs"> build.production</code> jobs
+                  </strong>{" "}
+                  until
+                  <code className="font-mono text-xs"> BUILD_RUNNER_URL</code> points to an external
+                  Node worker. The Lovable runtime (Cloudflare Worker) does not allow spawning child
+                  processes, so an external host is required.
                 </p>
                 <p>
-                  Add the following secrets in <strong>Lovable → Project → Settings → Secrets</strong>:
+                  Add the following secrets in{" "}
+                  <strong>Lovable → Project → Settings → Secrets</strong>:
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li><code className="font-mono text-xs">BUILD_RUNNER_URL</code> — HTTPS URL of your Node worker</li>
-                  <li><code className="font-mono text-xs">BUILD_RUNNER_TOKEN</code> — bearer token the worker requires</li>
+                  <li>
+                    <code className="font-mono text-xs">BUILD_RUNNER_URL</code> — HTTPS URL of your
+                    Node worker
+                  </li>
+                  <li>
+                    <code className="font-mono text-xs">BUILD_RUNNER_TOKEN</code> — bearer token the
+                    worker requires
+                  </li>
                 </ul>
                 <p>
                   Reference worker contract and a minimal Node 20 implementation are documented in
@@ -136,19 +185,30 @@ function ServerSetupPage() {
       <div className="rounded-2xl border border-white/5 bg-gradient-card overflow-hidden">
         <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
           <h2 className="font-display font-semibold">Environment variables</h2>
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">presence only</span>
+          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            presence only
+          </span>
         </div>
         <ul className="divide-y divide-white/5">
           {rows.map((r) => (
-            <li key={r.name} className="px-5 py-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center">
+            <li
+              key={r.name}
+              className="px-5 py-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 items-center"
+            >
               <div className="flex items-center gap-2 min-w-0">
                 <code className="font-mono text-sm">{r.name}</code>
                 {r.required && (
-                  <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">required</span>
+                  <span className="rounded-full border border-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                    required
+                  </span>
                 )}
                 <button
                   type="button"
-                  onClick={() => { void navigator.clipboard.writeText(r.name).then(() => toast.success(`Copied ${r.name}`)); }}
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(r.name)
+                      .then(() => toast.success(`Copied ${r.name}`));
+                  }}
                   className="text-muted-foreground hover:text-foreground"
                   title="Copy variable name"
                 >
@@ -166,7 +226,9 @@ function ServerSetupPage() {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
-        <Link to="/settings" className="text-muted-foreground hover:text-foreground underline">Back to Settings</Link>
+        <Link to="/settings" className="text-muted-foreground hover:text-foreground underline">
+          Back to Settings
+        </Link>
         <span className="text-muted-foreground">·</span>
         <a
           href="https://docs.lovable.dev/features/cloud"
@@ -179,7 +241,8 @@ function ServerSetupPage() {
       </div>
 
       <p className="mt-6 text-[11px] text-muted-foreground">
-        Secret values are never returned by this screen. yawB only reports whether each variable is set on the server.
+        Secret values are never returned by this screen. yawB only reports whether each variable is
+        set on the server.
       </p>
     </div>
   );

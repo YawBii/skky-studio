@@ -193,9 +193,7 @@ describe("PreviewPane — local preview", () => {
       expect(iframe!.getAttribute("srcdoc")).not.toContain(shellText);
     }
     // Local badge in URL bar
-    expect(
-      container.querySelector('[data-testid="preview-local-badge"]'),
-    ).not.toBeNull();
+    expect(container.querySelector('[data-testid="preview-local-badge"]')).not.toBeNull();
   });
 
   it("renders srcDoc when generated.indexHtml is provided", () => {
@@ -217,8 +215,12 @@ describe("PreviewPane — local preview", () => {
     ) as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     expect(iframe!.getAttribute("srcdoc")).toContain("Hello yawB");
-    expect(container.querySelector('[data-testid="preview-url-bar"]')!.textContent).toContain("project_files/index.html");
-    expect(container.querySelector('[data-testid="preview-url-bar"]')!.textContent).not.toContain("in-memory");
+    expect(container.querySelector('[data-testid="preview-url-bar"]')!.textContent).toContain(
+      "project_files/index.html",
+    );
+    expect(container.querySelector('[data-testid="preview-url-bar"]')!.textContent).not.toContain(
+      "in-memory",
+    );
   });
 
   it("does not show 'No deploy URL yet' as the main state when local is rendering", () => {
@@ -282,9 +284,7 @@ describe("PreviewPane — local preview", () => {
       localBtn!.click();
     });
 
-    iframe = container.querySelector(
-      '[data-testid="preview-iframe"]',
-    ) as HTMLIFrameElement | null;
+    iframe = container.querySelector('[data-testid="preview-iframe"]') as HTMLIFrameElement | null;
     expect(iframe!.getAttribute("data-preview-kind")).toBe("local");
     expect(iframe!.getAttribute("src")).toBeNull();
     expect(iframe!.getAttribute("srcdoc")).toContain("No generated screens yet");
@@ -325,9 +325,7 @@ describe("PreviewPane — local preview", () => {
         activeDeployUrl={null}
       />,
     );
-    expect(
-      container.querySelector('[data-testid="preview-iframe"]'),
-    ).not.toBeNull();
+    expect(container.querySelector('[data-testid="preview-iframe"]')).not.toBeNull();
   });
 });
 
@@ -434,15 +432,15 @@ describe("PreviewPane — device viewports", () => {
 
   it("device buttons expose readable labels", () => {
     const c = renderWithDevice("desktop");
-    expect(
-      c.querySelector('[data-testid="preview-device-desktop"]')?.getAttribute("title"),
-    ).toBe("Desktop 100%");
-    expect(
-      c.querySelector('[data-testid="preview-device-tablet"]')?.getAttribute("title"),
-    ).toBe("Tablet 820px");
-    expect(
-      c.querySelector('[data-testid="preview-device-mobile"]')?.getAttribute("title"),
-    ).toBe("Mobile 390px");
+    expect(c.querySelector('[data-testid="preview-device-desktop"]')?.getAttribute("title")).toBe(
+      "Desktop 100%",
+    );
+    expect(c.querySelector('[data-testid="preview-device-tablet"]')?.getAttribute("title")).toBe(
+      "Tablet 820px",
+    );
+    expect(c.querySelector('[data-testid="preview-device-mobile"]')?.getAttribute("title")).toBe(
+      "Mobile 390px",
+    );
   });
 });
 
@@ -505,6 +503,7 @@ describe("PreviewPane — local preview hardening", () => {
     expect(html).toContain("&#61;");
     expect(html).toContain("&#96;");
     expect(html).toContain("&#47;");
+    // eslint-disable-next-line no-control-regex
     expect(html).not.toMatch(/[\u202E\u200B\u0000]/);
   });
 
@@ -519,4 +518,3 @@ describe("PreviewPane — local preview hardening", () => {
     expect((html.match(/a/g) || []).length).toBeLessThan(1500);
   });
 });
-

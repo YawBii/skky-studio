@@ -13,16 +13,46 @@ export interface Deployment {
 
 export async function listDeployments(_projectId: string): Promise<Deployment[]> {
   return [
-    { id: "dpl_1", url: "portal.skky.group", state: "READY", target: "production", branch: "main",
-      commitSha: "a4f2c91", commitMessage: "feat(settings): add billing tab", createdAt: "2h ago", durationMs: 42_000 },
-    { id: "dpl_2", url: "preview-portal.vercel.app", state: "READY", target: "preview", branch: "yawb/settings-tabs",
-      commitSha: "b9112e8", commitMessage: "wip: tabs", createdAt: "5h ago", durationMs: 38_000 },
+    {
+      id: "dpl_1",
+      url: "portal.skky.group",
+      state: "READY",
+      target: "production",
+      branch: "main",
+      commitSha: "a4f2c91",
+      commitMessage: "feat(settings): add billing tab",
+      createdAt: "2h ago",
+      durationMs: 42_000,
+    },
+    {
+      id: "dpl_2",
+      url: "preview-portal.vercel.app",
+      state: "READY",
+      target: "preview",
+      branch: "yawb/settings-tabs",
+      commitSha: "b9112e8",
+      commitMessage: "wip: tabs",
+      createdAt: "5h ago",
+      durationMs: 38_000,
+    },
   ];
 }
 
-export async function deploy(_projectId: string, _opts?: { branch?: string; production?: boolean }): Promise<Deployment> {
-  return { id: "dpl_new", url: "preview.vercel.app", state: "BUILDING", target: "preview", branch: "main",
-    commitSha: "pending", commitMessage: "Triggered by yawB", createdAt: "now", durationMs: 0 };
+export async function deploy(
+  _projectId: string,
+  _opts?: { branch?: string; production?: boolean },
+): Promise<Deployment> {
+  return {
+    id: "dpl_new",
+    url: "preview.vercel.app",
+    state: "BUILDING",
+    target: "preview",
+    branch: "main",
+    commitSha: "pending",
+    commitMessage: "Triggered by yawB",
+    createdAt: "now",
+    durationMs: 0,
+  };
 }
 
 export async function streamLogs(_deploymentId: string): Promise<string[]> {

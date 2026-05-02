@@ -141,8 +141,7 @@ function LocalPreview() {
     alignItems: "center",
     justifyContent: "center",
     padding: "24px",
-    fontFamily:
-      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   };
 
   const projectName = project?.name ?? "Project";
@@ -165,11 +164,17 @@ function LocalPreview() {
         srcDoc={indexHtml}
         sandbox=""
         referrerPolicy="no-referrer"
-        style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, background: "#0b0f14" }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          border: 0,
+          background: "#0b0f14",
+        }}
       />
     );
   }
-
 
   return (
     <div data-testid="preview-embed-root" style={wrapperStyle}>
@@ -201,7 +206,8 @@ function LocalPreview() {
               <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
                 {github.repoFullName ?? "a GitHub repository"}
               </span>
-              . yawB will not regenerate it from scratch — your existing code is the source of truth.
+              . yawB will not regenerate it from scratch — your existing code is the source of
+              truth.
             </p>
             {github.repoUrl && (
               <a
@@ -209,10 +215,16 @@ function LocalPreview() {
                 target="_blank"
                 rel="noreferrer"
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  marginTop: 18, padding: "10px 16px", borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.15)", color: "#e6edf3",
-                  textDecoration: "none", fontSize: 13,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 18,
+                  padding: "10px 16px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: "#e6edf3",
+                  textDecoration: "none",
+                  fontSize: 13,
                 }}
               >
                 Open repository ↗
@@ -220,9 +232,7 @@ function LocalPreview() {
             )}
           </>
         ) : hasFiles ? (
-          <p style={{ marginTop: 10, fontSize: 14, opacity: 0.7 }}>
-            Rendering generated files…
-          </p>
+          <p style={{ marginTop: 10, fontSize: 14, opacity: 0.7 }}>Rendering generated files…</p>
         ) : (
           <p style={{ marginTop: 10, fontSize: 14, opacity: 0.7, lineHeight: 1.5 }}>
             No generated screen yet — ask yawB to build the first screen.

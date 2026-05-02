@@ -35,7 +35,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  act(() => { root?.unmount(); });
+  act(() => {
+    root?.unmount();
+  });
   root = null;
   host?.remove();
   host = null;
@@ -79,9 +81,17 @@ describe("MobileProjectPicker", () => {
   it("does not autofocus the search input on mount", () => {
     const projects = makeProjects(3);
     render(
-      <MobileProjectPicker open onOpenChange={() => {}} projects={projects} currentProjectId={null} onSelect={() => {}} />,
+      <MobileProjectPicker
+        open
+        onOpenChange={() => {}}
+        projects={projects}
+        currentProjectId={null}
+        onSelect={() => {}}
+      />,
     );
-    const search = document.body.querySelector('[data-testid="mobile-project-picker-search"]') as HTMLInputElement;
+    const search = document.body.querySelector(
+      '[data-testid="mobile-project-picker-search"]',
+    ) as HTMLInputElement;
     expect(search).toBeTruthy();
     expect(document.activeElement).not.toBe(search);
   });
@@ -89,9 +99,17 @@ describe("MobileProjectPicker", () => {
   it("filters rows by search query", () => {
     const projects = makeProjects(5);
     render(
-      <MobileProjectPicker open onOpenChange={() => {}} projects={projects} currentProjectId={null} onSelect={() => {}} />,
+      <MobileProjectPicker
+        open
+        onOpenChange={() => {}}
+        projects={projects}
+        currentProjectId={null}
+        onSelect={() => {}}
+      />,
     );
-    const search = document.body.querySelector('[data-testid="mobile-project-picker-search"]') as HTMLInputElement;
+    const search = document.body.querySelector(
+      '[data-testid="mobile-project-picker-search"]',
+    ) as HTMLInputElement;
     typeInto(search, "Project 2");
     const rows = document.body.querySelectorAll('[data-testid^="mobile-project-picker-item-"]');
     expect(rows.length).toBe(1);
@@ -115,7 +133,9 @@ describe("MobileProjectPicker", () => {
       `[data-testid="mobile-project-picker-item-${target.id}"]`,
     ) as HTMLButtonElement;
     expect(btn).toBeTruthy();
-    act(() => { btn.click(); });
+    act(() => {
+      btn.click();
+    });
     expect(onSelect).toHaveBeenCalledWith(target.id);
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(navigateMock).toHaveBeenCalledWith({
@@ -126,9 +146,17 @@ describe("MobileProjectPicker", () => {
 
   it("uses z-[9999] and is fixed inset-0 above other UI", () => {
     render(
-      <MobileProjectPicker open onOpenChange={() => {}} projects={makeProjects(1)} currentProjectId={null} onSelect={() => {}} />,
+      <MobileProjectPicker
+        open
+        onOpenChange={() => {}}
+        projects={makeProjects(1)}
+        currentProjectId={null}
+        onSelect={() => {}}
+      />,
     );
-    const root = document.body.querySelector('[data-testid="mobile-project-picker"]') as HTMLElement;
+    const root = document.body.querySelector(
+      '[data-testid="mobile-project-picker"]',
+    ) as HTMLElement;
     expect(root).toBeTruthy();
     expect(root.className).toMatch(/fixed/);
     expect(root.className).toMatch(/inset-0/);
@@ -137,16 +165,30 @@ describe("MobileProjectPicker", () => {
 
   it("never shows an empty state when projects.length > 0", () => {
     render(
-      <MobileProjectPicker open onOpenChange={() => {}} projects={makeProjects(4)} currentProjectId={null} onSelect={() => {}} />,
+      <MobileProjectPicker
+        open
+        onOpenChange={() => {}}
+        projects={makeProjects(4)}
+        currentProjectId={null}
+        onSelect={() => {}}
+      />,
     );
     expect(document.body.textContent).not.toMatch(/No projects returned/);
   });
 
   it("shows 'No matches' + Clear search when filter empties results", () => {
     render(
-      <MobileProjectPicker open onOpenChange={() => {}} projects={makeProjects(3)} currentProjectId={null} onSelect={() => {}} />,
+      <MobileProjectPicker
+        open
+        onOpenChange={() => {}}
+        projects={makeProjects(3)}
+        currentProjectId={null}
+        onSelect={() => {}}
+      />,
     );
-    const search = document.body.querySelector('[data-testid="mobile-project-picker-search"]') as HTMLInputElement;
+    const search = document.body.querySelector(
+      '[data-testid="mobile-project-picker-search"]',
+    ) as HTMLInputElement;
     typeInto(search, "zzznomatch");
     expect(document.body.textContent).toMatch(/No matches/);
     expect(document.body.textContent).toMatch(/Clear search/);

@@ -60,9 +60,7 @@ export function useProjectFiles(projectId: string | null | undefined): UseProjec
   }, [refresh]);
 
   const indexHtml = files.find((f) => f.path === "index.html")?.content ?? null;
-  const generated: GeneratedFiles | null = files.length > 0
-    ? { indexHtml, hasFiles: true }
-    : null;
+  const generated: GeneratedFiles | null = files.length > 0 ? { indexHtml, hasFiles: true } : null;
 
   return { files, generated, loading, version, refresh, tableMissing, error };
 }

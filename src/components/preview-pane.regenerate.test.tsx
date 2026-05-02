@@ -18,10 +18,17 @@ let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
 beforeEach(() => {
-  try { window.localStorage.clear(); } catch { /* ignore */ }
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
 });
 afterEach(() => {
-  if (root) { act(() => root!.unmount()); root = null; }
+  if (root) {
+    act(() => root!.unmount());
+    root = null;
+  }
   host?.remove();
   host = null;
   vi.restoreAllMocks();
@@ -54,7 +61,9 @@ describe("PreviewPane — Regenerate design button", () => {
     const btn = c.querySelector('[data-testid="preview-regenerate-design"]') as HTMLButtonElement;
     expect(btn).toBeTruthy();
     expect(btn.disabled).toBe(false);
-    act(() => { btn.click(); });
+    act(() => {
+      btn.click();
+    });
     expect(onRegenerate).toHaveBeenCalledTimes(1);
   });
 
@@ -77,7 +86,9 @@ describe("PreviewPane — Regenerate design button", () => {
     expect(btn).toBeTruthy();
     expect(btn.disabled).toBe(true);
     expect(btn.querySelector("svg")).toBeTruthy(); // Loader2 icon
-    act(() => { btn.click(); });
+    act(() => {
+      btn.click();
+    });
     expect(onRegenerate).not.toHaveBeenCalled();
   });
 });

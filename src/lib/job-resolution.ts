@@ -8,10 +8,7 @@
 // resolved when any newer build.production succeeded — the runner was fixed.
 import type { Job } from "@/services/jobs";
 
-const TRANSIENT_ERROR_PATTERNS = [
-  /invalid bearer token/i,
-  /no bearer token/i,
-];
+const TRANSIENT_ERROR_PATTERNS = [/invalid bearer token/i, /no bearer token/i];
 
 /**
  * Known placeholder / "feature gap" failures that should NOT be treated as
@@ -40,9 +37,7 @@ export function isAiPlannerSetupFailure(failed: Job): boolean {
 export function isPlaceholderFailure(failed: Job): boolean {
   if (failed.status !== "failed") return false;
   const errText = failed.error ?? "";
-  return PLACEHOLDER_FAILURES.some(
-    (p) => failed.type === p.type && p.pattern.test(errText),
-  );
+  return PLACEHOLDER_FAILURES.some((p) => failed.type === p.type && p.pattern.test(errText));
 }
 
 function ts(j: Job): number {
@@ -96,10 +91,7 @@ export function getResolvingSuccess(failed: Job, allJobs: Job[]): Job | null {
 
   // "Vercel token is not configured." failures resolve once any newer
   // vercel.create_preview_deploy succeeds (token was wired in afterwards).
-  if (
-    failed.type.startsWith("vercel.") &&
-    /vercel token is not configured/i.test(errText)
-  ) {
+  if (failed.type.startsWith("vercel.") && /vercel token is not configured/i.test(errText)) {
     const vercelSuccess = latestSucceededJob(allJobs, "vercel.create_preview_deploy");
     if (vercelSuccess && ts(vercelSuccess) > failedAt) return vercelSuccess;
   }

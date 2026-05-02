@@ -15,7 +15,11 @@ const project: Project = {
 };
 
 beforeEach(() => {
-  try { window.localStorage.clear(); } catch { /* ignore */ }
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
 });
 
 describe("PreviewPane — desktop scroll + regenerate action", () => {

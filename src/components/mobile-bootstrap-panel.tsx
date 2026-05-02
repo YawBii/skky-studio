@@ -33,19 +33,23 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
   // Resolve user email lazily (auth provider only stores userId).
   useEffect(() => {
     let cancelled = false;
-    if (!session?.userId) { setEmail(null); return; }
+    if (!session?.userId) {
+      setEmail(null);
+      return;
+    }
     void supabase.auth.getUser().then(({ data, error }) => {
       if (cancelled) return;
       if (error) return;
       setEmail(data.user?.email ?? null);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [session?.userId]);
 
   const workspacesCount =
     props.workspacesCount ?? props.membershipsCount ?? state.workspacesCount ?? null;
-  const workspaceId =
-    props.selectedWorkspaceId ?? state.workspaceId ?? null;
+  const workspaceId = props.selectedWorkspaceId ?? state.workspaceId ?? null;
   const projects = props.projectsCount ?? state.projectsCount ?? null;
   const projectId = props.activeProjectId ?? state.projectId ?? null;
   const workspaceSource = props.workspaceSource ?? state.workspaceSource ?? "—";
@@ -86,12 +90,17 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
     ["lastSupabaseError", lastError ?? "—"],
   ];
 
-  const stateMessage = getBootstrapStateMessage({ authLoading, hasSession: !!session, workspacesCount, workspaceId, projects });
+  const stateMessage = getBootstrapStateMessage({
+    authLoading,
+    hasSession: !!session,
+    workspacesCount,
+    workspaceId,
+    projects,
+  });
 
   async function copyAll() {
     const text =
-      "yawB mobile bootstrap diagnostics\n" +
-      rows.map(([k, v]) => `${k}: ${v}`).join("\n");
+      "yawB mobile bootstrap diagnostics\n" + rows.map(([k, v]) => `${k}: ${v}`).join("\n");
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -101,7 +110,11 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
       ta.value = text;
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand("copy"); } catch { /* ignore */ }
+      try {
+        document.execCommand("copy");
+      } catch {
+        /* ignore */
+      }
       document.body.removeChild(ta);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
@@ -129,10 +142,16 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
       </div>
       {stateMessage && (
         <div className="mb-2 rounded-lg border border-white/10 bg-white/[0.03] p-2 font-sans">
-          <div className="text-[12px] font-medium text-foreground" data-testid="mobile-bootstrap-state-title">
+          <div
+            className="text-[12px] font-medium text-foreground"
+            data-testid="mobile-bootstrap-state-title"
+          >
             {stateMessage.title}
           </div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground break-words" data-testid="mobile-bootstrap-state-detail">
+          <div
+            className="mt-0.5 text-[11px] text-muted-foreground break-words"
+            data-testid="mobile-bootstrap-state-detail"
+          >
             {stateMessage.detail}
           </div>
           {stateMessage.signIn && (
@@ -148,7 +167,11 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
       )}
       <div className="grid grid-cols-[140px_1fr] gap-x-2 gap-y-0.5 leading-relaxed">
         {rows.map(([k, v]) => {
-          const isError = (k === "lastSupabaseError" || k === "latestWorkspaceMembersError" || k === "latestProjectsQueryError") && v !== "—";
+          const isError =
+            (k === "lastSupabaseError" ||
+              k === "latestWorkspaceMembersError" ||
+              k === "latestProjectsQueryError") &&
+            v !== "—";
           const isFalseSession = k === "hasSession" && v === "false";
           return (
             <Row
@@ -169,18 +192,24 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
 }
 
 function Row({
-  k, v, tone, testId,
-}: { k: string; v: string; tone: "default" | "error"; testId: string }) {
+  k,
+  v,
+  tone,
+  testId,
+}: {
+  k: string;
+  v: string;
+  tone: "default" | "error";
+  testId: string;
+}) {
   return (
     <>
-      <div className="text-muted-foreground" data-testid={`${testId}-key`}>{k}</div>
+      <div className="text-muted-foreground" data-testid={`${testId}-key`}>
+        {k}
+      </div>
       <div
         data-testid={`${testId}-value`}
-        className={
-          tone === "error"
-            ? "text-destructive break-all"
-            : "text-foreground break-all"
-        }
+        className={tone === "error" ? "text-destructive break-all" : "text-foreground break-all"}
       >
         {v}
       </div>
@@ -201,10 +230,24 @@ function getBootstrapStateMessage({
   workspaceId: string | null;
   projects: number | null;
 }): { title: string; detail: string; signIn?: boolean } | null {
-  if (authLoading) return { title: "Checking session…", detail: "Waiting for mobile auth storage to restore." };
-  if (!hasSession) return { title: "Not signed in on this device", detail: "Mobile has no restored auth session, so workspace/project queries are blocked.", signIn: true };
-  if (workspacesCount === 0) return { title: "No workspace membership found for this account", detail: "workspace_members returned 0 rows for the shown userEmail/userId." };
-  if (workspaceId && projects === 0) return { title: "Workspace found but no projects returned", detail: `projects returned 0 rows for workspaceId ${workspaceId}.` };
+  if (authLoading)
+    return { title: "Checking session…", detail: "Waiting for mobile auth storage to restore." };
+  if (!hasSession)
+    return {
+      title: "Not signed in on this device",
+      detail: "Mobile has no restored auth session, so workspace/project queries are blocked.",
+      signIn: true,
+    };
+  if (workspacesCount === 0)
+    return {
+      title: "No workspace membership found for this account",
+      detail: "workspace_members returned 0 rows for the shown userEmail/userId.",
+    };
+  if (workspaceId && projects === 0)
+    return {
+      title: "Workspace found but no projects returned",
+      detail: `projects returned 0 rows for workspaceId ${workspaceId}.`,
+    };
   return null;
 }
 

@@ -2,7 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { listWorkspaces, type Workspace, type WorkspacesResult } from "@/services/workspaces";
 import { useAuth } from "@/hooks/use-auth";
 import { setDiag } from "@/lib/diagnostics";
-import { readCurrentWorkspaceId, readDirectWorkspace, writeCurrentWorkspaceId } from "@/lib/project-selection";
+import {
+  readCurrentWorkspaceId,
+  readDirectWorkspace,
+  writeCurrentWorkspaceId,
+} from "@/lib/project-selection";
 
 export function useWorkspaces() {
   const { session, loading: authLoading } = useAuth();
@@ -22,8 +26,12 @@ export function useWorkspaces() {
       workspaceSource: r.source,
     });
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line no-console
-      console.info("[yawb] workspaces source:", r.source, r.error ? `(${r.error})` : "", `count=${r.workspaces.length}`);
+      console.info(
+        "[yawb] workspaces source:",
+        r.source,
+        r.error ? `(${r.error})` : "",
+        `count=${r.workspaces.length}`,
+      );
     }
     return r;
   }, [session]);
@@ -62,7 +70,8 @@ export function useWorkspaces() {
   const current: Workspace | null =
     result.workspaces.find((w) => w.id === currentId) ??
     (readDirectWorkspace()?.id === currentId ? { ...readDirectWorkspace()!, role: null } : null) ??
-    result.workspaces[0] ?? null;
+    result.workspaces[0] ??
+    null;
 
   return {
     workspaces: result.workspaces,

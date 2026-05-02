@@ -1,6 +1,19 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Eye, Code2, Database, Rocket, History as HistoryIcon, Plus, Activity, ChevronDown, FileText, Globe, MessageSquare, MoreHorizontal } from "lucide-react";
+import {
+  Eye,
+  Code2,
+  Database,
+  Rocket,
+  History as HistoryIcon,
+  Plus,
+  Activity,
+  ChevronDown,
+  FileText,
+  Globe,
+  MessageSquare,
+  MoreHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -24,33 +37,38 @@ import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
-
 const FALLBACK_PAGES: { path: string; label: string }[] = [
-  { path: "/",          label: "Home" },
+  { path: "/", label: "Home" },
   { path: "/dashboard", label: "Dashboard" },
-  { path: "/settings",  label: "Settings" },
-  { path: "/projects",  label: "Projects" },
-  { path: "/billing",   label: "Billing" },
-  { path: "/team",      label: "Team" },
+  { path: "/settings", label: "Settings" },
+  { path: "/projects", label: "Projects" },
+  { path: "/billing", label: "Billing" },
+  { path: "/team", label: "Team" },
 ];
 
 export const Route = createFileRoute("/builder/$projectId")({
   head: ({ params }) => ({
     meta: [
       { title: `Builder — ${params.projectId} | yawB` },
-      { name: "description", content: "Preview, code, database, deploy and history — all in one workspace." },
+      {
+        name: "description",
+        content: "Preview, code, database, deploy and history — all in one workspace.",
+      },
     ],
   }),
   errorComponent: ({ error }) => <div className="p-10">Error: {error.message}</div>,
-  notFoundComponent: () => {
+  notFoundComponent: function NotFoundComponent() {
     const { projectId } = Route.useParams();
     return (
       <div className="p-6 sm:p-10 text-center max-w-md mx-auto">
         <h1 className="text-2xl font-display font-bold">Project not found</h1>
         <p className="text-sm text-muted-foreground mt-2">
-          We couldn't load <span className="font-mono">{projectId}</span>. It may not exist, or you may not have access.
+          We couldn't load <span className="font-mono">{projectId}</span>. It may not exist, or you
+          may not have access.
         </p>
-        <Link to="/" className="text-primary text-sm mt-3 inline-block">← Back to dashboard</Link>
+        <Link to="/" className="text-primary text-sm mt-3 inline-block">
+          ← Back to dashboard
+        </Link>
         <div className="mt-6 text-left">
           <MobileBootstrapPanel urlProjectId={projectId} activeProjectId={null} />
         </div>
@@ -64,12 +82,12 @@ type Tab = "preview" | "code" | "database" | "deploy" | "jobs" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "preview",  label: "Preview",  icon: Eye },
-  { id: "code",     label: "Code",     icon: Code2 },
+  { id: "preview", label: "Preview", icon: Eye },
+  { id: "code", label: "Code", icon: Code2 },
   { id: "database", label: "Database", icon: Database },
-  { id: "deploy",   label: "Deploy",   icon: Rocket },
-  { id: "jobs",     label: "Jobs",     icon: Activity },
-  { id: "history",  label: "History",  icon: HistoryIcon },
+  { id: "deploy", label: "Deploy", icon: Rocket },
+  { id: "jobs", label: "Jobs", icon: Activity },
+  { id: "history", label: "History", icon: HistoryIcon },
 ];
 
 function Builder() {
@@ -81,7 +99,7 @@ function Builder() {
   const [device, setDevice] = useState<Device>("desktop");
   const [focusJobId, setFocusJobId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
-  
+
   const [selectedPage, setSelectedPage] = useState<string>("/");
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
@@ -111,15 +129,19 @@ function Builder() {
       setLoading(true);
       const direct = await getProjectById(projectId);
       if (cancelled) return;
-      if (!direct.project) { setMissing(true); setProject(null); }
-      else {
+      if (!direct.project) {
+        setMissing(true);
+        setProject(null);
+      } else {
         setProject(direct.project);
         setMissing(false);
         rememberDirectProject(direct.project);
       }
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [projectId]);
 
   // Listen for cross-component tab switches (e.g. from chat smart suggestions).
@@ -161,7 +183,11 @@ function Builder() {
   // Per-project generated files for Local Preview.
   const filesApi = useProjectFiles(project?.id ?? null);
 
-  const { open: ccOpen, setOpen: setCcOpen, effectiveMode: ccMode } = useCommandCenterAutoOpen(ccState, {
+  const {
+    open: ccOpen,
+    setOpen: setCcOpen,
+    effectiveMode: ccMode,
+  } = useCommandCenterAutoOpen(ccState, {
     onJobSucceeded: (j) => {
       // After a successful build, return focus to Preview + flash a toast.
       if (j.type === "build.production" || j.type === "build.typecheck") {
@@ -185,7 +211,6 @@ function Builder() {
       }
     },
   });
-
 
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
@@ -252,20 +277,31 @@ function Builder() {
         <button
           type="button"
           onClick={() => {
-            console.info("[yawb] topbar.clicked", { control: "project-name", projectId: project.id });
+            console.info("[yawb] topbar.clicked", {
+              control: "project-name",
+              projectId: project.id,
+            });
             void navigate({ to: "/projects" });
           }}
           className="inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer min-w-0"
           title="Switch project"
         >
-          <span className="font-display font-semibold text-[13px] truncate max-w-[160px]">{project.name}</span>
+          <span className="font-display font-semibold text-[13px] truncate max-w-[160px]">
+            {project.name}
+          </span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
         <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
         {/* Page picker — hidden on phones to avoid header overflow. */}
-        <Popover onOpenChange={(o) => o && (console.info("[yawb] pagePicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "page-picker" }))}>
+        <Popover
+          onOpenChange={(o) =>
+            o &&
+            (console.info("[yawb] pagePicker.opened", { projectId: project.id }),
+            console.info("[yawb] topbar.clicked", { control: "page-picker" }))
+          }
+        >
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -277,8 +313,13 @@ function Builder() {
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
-            <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pages</div>
+          <PopoverContent
+            align="start"
+            className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50"
+          >
+            <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Pages
+            </div>
             {FALLBACK_PAGES.map((p) => (
               <button
                 key={p.path}
@@ -299,7 +340,13 @@ function Builder() {
         <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
         {/* Environment picker */}
-        <Popover onOpenChange={(o) => o && (console.info("[yawb] environmentPicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "environment-picker" }))}>
+        <Popover
+          onOpenChange={(o) =>
+            o &&
+            (console.info("[yawb] environmentPicker.opened", { projectId: project.id }),
+            console.info("[yawb] topbar.clicked", { control: "environment-picker" }))
+          }
+        >
           <PopoverTrigger asChild>
             <button
               type="button"
@@ -316,7 +363,10 @@ function Builder() {
               <ChevronDown className="h-3 w-3 opacity-70" />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-44 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
+          <PopoverContent
+            align="start"
+            className="w-44 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50"
+          >
             {(["preview", "production"] as BuilderEnvironment[]).map((env) => (
               <button
                 key={env}
@@ -327,7 +377,12 @@ function Builder() {
                   selectedEnvironment === env && "bg-white/[0.06] text-foreground",
                 )}
               >
-                <span className={cn("h-1.5 w-1.5 rounded-full", env === "production" ? "bg-success" : "bg-warning")} />
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    env === "production" ? "bg-success" : "bg-warning",
+                  )}
+                />
                 {env}
               </button>
             ))}
@@ -360,7 +415,7 @@ function Builder() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom)+56px)] md:pb-0">
-        {tab === "preview"  && (
+        {tab === "preview" && (
           <PreviewPane
             device={device}
             setDevice={handleDeviceChange}
@@ -395,7 +450,11 @@ function Builder() {
                 typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
                   ? crypto.randomUUID()
                   : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-              console.info("[yawb] regenerate.seed", { regenerationSeed, designMode, projectId: project.id });
+              console.info("[yawb] regenerate.seed", {
+                regenerationSeed,
+                designMode,
+                projectId: project.id,
+              });
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
@@ -412,7 +471,11 @@ function Builder() {
                 toast.error(`Couldn't regenerate: ${r.error}`);
                 return;
               }
-              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id, regenerationSeed, designMode });
+              console.info("[yawb] regenerate.enqueued", {
+                jobId: r.job.id,
+                regenerationSeed,
+                designMode,
+              });
               toast.success(`Regenerate (${designMode}) queued`);
               setFocusJobId(r.job.id);
               // Refresh jobs list once so the new job appears in the panel.
@@ -420,11 +483,37 @@ function Builder() {
             }}
           />
         )}
-        {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}
-        {tab === "database" && <NotConnected title="Database" hint="Connect Supabase from Integrations to inspect this project's tables." cta={{ label: "Open Integrations", to: "/connectors" }} />}
-        {tab === "deploy"   && <NotConnected title="Deploys" hint="Connect Vercel from Integrations to deploy this project." cta={{ label: "Open Integrations", to: "/connectors" }} />}
-        {tab === "jobs"     && <JobsPanel projectId={project.id} workspaceId={project.workspaceId} initialExpandedJobId={focusJobId} />}
-        {tab === "history"  && <NotConnected title="History" hint="Connect a Git provider to see commit history." cta={{ label: "Open Integrations", to: "/connectors" }} />}
+        {tab === "code" && (
+          <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />
+        )}
+        {tab === "database" && (
+          <NotConnected
+            title="Database"
+            hint="Connect Supabase from Integrations to inspect this project's tables."
+            cta={{ label: "Open Integrations", to: "/connectors" }}
+          />
+        )}
+        {tab === "deploy" && (
+          <NotConnected
+            title="Deploys"
+            hint="Connect Vercel from Integrations to deploy this project."
+            cta={{ label: "Open Integrations", to: "/connectors" }}
+          />
+        )}
+        {tab === "jobs" && (
+          <JobsPanel
+            projectId={project.id}
+            workspaceId={project.workspaceId}
+            initialExpandedJobId={focusJobId}
+          />
+        )}
+        {tab === "history" && (
+          <NotConnected
+            title="History"
+            hint="Connect a Git provider to see commit history."
+            cta={{ label: "Open Integrations", to: "/connectors" }}
+          />
+        )}
 
         {/* Command Center: compact pill + collapsible drawer.
             Hidden on the Jobs tab (full panel already visible there). */}
@@ -441,7 +530,10 @@ function Builder() {
               projectId={project.id}
               workspaceId={project.workspaceId}
               focusJobId={ccState.activeJob?.id ?? focusJobId}
-              onOpenJobsTab={() => { setCcOpen(false); setTab("jobs"); }}
+              onOpenJobsTab={() => {
+                setCcOpen(false);
+                setTab("jobs");
+              }}
             />
           </>
         )}
@@ -480,11 +572,15 @@ function useUnreadSummaries(): { count: number; clear: () => void } {
 // Primary tabs (Preview/Jobs) live as dedicated buttons in the bottom bar.
 // MOBILE_OVERFLOW_TABS only appear inside the "More" popover so we don't
 // duplicate the visible tabs.
-const MOBILE_OVERFLOW_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "code",     label: "Code",     icon: Code2 },
+const MOBILE_OVERFLOW_TABS: {
+  id: Tab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: "code", label: "Code", icon: Code2 },
   { id: "database", label: "Database", icon: Database },
-  { id: "deploy",   label: "Deploy",   icon: Rocket },
-  { id: "history",  label: "History",  icon: HistoryIcon },
+  { id: "deploy", label: "Deploy", icon: Rocket },
+  { id: "history", label: "History", icon: HistoryIcon },
 ];
 
 function MobileBottomNav({
@@ -498,7 +594,10 @@ function MobileBottomNav({
 }) {
   const inOverflow = MOBILE_OVERFLOW_TABS.some((t) => t.id === currentTab);
   const { count: unreadSummaries, clear: clearUnread } = useUnreadSummaries();
-  const handleChat = () => { clearUnread(); onOpenChat(); };
+  const handleChat = () => {
+    clearUnread();
+    onOpenChat();
+  };
   return (
     <nav
       data-testid="mobile-bottom-nav"
@@ -558,7 +657,9 @@ function MobileBottomNav({
               side="top"
               className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50 mb-2"
             >
-              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">More</div>
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                More
+              </div>
               {MOBILE_OVERFLOW_TABS.map((t) => (
                 <button
                   key={t.id}
@@ -583,7 +684,12 @@ function MobileBottomNav({
 }
 
 function BottomNavButton({
-  label, icon: Icon, active, onClick, testId, badge = 0,
+  label,
+  icon: Icon,
+  active,
+  onClick,
+  testId,
+  badge = 0,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -619,17 +725,28 @@ function BottomNavButton({
   );
 }
 
-
-function NotConnected({ title, hint, cta }: { title: string; hint: string; cta?: { label: string; to: string } }) {
+function NotConnected({
+  title,
+  hint,
+  cta,
+}: {
+  title: string;
+  hint: string;
+  cta?: { label: string; to: string };
+}) {
   return (
     <div className="h-full grid place-items-center text-center px-6">
       <div className="max-w-sm">
-        <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">Not connected yet</div>
+        <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
+          Not connected yet
+        </div>
         <h2 className="mt-2 text-2xl font-display font-semibold tracking-tight">{title}</h2>
         <p className="mt-2 text-[13px] text-muted-foreground">{hint}</p>
         {cta && (
           <Button variant="hero" className="mt-5" asChild>
-            <Link to={cta.to as never}><Plus className="h-3.5 w-3.5" /> {cta.label}</Link>
+            <Link to={cta.to as never}>
+              <Plus className="h-3.5 w-3.5" /> {cta.label}
+            </Link>
           </Button>
         )}
       </div>

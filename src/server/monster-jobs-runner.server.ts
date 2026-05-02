@@ -104,10 +104,15 @@ async function listConnectedProviders(sb: SupabaseClient, projectId: string): Pr
     .select("provider, status")
     .eq("project_id", projectId)
     .eq("status", "connected");
-  return (data ?? []).map((row: { provider?: string }) => String(row.provider ?? "")).filter(Boolean);
+  return (data ?? [])
+    .map((row: { provider?: string }) => String(row.provider ?? ""))
+    .filter(Boolean);
 }
 
-async function readPreviousIndexHtml(sb: SupabaseClient, projectId: string): Promise<string | null> {
+async function readPreviousIndexHtml(
+  sb: SupabaseClient,
+  projectId: string,
+): Promise<string | null> {
   const { data } = await sb
     .from("project_files")
     .select("content")
@@ -165,17 +170,34 @@ async function runMonsterGenerateChanges(input: {
     .maybeSingle();
   if (projectErr || !project) {
     const error = projectErr?.message ?? "project not found";
-    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+    await markJobAndStep({
+      sb: input.sb,
+      jobId: input.job.id,
+      stepId: input.step.id,
+      status: "failed",
+      error,
+    });
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "failed",
+      error,
+    };
   }
 
   const jobInput = (input.job.input ?? {}) as Record<string, unknown>;
-  const chatRequest = typeof jobInput.chatRequest === "string"
-    ? jobInput.chatRequest
-    : typeof jobInput.prompt === "string" ? jobInput.prompt : null;
-  const regenerationSeed = typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
+  const chatRequest =
+    typeof jobInput.chatRequest === "string"
+      ? jobInput.chatRequest
+      : typeof jobInput.prompt === "string"
+        ? jobInput.prompt
+        : null;
+  const regenerationSeed =
+    typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
   const forceVariant = jobInput.forceVariant === true || Boolean(regenerationSeed);
-  const requestedDesignMode = typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
+  const requestedDesignMode =
+    typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
 
   try {
     const generation = generateMonsterProject({
@@ -209,7 +231,13 @@ async function runMonsterGenerateChanges(input: {
         error,
         output: { written: persisted.written },
       });
-      return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+      return {
+        advanced: true,
+        jobId: input.job.id,
+        stepKey: input.step.step_key,
+        status: "failed",
+        error,
+      };
     }
 
     const output = {
@@ -225,11 +253,28 @@ async function runMonsterGenerateChanges(input: {
       error: null,
       log: `Monster generated ${persisted.written.length} files: ${generation.output.blueprintSummary}`,
     });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "succeeded" };
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "succeeded",
+    };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+    await markJobAndStep({
+      sb: input.sb,
+      jobId: input.job.id,
+      stepId: input.step.id,
+      status: "failed",
+      error,
+    });
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "failed",
+      error,
+    };
   }
 }
 

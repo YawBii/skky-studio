@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { regenerateOutcome, type RegenerateJobLike } from "./regenerate-watcher";
 
-const job = (s: RegenerateJobLike["status"], error?: string | null): RegenerateJobLike =>
-  ({ id: "j1", status: s, error: error ?? null });
+const job = (s: RegenerateJobLike["status"], error?: string | null): RegenerateJobLike => ({
+  id: "j1",
+  status: s,
+  error: error ?? null,
+});
 
 describe("regenerateOutcome", () => {
   it("pending when no jobId tracked", () => {

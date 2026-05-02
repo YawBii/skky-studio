@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { runAiPlan, isAiPlannerConfigured, AI_PLANNER_NOT_CONFIGURED_ERROR, type PlanContext } from "./ai-planner.server";
+import {
+  runAiPlan,
+  isAiPlannerConfigured,
+  AI_PLANNER_NOT_CONFIGURED_ERROR,
+  type PlanContext,
+} from "./ai-planner.server";
 
 const baseCtx: PlanContext = {
   workspace: { id: "w1", name: "W" },
@@ -58,18 +63,29 @@ describe("ai planner provider", () => {
       missingContext: ["latest_proofs"],
     };
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({
-        choices: [{
-          message: {
-            tool_calls: [{
-              function: { name: "submit_plan", arguments: JSON.stringify(planArgs) },
-            }],
-          },
-        }],
-      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                tool_calls: [
+                  {
+                    function: { name: "submit_plan", arguments: JSON.stringify(planArgs) },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
     );
 
-    const r = await runAiPlan({ context: baseCtx, contextSources: ["projects", "project_jobs"], baseMissing: [] });
+    const r = await runAiPlan({
+      context: baseCtx,
+      contextSources: ["projects", "project_jobs"],
+      baseMissing: [],
+    });
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(r.ok).toBe(true);
     if (r.ok) {

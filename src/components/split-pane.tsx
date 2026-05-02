@@ -19,7 +19,8 @@ interface Props {
  * pattern Lovable uses on small screens.
  */
 export function SplitPane({
-  left, right,
+  left,
+  right,
   initialRightWidth = 380,
   minRightWidth = 280,
   maxRightWidth,
@@ -32,7 +33,9 @@ export function SplitPane({
   const [isMobile, setIsMobile] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
-  useEffect(() => { setRightWidth(initialRightWidth); }, [initialRightWidth]);
+  useEffect(() => {
+    setRightWidth(initialRightWidth);
+  }, [initialRightWidth]);
 
   // Track viewport for mobile vs desktop layout. Lovable keeps chat + preview
   // side-by-side at narrow desktop widths (e.g. ~600px), only switching to a
@@ -59,33 +62,38 @@ export function SplitPane({
     document.body.style.userSelect = "none";
   }, []);
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!draggingRef.current || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const fromRight = rect.right - e.clientX;
-    // Allow chat to grow up to (container width - minLeftWidth) — i.e. nearly full width.
-    const upper = maxRightWidth ?? Math.max(minRightWidth, rect.width - minLeftWidth);
-    const next = Math.max(minRightWidth, Math.min(upper, fromRight));
-    setRightWidth(next);
-  }, [minRightWidth, maxRightWidth, minLeftWidth]);
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!draggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const fromRight = rect.right - e.clientX;
+      // Allow chat to grow up to (container width - minLeftWidth) — i.e. nearly full width.
+      const upper = maxRightWidth ?? Math.max(minRightWidth, rect.width - minLeftWidth);
+      const next = Math.max(minRightWidth, Math.min(upper, fromRight));
+      setRightWidth(next);
+    },
+    [minRightWidth, maxRightWidth, minLeftWidth],
+  );
 
-  const stopDrag = useCallback((e: React.PointerEvent) => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-    onChange?.(rightWidth);
-  }, [onChange, rightWidth]);
+  const stopDrag = useCallback(
+    (e: React.PointerEvent) => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      onChange?.(rightWidth);
+    },
+    [onChange, rightWidth],
+  );
 
   if (isMobile) {
     return (
-      <MobileChatLayout
-        left={left}
-        right={right}
-        open={chatOpen}
-        onOpenChange={setChatOpen}
-      />
+      <MobileChatLayout left={left} right={right} open={chatOpen} onOpenChange={setChatOpen} />
     );
   }
 
@@ -99,7 +107,10 @@ export function SplitPane({
         onPointerMove={onPointerMove}
         onPointerUp={stopDrag}
         onPointerCancel={stopDrag}
-        onDoubleClick={() => { setRightWidth(380); onChange?.(380); }}
+        onDoubleClick={() => {
+          setRightWidth(380);
+          onChange?.(380);
+        }}
         className={cn(
           "group relative w-2 shrink-0 cursor-col-resize bg-white/5 hover:bg-primary/40 active:bg-primary/60 transition-colors",
           "touch-none select-none",
@@ -117,7 +128,9 @@ export function SplitPane({
           <GripVertical className="h-3.5 w-3.5 text-foreground/90" />
         </div>
       </div>
-      <div style={{ width: rightWidth }} className="shrink-0 h-full min-w-0">{right}</div>
+      <div style={{ width: rightWidth }} className="shrink-0 h-full min-w-0">
+        {right}
+      </div>
     </div>
   );
 }
@@ -125,7 +138,10 @@ export function SplitPane({
 /* ----------------------------- Mobile layout ----------------------------- */
 
 function MobileChatLayout({
-  left, right, open, onOpenChange,
+  left,
+  right,
+  open,
+  onOpenChange,
 }: {
   left: React.ReactNode;
   right: React.ReactNode;
@@ -141,11 +157,15 @@ function MobileChatLayout({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   // Reset drag offset when reopening.
-  useEffect(() => { if (open) setDragY(0); }, [open]);
+  useEffect(() => {
+    if (open) setDragY(0);
+  }, [open]);
 
   const onDragStart = (e: React.PointerEvent) => {
     startYRef.current = e.clientY;
@@ -160,7 +180,11 @@ function MobileChatLayout({
     if (startYRef.current == null) return;
     const dy = e.clientY - startYRef.current;
     startYRef.current = null;
-    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
     const sheetH = sheetRef.current?.offsetHeight ?? 600;
     // Dismiss if dragged > 30% of sheet height OR fast flick (>120px).
     if (dy > sheetH * 0.3 || dy > 120) {
@@ -194,7 +218,12 @@ function MobileChatLayout({
 
       {/* Bottom-sheet chat drawer with swipe-to-dismiss */}
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="yawB chat">
+        <div
+          className="fixed inset-0 z-50 flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-label="yawB chat"
+        >
           <button
             aria-label="Close chat"
             className="flex-1 bg-black/50 backdrop-blur-sm"

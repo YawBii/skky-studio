@@ -7,7 +7,10 @@ import {
 } from "@/services/project-connections";
 
 export function useProjectConnections(projectId: string | null | undefined) {
-  const [result, setResult] = useState<ConnectionsResult>({ connections: [], source: "no-project" });
+  const [result, setResult] = useState<ConnectionsResult>({
+    connections: [],
+    source: "no-project",
+  });
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -16,13 +19,19 @@ export function useProjectConnections(projectId: string | null | undefined) {
     setResult(r);
     setLoading(false);
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line no-console
-      console.info("[yawb] project_connections source:", r.source, `count=${r.connections.length}`, r.error ?? "");
+      console.info(
+        "[yawb] project_connections source:",
+        r.source,
+        `count=${r.connections.length}`,
+        r.error ?? "",
+      );
     }
     return r;
   }, [projectId]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const byProvider = useMemo(() => {
     const map = new Map<ConnectionProvider, ProjectConnection>();

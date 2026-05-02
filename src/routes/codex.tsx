@@ -1,8 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
-  Terminal, Search, ExternalLink, KeyRound, FileCode2, CheckCircle2, Circle,
-  CircleDashed, CircleDot, Filter,
+  Terminal,
+  Search,
+  ExternalLink,
+  KeyRound,
+  FileCode2,
+  CheckCircle2,
+  Circle,
+  CircleDashed,
+  CircleDot,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +21,11 @@ export const Route = createFileRoute("/codex")({
   head: () => ({
     meta: [
       { title: "Codex wiring checklist · yawB" },
-      { name: "description", content: "Per-service TODO checklist showing which yawB stubs are ready to be wired to real APIs." },
+      {
+        name: "description",
+        content:
+          "Per-service TODO checklist showing which yawB stubs are ready to be wired to real APIs.",
+      },
     ],
   }),
   component: CodexPage,
@@ -38,7 +50,8 @@ function CodexPage() {
       .map((s) => ({
         ...s,
         functions: s.functions.filter((f) => {
-          const matchesQ = !q ||
+          const matchesQ =
+            !q ||
             s.service.toLowerCase().includes(q.toLowerCase()) ||
             f.name.toLowerCase().includes(q.toLowerCase()) ||
             s.file.toLowerCase().includes(q.toLowerCase());
@@ -59,7 +72,9 @@ function CodexPage() {
         <div className="flex-1">
           <h1 className="font-display font-semibold text-2xl">Codex wiring checklist</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Every demo stub in <span className="font-mono">src/services/*</span> grouped by integration. Replace the body, flip the status to <span className="text-success">wired</span>.
+            Every demo stub in <span className="font-mono">src/services/*</span> grouped by
+            integration. Replace the body, flip the status to{" "}
+            <span className="text-success">wired</span>.
           </p>
         </div>
       </header>
@@ -73,7 +88,9 @@ function CodexPage() {
           <Stat label="Ready" value={summary.ready} tone="warning" />
           <Stat label="Wired" value={summary.wired} tone="success" />
           <div className="ml-auto text-right">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Progress</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Progress
+            </div>
             <div className="text-2xl font-display font-semibold">{progress.toFixed(0)}%</div>
           </div>
         </div>
@@ -101,7 +118,9 @@ function CodexPage() {
               onClick={() => setFilter(f.id)}
               className={cn(
                 "h-7 rounded-md px-3 text-xs transition-colors",
-                filter === f.id ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground",
+                filter === f.id
+                  ? "bg-white/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {f.label}
@@ -113,7 +132,10 @@ function CodexPage() {
       {/* Service cards */}
       <div className="space-y-4">
         {filtered.map((s) => (
-          <section key={s.id} className="rounded-2xl border border-white/5 bg-gradient-card overflow-hidden">
+          <section
+            key={s.id}
+            className="rounded-2xl border border-white/5 bg-gradient-card overflow-hidden"
+          >
             <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3 flex-wrap">
               <div className="min-w-0">
                 <h2 className="font-display font-semibold">{s.service}</h2>
@@ -140,25 +162,40 @@ function CodexPage() {
                 <KeyRound className="h-3 w-3 text-muted-foreground" />
                 <span className="text-muted-foreground">Required env:</span>
                 {s.envVars.map((v) => (
-                  <code key={v} className="font-mono bg-white/5 border border-white/10 rounded px-1.5 py-0.5">{v}</code>
+                  <code
+                    key={v}
+                    className="font-mono bg-white/5 border border-white/10 rounded px-1.5 py-0.5"
+                  >
+                    {v}
+                  </code>
                 ))}
               </div>
             )}
 
             <div className="divide-y divide-white/5">
               {s.functions.map((f) => (
-                <div key={f.name} className="px-5 py-3 flex items-start gap-3 hover:bg-white/[0.02]">
+                <div
+                  key={f.name}
+                  className="px-5 py-3 flex items-start gap-3 hover:bg-white/[0.02]"
+                >
                   <StatusIcon status={f.status} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <code className="text-sm font-mono font-medium">{f.name}</code>
-                      <code className="text-xs font-mono text-muted-foreground truncate">{f.signature}</code>
+                      <code className="text-xs font-mono text-muted-foreground truncate">
+                        {f.signature}
+                      </code>
                     </div>
                     {f.notes && (
                       <div className="text-[11px] text-muted-foreground mt-1">{f.notes}</div>
                     )}
                   </div>
-                  <span className={cn("text-[10px] uppercase tracking-[0.18em] shrink-0", statusTone(f.status))}>
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase tracking-[0.18em] shrink-0",
+                      statusTone(f.status),
+                    )}
+                  >
                     {f.status}
                   </span>
                 </div>
@@ -176,15 +213,28 @@ function CodexPage() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone?: "muted" | "primary" | "warning" | "success" }) {
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "muted" | "primary" | "warning" | "success";
+}) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
-      <div className={cn("text-2xl font-display font-semibold tabular-nums",
-        tone === "success" && "text-success",
-        tone === "warning" && "text-warning",
-        tone === "primary" && "text-primary",
-      )}>{value}</div>
+      <div
+        className={cn(
+          "text-2xl font-display font-semibold tabular-nums",
+          tone === "success" && "text-success",
+          tone === "warning" && "text-warning",
+          tone === "primary" && "text-primary",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }

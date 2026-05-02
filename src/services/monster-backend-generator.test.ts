@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createMonsterBlueprint } from "./monster-director";
-import { generateMonsterBackendFiles, generateMonsterSupabaseMigration } from "./monster-backend-generator";
+import {
+  generateMonsterBackendFiles,
+  generateMonsterSupabaseMigration,
+} from "./monster-backend-generator";
 
 const project = { id: "p1", name: "LawForge", description: "AI law firm platform" };
 
@@ -25,10 +28,12 @@ describe("Monster backend generator", () => {
     const result = generateMonsterBackendFiles(blueprint);
     expect(result.tableCount).toBeGreaterThan(0);
     expect(result.policyCount).toBeGreaterThan(0);
-    expect(result.files.map((f) => f.path)).toEqual(expect.arrayContaining([
-      "supabase/migrations/monster_lawforge_initial.sql",
-      "docs/generated/lawforge_monster_backend.md",
-      "docs/generated/lawforge_monster_blueprint.json",
-    ]));
+    expect(result.files.map((f) => f.path)).toEqual(
+      expect.arrayContaining([
+        "supabase/migrations/monster_lawforge_initial.sql",
+        "docs/generated/lawforge_monster_backend.md",
+        "docs/generated/lawforge_monster_blueprint.json",
+      ]),
+    );
   });
 });

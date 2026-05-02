@@ -2,9 +2,13 @@ import { describe, it, expect } from "vitest";
 import { generateProjectFiles, inferProjectArchetype } from "./monster-brain-generator";
 
 const goodhand = { id: "p-good", name: "Goodhand", description: "Praise + scanner." };
-const skky     = { id: "p-skky", name: "skkygroup", description: "Holding group." };
-const ujob     = { id: "p-ujob", name: "uJob", description: "Hire and get hired." };
-const lastman  = { id: "p-lastman", name: "LastMan", description: "Identity verification + trust graph." };
+const skky = { id: "p-skky", name: "skkygroup", description: "Holding group." };
+const ujob = { id: "p-ujob", name: "uJob", description: "Hire and get hired." };
+const lastman = {
+  id: "p-lastman",
+  name: "LastMan",
+  description: "Identity verification + trust graph.",
+};
 
 function html(p: { id: string; name: string; description?: string | null }) {
   return generateProjectFiles(p).find((f) => f.path === "index.html")!.content;

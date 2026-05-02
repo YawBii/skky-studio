@@ -23,7 +23,10 @@ import {
 
 const TICK_MS = 1500;
 
-export function useProjectJobs(projectId: string | null | undefined, workspaceId: string | null | undefined) {
+export function useProjectJobs(
+  projectId: string | null | undefined,
+  workspaceId: string | null | undefined,
+) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [source, setSource] = useState<JobsSource>("no-project");
   const [error, setError] = useState<string | null>(null);
@@ -33,15 +36,22 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
   const [questionsByJob, setQuestionsByJob] = useState<Record<string, JobQuestion[]>>({});
   const [attemptsByJob, setAttemptsByJob] = useState<Record<string, StepAttempt[]>>({});
   const [lastTick, setLastTick] = useState<{
-    advanced: boolean; jobId?: string; stepKey?: string; status?: string;
-    error?: string; questionId?: string; cancelled?: boolean;
+    advanced: boolean;
+    jobId?: string;
+    stepKey?: string;
+    status?: string;
+    error?: string;
+    questionId?: string;
+    cancelled?: boolean;
   } | null>(null);
   const [ticking, setTicking] = useState(false);
   const tickingRef = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!projectId) {
-      setJobs([]); setSource("no-project"); return;
+      setJobs([]);
+      setSource("no-project");
+      return;
     }
     setLoading(true);
     const r = await listJobs(projectId);
@@ -77,7 +87,11 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
     const loop = async () => {
       if (cancelled || !projectId) return;
       const hasActive = jobs.some((j) => j.status === "queued" || j.status === "running");
-      if (!hasActive) { setTicking(false); tickingRef.current = false; return; }
+      if (!hasActive) {
+        setTicking(false);
+        tickingRef.current = false;
+        return;
+      }
       if (tickingRef.current) return;
       tickingRef.current = true;
       setTicking(true);
@@ -95,58 +109,99 @@ export function useProjectJobs(projectId: string | null | undefined, workspaceId
     };
 
     void loop();
-    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [projectId, jobs, refresh, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
-  const enqueue = useCallback(async (input: { type: JobType | string; title: string; input?: Record<string, unknown> }) => {
-    if (!projectId || !workspaceId) return { ok: false as const, error: "No project selected" };
-    const r = await enqueueJob({ projectId, workspaceId, ...input });
-    if (r.ok) {
+  const enqueue = useCallback(
+    async (input: { type: JobType | string; title: string; input?: Record<string, unknown> }) => {
+      if (!projectId || !workspaceId) return { ok: false as const, error: "No project selected" };
+      const r = await enqueueJob({ projectId, workspaceId, ...input });
+      if (r.ok) {
+        await refresh();
+        await refreshSteps(r.job.id);
+      }
+      return r;
+    },
+    [projectId, workspaceId, refresh, refreshSteps],
+  );
+
+  const cancel = useCallback(
+    async (jobId: string) => {
+      const r = await cancelJob(jobId);
       await refresh();
-      await refreshSteps(r.job.id);
-    }
-    return r;
-  }, [projectId, workspaceId, refresh, refreshSteps]);
+      await refreshSteps(jobId);
+      await refreshAttempts(jobId);
+      return r;
+    },
+    [refresh, refreshSteps, refreshAttempts],
+  );
 
-  const cancel = useCallback(async (jobId: string) => {
-    const r = await cancelJob(jobId);
-    await refresh();
-    await refreshSteps(jobId);
-    await refreshAttempts(jobId);
-    return r;
-  }, [refresh, refreshSteps, refreshAttempts]);
+  const retry = useCallback(
+    async (jobId: string) => {
+      const r = await retryJob(jobId);
+      await refresh();
+      await refreshSteps(jobId);
+      await refreshAttempts(jobId);
+      return r;
+    },
+    [refresh, refreshSteps, refreshAttempts],
+  );
 
-  const retry = useCallback(async (jobId: string) => {
-    const r = await retryJob(jobId);
-    await refresh();
-    await refreshSteps(jobId);
-    await refreshAttempts(jobId);
-    return r;
-  }, [refresh, refreshSteps, refreshAttempts]);
+  const retryOneStep = useCallback(
+    async (jobId: string, stepId: string) => {
+      const r = await retryStep({ jobId, stepId });
+      await refresh();
+      await refreshSteps(jobId);
+      await refreshAttempts(jobId);
+      return r;
+    },
+    [refresh, refreshSteps, refreshAttempts],
+  );
 
-  const retryOneStep = useCallback(async (jobId: string, stepId: string) => {
-    const r = await retryStep({ jobId, stepId });
-    await refresh();
-    await refreshSteps(jobId);
-    await refreshAttempts(jobId);
-    return r;
-  }, [refresh, refreshSteps, refreshAttempts]);
-
-  const answer = useCallback(async (input: { questionId: string; jobId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => {
-    const r = await answerJobQuestion(input);
-    await refresh();
-    await refreshSteps(input.jobId);
-    await refreshQuestions(input.jobId);
-    return r;
-  }, [refresh, refreshSteps, refreshQuestions]);
+  const answer = useCallback(
+    async (input: {
+      questionId: string;
+      jobId: string;
+      stepId: string | null;
+      answer: unknown;
+      skipped?: boolean;
+    }) => {
+      const r = await answerJobQuestion(input);
+      await refresh();
+      await refreshSteps(input.jobId);
+      await refreshQuestions(input.jobId);
+      return r;
+    },
+    [refresh, refreshSteps, refreshQuestions],
+  );
 
   return {
-    jobs, source, error, sqlFile, loading, ticking, lastTick,
-    stepsByJob, questionsByJob, attemptsByJob,
-    refresh, refreshSteps, refreshQuestions, refreshAttempts,
-    enqueue, cancel, retry, retryStep: retryOneStep, answer,
+    jobs,
+    source,
+    error,
+    sqlFile,
+    loading,
+    ticking,
+    lastTick,
+    stepsByJob,
+    questionsByJob,
+    attemptsByJob,
+    refresh,
+    refreshSteps,
+    refreshQuestions,
+    refreshAttempts,
+    enqueue,
+    cancel,
+    retry,
+    retryStep: retryOneStep,
+    answer,
   };
 }

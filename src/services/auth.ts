@@ -6,7 +6,12 @@ export interface Session {
   displayName: string;
 }
 
-function toSession(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined): Session | null {
+function toSession(
+  user:
+    | { id: string; email?: string | null; user_metadata?: Record<string, unknown> }
+    | null
+    | undefined,
+): Session | null {
   if (!user) return null;
   const email = user.email ?? "";
   const meta = user.user_metadata ?? {};
@@ -22,13 +27,17 @@ function friendlyError(message: string | undefined): string {
   if (!message) return "Something went wrong. Please try again.";
   const m = message.toLowerCase();
   if (m.includes("invalid login")) return "Invalid email or password.";
-  if (m.includes("email not confirmed")) return "Please confirm your email address before signing in.";
+  if (m.includes("email not confirmed"))
+    return "Please confirm your email address before signing in.";
   if (m.includes("user already registered")) return "An account with this email already exists.";
   if (m.includes("password should be at least")) return "Password must be at least 6 characters.";
   if (m.includes("rate limit")) return "Too many attempts. Please wait a moment and try again.";
-  if (m.includes("not configured")) return "Authentication is not configured. Please contact support.";
-  if (m.includes("env vars missing")) return "Supabase env vars missing — check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.";
-  if (m.includes("failed to fetch")) return "Can't reach Supabase. Check VITE_SUPABASE_URL and your network.";
+  if (m.includes("not configured"))
+    return "Authentication is not configured. Please contact support.";
+  if (m.includes("env vars missing"))
+    return "Supabase env vars missing — check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.";
+  if (m.includes("failed to fetch"))
+    return "Can't reach Supabase. Check VITE_SUPABASE_URL and your network.";
   return message;
 }
 
@@ -58,7 +67,11 @@ export async function signInWithProvider(provider: "google" | "apple"): Promise<
   if (error) throw new Error(friendlyError(error.message));
 }
 
-export async function signUp(email: string, password: string, displayName?: string): Promise<Session | null> {
+export async function signUp(
+  email: string,
+  password: string,
+  displayName?: string,
+): Promise<Session | null> {
   const supabase = await getSupabase();
   const emailRedirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
   const { data, error } = await supabase.auth.signUp({

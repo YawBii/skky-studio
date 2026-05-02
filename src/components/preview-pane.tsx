@@ -28,12 +28,12 @@ export type DesignAngle =
 
 export const DESIGN_ANGLES: { id: DesignAngle; label: string }[] = [
   { id: "editorial-luxury", label: "Luxury Editorial" },
-  { id: "minimal-light",    label: "Clean Minimal" },
-  { id: "glass-dashboard",  label: "Glass Dashboard" },
-  { id: "neon-command",     label: "Neon Command" },
-  { id: "civic-map",        label: "Civic Impact" },
-  { id: "magazine-cards",   label: "Magazine Cards" },
-  { id: "brutalist-data",   label: "Brutalist Data" },
+  { id: "minimal-light", label: "Clean Minimal" },
+  { id: "glass-dashboard", label: "Glass Dashboard" },
+  { id: "neon-command", label: "Neon Command" },
+  { id: "civic-map", label: "Civic Impact" },
+  { id: "magazine-cards", label: "Magazine Cards" },
+  { id: "brutalist-data", label: "Brutalist Data" },
 ];
 
 export const DESIGN_ANGLE_KEY = (projectId: string) => `yawb:design-angle:${projectId}`;
@@ -74,7 +74,9 @@ export function parseDesignProof(html: string | null | undefined): {
 } {
   if (!html) return { designMode: null, heroLayout: null, palette: null };
   const get = (n: string) => {
-    const m = html.match(new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"));
+    const m = html.match(
+      new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"),
+    );
     return m ? m[1] : null;
   };
   return {
@@ -119,15 +121,24 @@ function sanitizeText(value: unknown, maxLen = 500): string {
     .slice(0, maxLen);
   return cleaned.replace(/[&<>"'`/=]/g, (c) => {
     switch (c) {
-      case "&": return "&amp;";
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case '"': return "&quot;";
-      case "'": return "&#39;";
-      case "`": return "&#96;";
-      case "/": return "&#47;";
-      case "=": return "&#61;";
-      default: return c;
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      case "`":
+        return "&#96;";
+      case "/":
+        return "&#47;";
+      case "=":
+        return "&#61;";
+      default:
+        return c;
     }
   });
 }
@@ -261,13 +272,21 @@ export function PreviewPane({
   // Persisted Design Angle per project.
   const [designAngle, setDesignAngle] = useState<DesignAngle>(() => {
     try {
-      const stored = window.localStorage.getItem(DESIGN_ANGLE_KEY(project.id)) as DesignAngle | null;
+      const stored = window.localStorage.getItem(
+        DESIGN_ANGLE_KEY(project.id),
+      ) as DesignAngle | null;
       if (stored && DESIGN_ANGLES.some((a) => a.id === stored)) return stored;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return "editorial-luxury";
   });
   useEffect(() => {
-    try { window.localStorage.setItem(DESIGN_ANGLE_KEY(project.id), designAngle); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem(DESIGN_ANGLE_KEY(project.id), designAngle);
+    } catch {
+      /* ignore */
+    }
   }, [designAngle, project.id]);
 
   // Auto-switch when availability changes (e.g. preview deploy lands).
@@ -303,7 +322,11 @@ export function PreviewPane({
   useEffect(() => {
     console.info("[yawb] preview.source.resolved", {
       kind: resolved.kind,
-      source: resolved.source ?? (resolved.kind === "local" && resolved.srcDoc ? "project_files/index.html" : resolved.url ?? "fallback:placeholder"),
+      source:
+        resolved.source ??
+        (resolved.kind === "local" && resolved.srcDoc
+          ? "project_files/index.html"
+          : (resolved.url ?? "fallback:placeholder")),
       mode,
       reason: resolved.reason,
       url: resolved.url,
@@ -342,7 +365,6 @@ export function PreviewPane({
   const [softHintVisible, setSoftHintVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
 
   // Local previews render statically — no loading state, no overlay, no
   // raf/timeout machinery. The loading overlay applies ONLY to live iframes
@@ -447,9 +469,7 @@ export function PreviewPane({
 
   const onCreatePreviewDeploy = () => {
     console.info("[yawb] preview.createDeploy.clicked", { projectId: project.id });
-    window.dispatchEvent(
-      new CustomEvent("yawb:switch-tab", { detail: { tab: "deploy" } }),
-    );
+    window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "deploy" } }));
   };
 
   const onModeChange = (next: PreviewMode) => {
@@ -459,8 +479,7 @@ export function PreviewPane({
     setMode(next);
   };
 
-  const showFallbackCard =
-    resolved.kind === "live" && iframeSrc && iframeState === "failed";
+  const showFallbackCard = resolved.kind === "live" && iframeSrc && iframeState === "failed";
   const showLocalEmpty =
     resolved.kind === "local" && !generatedHasContent && !iframeSrc && !localSrcDoc;
 
@@ -495,13 +514,18 @@ export function PreviewPane({
               value={designAngle}
               onChange={(e) => {
                 const next = e.target.value as DesignAngle;
-                console.info("[yawb] preview.designAngle.changed", { projectId: project.id, angle: next });
+                console.info("[yawb] preview.designAngle.changed", {
+                  projectId: project.id,
+                  angle: next,
+                });
                 setDesignAngle(next);
               }}
               className="h-7 rounded-md bg-white/[0.04] border border-white/10 px-2 text-[11px] uppercase tracking-[0.14em] text-foreground touch-manipulation"
             >
               {DESIGN_ANGLES.map((a) => (
-                <option key={a.id} value={a.id}>{a.label}</option>
+                <option key={a.id} value={a.id}>
+                  {a.label}
+                </option>
               ))}
             </select>
             <Button
@@ -511,7 +535,10 @@ export function PreviewPane({
               className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
               data-testid="preview-regenerate-design"
               onClick={() => {
-                console.info("[yawb] preview.regenerate.clicked", { projectId: project.id, designMode: designAngle });
+                console.info("[yawb] preview.regenerate.clicked", {
+                  projectId: project.id,
+                  designMode: designAngle,
+                });
                 onRegenerateDesign(designAngle);
               }}
               disabled={regenerating}
@@ -597,7 +624,9 @@ export function PreviewPane({
               >
                 Local preview
               </span>
-              <span className="truncate">{resolved.source ?? resolved.url ?? "fallback:placeholder"}</span>
+              <span className="truncate">
+                {resolved.source ?? resolved.url ?? "fallback:placeholder"}
+              </span>
             </>
           ) : (
             <span className="truncate">No preview yet</span>
@@ -673,10 +702,7 @@ export function PreviewPane({
             height: "100%",
             ...(device === "desktop" ? {} : { margin: "0 auto" }),
           }}
-          className={cn(
-            "transition-all overflow-hidden",
-            device === "desktop" && "w-full h-full",
-          )}
+          className={cn("transition-all overflow-hidden", device === "desktop" && "w-full h-full")}
         >
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div
@@ -770,8 +796,8 @@ export function PreviewPane({
                   This app may block embedded preview.
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground max-w-md text-pretty">
-                  The deploy succeeded, but this site can't be shown inside an iframe.
-                  Open it in a new tab to verify it's live.
+                  The deploy succeeded, but this site can't be shown inside an iframe. Open it in a
+                  new tab to verify it's live.
                 </p>
                 <Button
                   type="button"
@@ -793,7 +819,11 @@ export function PreviewPane({
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-                  {isGithubLinked ? "GitHub-linked project" : resolved.kind === "local" ? "Local preview" : "Preview"}
+                  {isGithubLinked
+                    ? "GitHub-linked project"
+                    : resolved.kind === "local"
+                      ? "Local preview"
+                      : "Preview"}
                 </div>
                 <h2 className="mt-3 text-2xl md:text-3xl font-display font-bold tracking-tight text-balance">
                   {isGithubLinked
@@ -803,11 +833,20 @@ export function PreviewPane({
                       : project.name}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground max-w-md text-pretty">
-                  {isGithubLinked
-                    ? <>This project is linked to <span className="font-mono text-foreground">{githubConnection?.repoFullName ?? "a GitHub repository"}</span>. yawB will not regenerate it from scratch — open the live preview or your repo to see the existing app.</>
-                    : resolved.kind === "local"
-                      ? "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
-                      : "Tell yawB in the chat what to build. The first build will appear here."}
+                  {isGithubLinked ? (
+                    <>
+                      This project is linked to{" "}
+                      <span className="font-mono text-foreground">
+                        {githubConnection?.repoFullName ?? "a GitHub repository"}
+                      </span>
+                      . yawB will not regenerate it from scratch — open the live preview or your
+                      repo to see the existing app.
+                    </>
+                  ) : resolved.kind === "local" ? (
+                    "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
+                  ) : (
+                    "Tell yawB in the chat what to build. The first build will appear here."
+                  )}
                 </p>
                 <div className="mt-5 flex items-center gap-2 flex-wrap justify-center">
                   {isGithubLinked ? (

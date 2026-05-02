@@ -18,10 +18,17 @@ let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
 beforeEach(() => {
-  try { window.localStorage.clear(); } catch { /* ignore */ }
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
 });
 afterEach(() => {
-  if (root) { act(() => root!.unmount()); root = null; }
+  if (root) {
+    act(() => root!.unmount());
+    root = null;
+  }
   host?.remove();
   host = null;
   vi.restoreAllMocks();
@@ -50,7 +57,9 @@ describe("parseDesignProof", () => {
   });
   it("returns nulls when no meta tags are present", () => {
     expect(parseDesignProof("<html></html>")).toEqual({
-      designMode: null, heroLayout: null, palette: null,
+      designMode: null,
+      heroLayout: null,
+      palette: null,
     });
   });
 });
@@ -94,7 +103,9 @@ describe("PreviewPane — Design Angle selector", () => {
       sel.dispatchEvent(new Event("change", { bubbles: true }));
     });
     const btn = c.querySelector('[data-testid="preview-regenerate-design"]') as HTMLButtonElement;
-    act(() => { btn.click(); });
+    act(() => {
+      btn.click();
+    });
     expect(onRegenerate).toHaveBeenCalledWith("neon-command");
     expect(window.localStorage.getItem(DESIGN_ANGLE_KEY(project.id))).toBe("neon-command");
   });

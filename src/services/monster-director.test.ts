@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { createMonsterBlueprint, inferMonsterAppType, inferMonsterDesignMode } from "./monster-director";
+import {
+  createMonsterBlueprint,
+  inferMonsterAppType,
+  inferMonsterDesignMode,
+} from "./monster-director";
 
 const project = { id: "p1", name: "yawB", description: "prompt first app builder" };
 
 describe("Monster Director", () => {
   it("infers a premium law firm as luxury editorial without template selection", () => {
-    const input = { project, chatRequest: "Build a premium AI law firm with auth, dashboard, admin and payments" };
+    const input = {
+      project,
+      chatRequest: "Build a premium AI law firm with auth, dashboard, admin and payments",
+    };
     expect(inferMonsterAppType(input)).toBe("professional-services");
     expect(inferMonsterDesignMode(input)).toBe("editorial-luxury");
     const blueprint = createMonsterBlueprint(input);
@@ -13,7 +20,9 @@ describe("Monster Director", () => {
     expect(blueprint.routes.some((r) => r.path === "/dashboard")).toBe(true);
     expect(blueprint.routes.some((r) => r.path === "/admin" && r.auth === "role")).toBe(true);
     expect(blueprint.backend.mode).toBe("supabase");
-    expect(blueprint.acceptanceTests).toContain("First run does not require choosing a template or design angle");
+    expect(blueprint.acceptanceTests).toContain(
+      "First run does not require choosing a template or design angle",
+    );
   });
 
   it("infers dashboard prompts as rich glass dashboard products", () => {

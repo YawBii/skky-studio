@@ -4,7 +4,16 @@
 // reveal the full TaskSummaryCard. Lets phone users see what changed without
 // opening chat.
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Check, X, Loader2, AlertTriangle, ExternalLink, MessageSquare } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  Loader2,
+  AlertTriangle,
+  ExternalLink,
+  MessageSquare,
+} from "lucide-react";
 import type { Job, JobStep } from "@/services/jobs";
 import { cn } from "@/lib/utils";
 
@@ -22,14 +31,30 @@ function statusMeta(j: Job) {
     case "succeeded":
       return { Icon: Check, tone: "text-success bg-success/10 border-success/30", label: "Done" };
     case "failed":
-      return { Icon: X, tone: "text-destructive bg-destructive/10 border-destructive/30", label: "Failed" };
+      return {
+        Icon: X,
+        tone: "text-destructive bg-destructive/10 border-destructive/30",
+        label: "Failed",
+      };
     case "waiting_for_input":
-      return { Icon: AlertTriangle, tone: "text-warning bg-warning/10 border-warning/30", label: "Needs answer" };
+      return {
+        Icon: AlertTriangle,
+        tone: "text-warning bg-warning/10 border-warning/30",
+        label: "Needs answer",
+      };
     case "running":
     case "queued":
-      return { Icon: Loader2, tone: "text-primary bg-primary/10 border-primary/30", label: j.status === "running" ? "Running" : "Queued" };
+      return {
+        Icon: Loader2,
+        tone: "text-primary bg-primary/10 border-primary/30",
+        label: j.status === "running" ? "Running" : "Queued",
+      };
     default:
-      return { Icon: Check, tone: "text-muted-foreground bg-white/5 border-white/10", label: j.status };
+      return {
+        Icon: Check,
+        tone: "text-muted-foreground bg-white/5 border-white/10",
+        label: j.status,
+      };
   }
 }
 
@@ -37,7 +62,11 @@ export function PreviewSummaryStrip({ jobs, stepsByJob, onJumpToJob, onOpenInCha
   // Pick the most recent job (running OR terminal). Sort by createdAt desc.
   const latest = useMemo(() => {
     const sorted = [...jobs].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-    return sorted.find((j) => TERMINAL.has(j.status) || j.status === "running" || j.status === "queued") ?? null;
+    return (
+      sorted.find(
+        (j) => TERMINAL.has(j.status) || j.status === "running" || j.status === "queued",
+      ) ?? null
+    );
   }, [jobs]);
 
   const [expanded, setExpanded] = useState(false);
@@ -52,7 +81,10 @@ export function PreviewSummaryStrip({ jobs, stepsByJob, onJumpToJob, onOpenInCha
     <div
       data-testid="preview-summary-strip"
       data-job-id={latest.id}
-      className={cn("border-b border-white/5 bg-background/60 backdrop-blur-xl", expanded && "shadow-elevated")}
+      className={cn(
+        "border-b border-white/5 bg-background/60 backdrop-blur-xl",
+        expanded && "shadow-elevated",
+      )}
     >
       <div className="px-2 sm:px-4 h-10 flex items-center gap-2 min-w-0">
         <span
@@ -99,7 +131,9 @@ export function PreviewSummaryStrip({ jobs, stepsByJob, onJumpToJob, onOpenInCha
 
       {expanded && (
         <div className="px-2 sm:px-4 pb-3 pt-1 space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Proof timeline</div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Proof timeline
+          </div>
           {steps.length === 0 ? (
             <div className="text-[12px] text-muted-foreground">No step output yet.</div>
           ) : (
@@ -148,7 +182,11 @@ export function PreviewSummaryStrip({ jobs, stepsByJob, onJumpToJob, onOpenInCha
 function StepDot({ status }: { status: JobStep["status"] }) {
   if (status === "succeeded") return <Check className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />;
   if (status === "failed") return <X className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />;
-  if (status === "running") return <Loader2 className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0 animate-spin" />;
-  if (status === "skipped") return <span className="h-2 w-2 rounded-full bg-muted-foreground/40 inline-block mt-1.5 shrink-0" />;
+  if (status === "running")
+    return <Loader2 className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0 animate-spin" />;
+  if (status === "skipped")
+    return (
+      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 inline-block mt-1.5 shrink-0" />
+    );
   return <span className="h-2 w-2 rounded-full bg-white/20 inline-block mt-1.5 shrink-0" />;
 }

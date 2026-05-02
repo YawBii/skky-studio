@@ -49,15 +49,26 @@ export function isUuid(value: string | null | undefined): value is string {
   return !!value && UUID_RE.test(value);
 }
 
-export async function listProjects(workspaceId: string | null | undefined): Promise<ProjectsResult> {
+export async function listProjects(
+  workspaceId: string | null | undefined,
+): Promise<ProjectsResult> {
   if (!workspaceId) {
-    setDiag({ workspaceId: null, projectsCount: 0, projectsSource: "no-workspace", projectsQueryError: null });
+    setDiag({
+      workspaceId: null,
+      projectsCount: 0,
+      projectsSource: "no-workspace",
+      projectsQueryError: null,
+    });
     return { projects: [], source: "no-workspace" };
   }
   if (!UUID_RE.test(workspaceId)) {
-    // eslint-disable-next-line no-console
     console.info("[yawb] projects.list skipped — non-UUID workspaceId", { workspaceId });
-    setDiag({ workspaceId, projectsCount: 0, projectsSource: "no-workspace", projectsQueryError: null });
+    setDiag({
+      workspaceId,
+      projectsCount: 0,
+      projectsSource: "no-workspace",
+      projectsQueryError: null,
+    });
     pushDiag("projects.skipped", { reason: "non-uuid-workspace", workspaceId });
     return { projects: [], source: "no-workspace" };
   }
@@ -71,10 +82,20 @@ export async function listProjects(workspaceId: string | null | undefined): Prom
       .order("created_at", { ascending: false });
 
     if (error) {
-      // eslint-disable-next-line no-console
       console.warn("[yawb] projects.list error", error);
-      setDiag({ workspaceId, projectsCount: 0, projectsSource: "error", projectsQueryError: error });
-      pushDiag("projects.query.error", { workspaceId, message: error.message, code: error.code, details: error.details, hint: error.hint });
+      setDiag({
+        workspaceId,
+        projectsCount: 0,
+        projectsSource: "error",
+        projectsQueryError: error,
+      });
+      pushDiag("projects.query.error", {
+        workspaceId,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       return { projects: [], source: "error", error: error.message };
     }
     if (!data || data.length === 0) {
@@ -83,8 +104,17 @@ export async function listProjects(workspaceId: string | null | undefined): Prom
       return { projects: [], source: "empty" };
     }
     const projects = data.map(toProject);
-    setDiag({ workspaceId, projectsCount: projects.length, projectsSource: "supabase", projectsQueryError: null });
-    pushDiag("projects.loaded", { workspaceId, count: projects.length, projectIds: projects.map((p) => p.id) });
+    setDiag({
+      workspaceId,
+      projectsCount: projects.length,
+      projectsSource: "supabase",
+      projectsQueryError: null,
+    });
+    pushDiag("projects.loaded", {
+      workspaceId,
+      count: projects.length,
+      projectIds: projects.map((p) => p.id),
+    });
     console.info("[yawb] projects.loaded", { workspaceId, count: projects.length });
     return {
       projects,
@@ -92,13 +122,20 @@ export async function listProjects(workspaceId: string | null | undefined): Prom
     };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    setDiag({ workspaceId, projectsCount: 0, projectsSource: "error", projectsQueryError: message });
+    setDiag({
+      workspaceId,
+      projectsCount: 0,
+      projectsSource: "error",
+      projectsQueryError: message,
+    });
     pushDiag("projects.query.exception", { workspaceId, message });
     return { projects: [], source: "error", error: message };
   }
 }
 
-export async function getProjectById(projectId: string | null | undefined): Promise<{ project: Project | null; error?: string }> {
+export async function getProjectById(
+  projectId: string | null | undefined,
+): Promise<{ project: Project | null; error?: string }> {
   if (!isUuid(projectId)) {
     pushDiag("project.byId.skipped", { reason: "non-uuid-project", projectId });
     return { project: null, error: "Project id is not a UUID." };
@@ -114,7 +151,13 @@ export async function getProjectById(projectId: string | null | undefined): Prom
 
     if (error) {
       setDiag({ projectId, projectSelectError: error, projectsQueryError: error });
-      pushDiag("project.byId.error", { projectId, message: error.message, code: error.code, details: error.details, hint: error.hint });
+      pushDiag("project.byId.error", {
+        projectId,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       return { project: null, error: error.message };
     }
     if (!data) {
@@ -124,8 +167,16 @@ export async function getProjectById(projectId: string | null | undefined): Prom
     }
     const project = toProject(data);
     setDiag({ projectId: project.id, workspaceId: project.workspaceId, projectSelectError: null });
-    pushDiag("project.selected", { source: "route-project-id", projectId: project.id, workspaceId: project.workspaceId });
-    console.info("[yawb] project.selected", { source: "route-project-id", projectId: project.id, workspaceId: project.workspaceId });
+    pushDiag("project.selected", {
+      source: "route-project-id",
+      projectId: project.id,
+      workspaceId: project.workspaceId,
+    });
+    console.info("[yawb] project.selected", {
+      source: "route-project-id",
+      projectId: project.id,
+      workspaceId: project.workspaceId,
+    });
     return { project };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -146,7 +197,6 @@ export async function createProject(input: {
   description?: string;
 }): Promise<CreateProjectResult> {
   const log = (label: string, payload: unknown) => {
-    // eslint-disable-next-line no-console
     console.info(`[yawb] ${label}`, payload);
     pushDiag(label, payload);
   };
@@ -209,7 +259,8 @@ export async function createProject(input: {
         error: selectError?.message ?? "Project created but could not be read back (RLS).",
         code: selectError?.code,
         details: selectError?.details ?? undefined,
-        hint: selectError?.hint ?? "Check RLS SELECT policy on public.projects for workspace members.",
+        hint:
+          selectError?.hint ?? "Check RLS SELECT policy on public.projects for workspace members.",
       };
     }
 

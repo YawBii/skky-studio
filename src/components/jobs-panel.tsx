@@ -4,15 +4,35 @@
 // quick job-enqueue buttons.
 import { useState, useEffect, type ReactNode } from "react";
 import {
-  Loader2, Play, RotateCcw, X, ChevronDown, ChevronRight,
-  AlertTriangle, CheckCircle2, Circle, Activity, HelpCircle, Wrench,
+  Loader2,
+  Play,
+  RotateCcw,
+  X,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  CheckCircle2,
+  Circle,
+  Activity,
+  HelpCircle,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useDiagnostics } from "@/lib/diagnostics";
-import { JOB_TYPES, type Job, type JobStep, type JobQuestion, type JobType, type StepAttempt } from "@/services/jobs";
-import { getBuildRunnerConfig, type BuildRunnerConfigSnapshot } from "@/services/build-runner.functions";
+import {
+  JOB_TYPES,
+  type Job,
+  type JobStep,
+  type JobQuestion,
+  type JobType,
+  type StepAttempt,
+} from "@/services/jobs";
+import {
+  getBuildRunnerConfig,
+  type BuildRunnerConfigSnapshot,
+} from "@/services/build-runner.functions";
 import { partitionFailures, getResolvingSuccess } from "@/lib/job-resolution";
 
 interface JobsPanelProps {
@@ -29,11 +49,31 @@ const QUICK_JOBS: { type: JobType; title: string }[] = [
   { type: "github.commit_changes", title: "Commit pending changes" },
 ];
 
-export function JobsPanel({ projectId, workspaceId, className, initialExpandedJobId }: JobsPanelProps) {
+export function JobsPanel({
+  projectId,
+  workspaceId,
+  className,
+  initialExpandedJobId,
+}: JobsPanelProps) {
   const {
-    jobs, source, error, sqlFile, loading, ticking, lastTick,
-    stepsByJob, questionsByJob, attemptsByJob,
-    enqueue, cancel, retry, retryStep, answer, refreshSteps, refreshQuestions, refreshAttempts,
+    jobs,
+    source,
+    error,
+    sqlFile,
+    loading,
+    ticking,
+    lastTick,
+    stepsByJob,
+    questionsByJob,
+    attemptsByJob,
+    enqueue,
+    cancel,
+    retry,
+    retryStep,
+    answer,
+    refreshSteps,
+    refreshQuestions,
+    refreshAttempts,
   } = useProjectJobs(projectId, workspaceId);
   const diag = useDiagnostics();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -44,9 +84,15 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
   useEffect(() => {
     let cancelled = false;
     getBuildRunnerConfig()
-      .then((cfg) => { if (!cancelled) setBuildCfg(cfg); })
-      .catch(() => { if (!cancelled) setBuildCfg(null); });
-    return () => { cancelled = true; };
+      .then((cfg) => {
+        if (!cancelled) setBuildCfg(cfg);
+      })
+      .catch(() => {
+        if (!cancelled) setBuildCfg(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -88,15 +134,24 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
       </div>
 
       <div className="px-4 py-3 border-b border-white/5">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">Run job</div>
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+          Run job
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {QUICK_JOBS.map((q) => (
-            <Button key={q.type} size="sm" variant="outline"
+            <Button
+              key={q.type}
+              size="sm"
+              variant="outline"
               disabled={enqueuing === q.type || !workspaceId}
               onClick={() => onQuick(q)}
               className="h-7 text-[11.5px]"
             >
-              {enqueuing === q.type ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+              {enqueuing === q.type ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Play className="h-3 w-3" />
+              )}
               {q.title}
             </Button>
           ))}
@@ -117,7 +172,9 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
           </div>
         )}
         {loading && jobs.length === 0 && (
-          <div className="p-6 text-[12px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin inline mr-1.5" /> Loading jobs…</div>
+          <div className="p-6 text-[12px] text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin inline mr-1.5" /> Loading jobs…
+          </div>
         )}
         {(() => {
           const { resolvedFailed } = partitionFailures(jobs);
@@ -141,7 +198,8 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
             });
           };
           const renderRow = (j: Job) => (
-            <JobRow key={j.id}
+            <JobRow
+              key={j.id}
               job={j}
               expanded={!!expanded[j.id]}
               steps={stepsByJob[j.id] ?? []}
@@ -167,9 +225,7 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
           );
           return (
             <>
-              {jobs.length > 0 && (
-                <JobTimeline jobs={jobs} onJobClick={focusJob} />
-              )}
+              {jobs.length > 0 && <JobTimeline jobs={jobs} onJobClick={focusJob} />}
               {resolvedFailed.length > 0 && (
                 <div className="px-4 py-2 border-b border-white/5 flex items-center">
                   <button
@@ -183,9 +239,7 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
                   </button>
                 </div>
               )}
-              <ul className="divide-y divide-white/5">
-                {activeJobs.map(renderRow)}
-              </ul>
+              <ul className="divide-y divide-white/5">{activeJobs.map(renderRow)}</ul>
               {showResolvedHistory && resolvedFailed.length > 0 && (
                 <div className="border-t border-white/5">
                   {Array.from(groups.entries()).map(([type, list]) => (
@@ -201,7 +255,14 @@ export function JobsPanel({ projectId, workspaceId, className, initialExpandedJo
                               {renderRow(j)}
                               {r && (
                                 <div className="px-4 pb-2 -mt-1 ml-10 text-[10.5px] font-mono text-muted-foreground">
-                                  superseded by <button onClick={() => focusJob(r.id)} className="underline hover:text-foreground">{r.id.slice(0, 8)}</button> · {new Date(r.createdAt).toLocaleTimeString()}
+                                  superseded by{" "}
+                                  <button
+                                    onClick={() => focusJob(r.id)}
+                                    className="underline hover:text-foreground"
+                                  >
+                                    {r.id.slice(0, 8)}
+                                  </button>{" "}
+                                  · {new Date(r.createdAt).toLocaleTimeString()}
                                 </div>
                               )}
                             </div>
@@ -228,7 +289,9 @@ function JobTimeline({ jobs, onJobClick }: { jobs: Job[]; onJobClick: (id: strin
   const resolvedSet = new Set(partitionFailures(jobs).resolvedFailed.map((j) => j.id));
   return (
     <div className="px-4 py-2.5 border-b border-white/5">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Timeline · last {recent.length}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+        Timeline · last {recent.length}
+      </div>
       <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-thin">
         {recent.map((j, i) => {
           const isResolvedFail = j.status === "failed" && resolvedSet.has(j.id);
@@ -240,21 +303,23 @@ function JobTimeline({ jobs, onJobClick }: { jobs: Job[]; onJobClick: (id: strin
             j.status === "running" || j.status === "queued"
               ? "bg-primary animate-pulse"
               : j.status === "waiting_for_input"
-              ? "bg-warning"
-              : j.status === "succeeded"
-              ? "bg-success"
-              : isResolvedFail
-              ? "bg-muted-foreground/40"
-              : j.status === "failed"
-              ? "bg-destructive"
-              : "bg-white/20";
+                ? "bg-warning"
+                : j.status === "succeeded"
+                  ? "bg-success"
+                  : isResolvedFail
+                    ? "bg-muted-foreground/40"
+                    : j.status === "failed"
+                      ? "bg-destructive"
+                      : "bg-white/20";
           const title = [
             j.title,
             `type: ${j.type}`,
             `status: ${j.status}`,
             `created: ${new Date(j.createdAt).toLocaleString()}`,
             resolvedBy ? `Superseded by success ${resolvedBy.id.slice(0, 8)}` : "",
-          ].filter(Boolean).join("\n");
+          ]
+            .filter(Boolean)
+            .join("\n");
           return (
             <div key={j.id} className="flex items-center shrink-0">
               <button
@@ -270,10 +335,7 @@ function JobTimeline({ jobs, onJobClick }: { jobs: Job[]; onJobClick: (id: strin
               />
               {i < recent.length - 1 && (
                 <span
-                  className={cn(
-                    "h-px w-3 mx-0.5",
-                    sameTypeNext ? "bg-white/20" : "bg-white/5",
-                  )}
+                  className={cn("h-px w-3 mx-0.5", sameTypeNext ? "bg-white/20" : "bg-white/5")}
                 />
               )}
             </div>
@@ -288,18 +350,41 @@ function EmptyMissingTable({ error, sqlFile }: { error: string | null; sqlFile: 
   return (
     <div className="p-6 text-[12.5px] text-muted-foreground">
       <div className="flex items-center gap-2 text-warning mb-2">
-        <AlertTriangle className="h-4 w-4" /> <span className="font-medium">Job tables are not installed yet</span>
+        <AlertTriangle className="h-4 w-4" />{" "}
+        <span className="font-medium">Job tables are not installed yet</span>
       </div>
-      <p className="mb-2">Run the SQL migrations to create <code className="text-foreground">project_jobs</code>, <code className="text-foreground">project_job_steps</code>, <code className="text-foreground">project_secrets</code>, <code className="text-foreground">project_job_questions</code>, and <code className="text-foreground">project_job_step_attempts</code>.</p>
+      <p className="mb-2">
+        Run the SQL migrations to create <code className="text-foreground">project_jobs</code>,{" "}
+        <code className="text-foreground">project_job_steps</code>,{" "}
+        <code className="text-foreground">project_secrets</code>,{" "}
+        <code className="text-foreground">project_job_questions</code>, and{" "}
+        <code className="text-foreground">project_job_step_attempts</code>.
+      </p>
       {sqlFile && <p className="font-mono text-[11px] text-foreground/80">{sqlFile}</p>}
-      <p className="font-mono text-[11px] text-foreground/80">docs/sql/2026-04-30-project-job-questions.sql</p>
-      <p className="font-mono text-[11px] text-foreground/80">docs/sql/2026-04-30-project-job-step-attempts.sql</p>
+      <p className="font-mono text-[11px] text-foreground/80">
+        docs/sql/2026-04-30-project-job-questions.sql
+      </p>
+      <p className="font-mono text-[11px] text-foreground/80">
+        docs/sql/2026-04-30-project-job-step-attempts.sql
+      </p>
       {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
     </div>
   );
 }
 
-function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle, onCancel, onRetry, onRetryStep, onAnswer }: {
+function JobRow({
+  job,
+  expanded,
+  steps,
+  questions,
+  attempts,
+  diagBlock,
+  onToggle,
+  onCancel,
+  onRetry,
+  onRetryStep,
+  onAnswer,
+}: {
   job: Job;
   expanded: boolean;
   steps: JobStep[];
@@ -310,9 +395,15 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
   onCancel: () => Promise<unknown>;
   onRetry: () => Promise<unknown>;
   onRetryStep: (stepId: string) => Promise<unknown>;
-  onAnswer: (input: { questionId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => Promise<unknown>;
+  onAnswer: (input: {
+    questionId: string;
+    stepId: string | null;
+    answer: unknown;
+    skipped?: boolean;
+  }) => Promise<unknown>;
 }) {
-  const canCancel = job.status === "queued" || job.status === "running" || job.status === "waiting_for_input";
+  const canCancel =
+    job.status === "queued" || job.status === "running" || job.status === "waiting_for_input";
   const canRetry = job.status === "failed" || job.status === "cancelled";
   const openQuestion = questions.find((q) => !q.answeredAt);
 
@@ -320,7 +411,11 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
     <li id={`job-row-${job.id}`} className="px-4 py-2.5">
       <div className="flex items-center gap-2">
         <button onClick={onToggle} className="text-muted-foreground hover:text-foreground">
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
         </button>
         <StatusDot status={job.status} />
         <div className="min-w-0 flex-1">
@@ -333,12 +428,24 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
         </div>
         <div className="flex items-center gap-1">
           {canCancel && (
-            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onCancel()} title="Cancel job">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-1.5"
+              onClick={() => void onCancel()}
+              title="Cancel job"
+            >
               <X className="h-3 w-3" />
             </Button>
           )}
           {canRetry && (
-            <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => void onRetry()} title="Retry whole job">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-1.5"
+              onClick={() => void onRetry()}
+              title="Retry whole job"
+            >
               <RotateCcw className="h-3 w-3" />
             </Button>
           )}
@@ -346,7 +453,9 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
       </div>
 
       {job.error && (
-        <div className="mt-1.5 ml-6 text-[11px] text-destructive whitespace-pre-wrap">{job.error}</div>
+        <div className="mt-1.5 ml-6 text-[11px] text-destructive whitespace-pre-wrap">
+          {job.error}
+        </div>
       )}
 
       {openQuestion && (
@@ -377,7 +486,11 @@ function JobRow({ job, expanded, steps, questions, attempts, diagBlock, onToggle
   );
 }
 
-function StepRow({ step, attempts, onRetryStep }: {
+function StepRow({
+  step,
+  attempts,
+  onRetryStep,
+}: {
   step: JobStep;
   attempts: StepAttempt[];
   onRetryStep: () => Promise<unknown>;
@@ -390,20 +503,31 @@ function StepRow({ step, attempts, onRetryStep }: {
         <div className="text-[12px] flex-1 truncate">{step.title}</div>
         <span className="text-[10px] text-muted-foreground font-mono">{step.stepKey}</span>
         {step.attemptNumber > 1 && (
-          <span className="text-[10px] text-muted-foreground font-mono">·attempt {step.attemptNumber}</span>
+          <span className="text-[10px] text-muted-foreground font-mono">
+            ·attempt {step.attemptNumber}
+          </span>
         )}
         {canRetryStep && (
-          <Button size="sm" variant="ghost" className="h-5 px-1" onClick={() => void onRetryStep()} title="Retry this step only">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-5 px-1"
+            onClick={() => void onRetryStep()}
+            title="Retry this step only"
+          >
             <RotateCcw className="h-3 w-3" /> <span className="text-[10px] ml-0.5">step</span>
           </Button>
         )}
       </div>
-      {step.error && <div className="mt-1 text-[11px] text-destructive whitespace-pre-wrap">{step.error}</div>}
+      {step.error && (
+        <div className="mt-1 text-[11px] text-destructive whitespace-pre-wrap">{step.error}</div>
+      )}
       {step.logs && step.logs.length > 0 && (
         <ul className="mt-1 space-y-0.5">
           {step.logs.slice(-4).map((l, i) => (
             <li key={i} className="text-[10.5px] text-muted-foreground font-mono truncate">
-              <span className="text-foreground/60">{new Date(l.ts).toLocaleTimeString()}</span> {l.msg}
+              <span className="text-foreground/60">{new Date(l.ts).toLocaleTimeString()}</span>{" "}
+              {l.msg}
             </li>
           ))}
         </ul>
@@ -423,12 +547,17 @@ function StepRow({ step, attempts, onRetryStep }: {
             {attempts.map((a) => (
               <li key={a.id} className="text-[10.5px] font-mono">
                 <span className="text-muted-foreground">#{a.attemptNumber}</span>{" "}
-                <span className={cn(
-                  a.status === "succeeded" && "text-success",
-                  a.status === "failed" && "text-destructive",
-                )}>{a.status}</span>
+                <span
+                  className={cn(
+                    a.status === "succeeded" && "text-success",
+                    a.status === "failed" && "text-destructive",
+                  )}
+                >
+                  {a.status}
+                </span>
                 {a.error && <span className="text-destructive"> — {a.error}</span>}
-                {" · "}<span className="text-muted-foreground/70">
+                {" · "}
+                <span className="text-muted-foreground/70">
                   {new Date(a.startedAt).toLocaleTimeString()}
                   {a.finishedAt && ` → ${new Date(a.finishedAt).toLocaleTimeString()}`}
                 </span>
@@ -441,9 +570,17 @@ function StepRow({ step, attempts, onRetryStep }: {
   );
 }
 
-function QuestionCard({ question, onAnswer }: {
+function QuestionCard({
+  question,
+  onAnswer,
+}: {
   question: JobQuestion;
-  onAnswer: (input: { questionId: string; stepId: string | null; answer: unknown; skipped?: boolean }) => Promise<unknown>;
+  onAnswer: (input: {
+    questionId: string;
+    stepId: string | null;
+    answer: unknown;
+    skipped?: boolean;
+  }) => Promise<unknown>;
 }) {
   const [single, setSingle] = useState<string>("");
   const [multi, setMulti] = useState<string[]>([]);
@@ -476,8 +613,10 @@ function QuestionCard({ question, onAnswer }: {
 
   const canSubmit = (() => {
     if (question.kind === "text") return text.trim().length > 0;
-    if (question.kind === "single_choice") return single && (single !== "__other" || other.trim().length > 0);
-    if (question.kind === "multi_choice") return multi.length > 0 && (!multi.includes("__other") || other.trim().length > 0);
+    if (question.kind === "single_choice")
+      return single && (single !== "__other" || other.trim().length > 0);
+    if (question.kind === "multi_choice")
+      return multi.length > 0 && (!multi.includes("__other") || other.trim().length > 0);
     if (question.kind === "confirm") return single === "yes" || single === "no";
     return false;
   })();
@@ -485,27 +624,52 @@ function QuestionCard({ question, onAnswer }: {
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-primary mb-2">
-        <HelpCircle className="h-3 w-3" /> {question.required ? "Question (required)" : "Question (optional)"}
+        <HelpCircle className="h-3 w-3" />{" "}
+        {question.required ? "Question (required)" : "Question (optional)"}
       </div>
       <div className="text-[13px] mb-3 text-pretty">{question.question}</div>
 
       {question.kind === "single_choice" && (
         <div className="space-y-1.5">
           {question.options.map((o) => (
-            <label key={o.value} className="flex items-start gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer">
-              <input type="radio" name={`q-${question.id}`} value={o.value} checked={single === o.value} onChange={() => setSingle(o.value)} className="mt-0.5 accent-primary" />
+            <label
+              key={o.value}
+              className="flex items-start gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer"
+            >
+              <input
+                type="radio"
+                name={`q-${question.id}`}
+                value={o.value}
+                checked={single === o.value}
+                onChange={() => setSingle(o.value)}
+                className="mt-0.5 accent-primary"
+              />
               <div>
                 <div>{o.label}</div>
-                {o.description && <div className="text-[11px] text-muted-foreground">{o.description}</div>}
+                {o.description && (
+                  <div className="text-[11px] text-muted-foreground">{o.description}</div>
+                )}
               </div>
             </label>
           ))}
           <label className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer">
-            <input type="radio" name={`q-${question.id}`} value="__other" checked={single === "__other"} onChange={() => setSingle("__other")} className="accent-primary" />
+            <input
+              type="radio"
+              name={`q-${question.id}`}
+              value="__other"
+              checked={single === "__other"}
+              onChange={() => setSingle("__other")}
+              className="accent-primary"
+            />
             <span>Other</span>
           </label>
           {single === "__other" && (
-            <input value={other} onChange={(e) => setOther(e.target.value)} placeholder="Type your answer…" className="w-full rounded-md bg-background/50 border border-white/10 px-2 py-1.5 text-[12px] outline-none focus:border-primary/50" />
+            <input
+              value={other}
+              onChange={(e) => setOther(e.target.value)}
+              placeholder="Type your answer…"
+              className="w-full rounded-md bg-background/50 border border-white/10 px-2 py-1.5 text-[12px] outline-none focus:border-primary/50"
+            />
           )}
         </div>
       )}
@@ -513,20 +677,48 @@ function QuestionCard({ question, onAnswer }: {
       {question.kind === "multi_choice" && (
         <div className="space-y-1.5">
           {question.options.map((o) => (
-            <label key={o.value} className="flex items-start gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer">
-              <input type="checkbox" checked={multi.includes(o.value)} onChange={(e) => setMulti((p) => e.target.checked ? [...p, o.value] : p.filter((v) => v !== o.value))} className="mt-0.5 accent-primary" />
+            <label
+              key={o.value}
+              className="flex items-start gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={multi.includes(o.value)}
+                onChange={(e) =>
+                  setMulti((p) =>
+                    e.target.checked ? [...p, o.value] : p.filter((v) => v !== o.value),
+                  )
+                }
+                className="mt-0.5 accent-primary"
+              />
               <div>
                 <div>{o.label}</div>
-                {o.description && <div className="text-[11px] text-muted-foreground">{o.description}</div>}
+                {o.description && (
+                  <div className="text-[11px] text-muted-foreground">{o.description}</div>
+                )}
               </div>
             </label>
           ))}
           <label className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer">
-            <input type="checkbox" checked={multi.includes("__other")} onChange={(e) => setMulti((p) => e.target.checked ? [...p, "__other"] : p.filter((v) => v !== "__other"))} className="accent-primary" />
+            <input
+              type="checkbox"
+              checked={multi.includes("__other")}
+              onChange={(e) =>
+                setMulti((p) =>
+                  e.target.checked ? [...p, "__other"] : p.filter((v) => v !== "__other"),
+                )
+              }
+              className="accent-primary"
+            />
             <span>Other</span>
           </label>
           {multi.includes("__other") && (
-            <input value={other} onChange={(e) => setOther(e.target.value)} placeholder="Type your answer…" className="w-full rounded-md bg-background/50 border border-white/10 px-2 py-1.5 text-[12px] outline-none focus:border-primary/50" />
+            <input
+              value={other}
+              onChange={(e) => setOther(e.target.value)}
+              placeholder="Type your answer…"
+              className="w-full rounded-md bg-background/50 border border-white/10 px-2 py-1.5 text-[12px] outline-none focus:border-primary/50"
+            />
           )}
         </div>
       )}
@@ -534,7 +726,16 @@ function QuestionCard({ question, onAnswer }: {
       {question.kind === "confirm" && (
         <div className="flex gap-2">
           {(["yes", "no"] as const).map((v) => (
-            <button key={v} onClick={() => setSingle(v)} className={cn("rounded-md px-3 py-1.5 text-[12px] border", single === v ? "bg-primary/20 border-primary/50" : "border-white/10 hover:bg-white/5")}>
+            <button
+              key={v}
+              onClick={() => setSingle(v)}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-[12px] border",
+                single === v
+                  ? "bg-primary/20 border-primary/50"
+                  : "border-white/10 hover:bg-white/5",
+              )}
+            >
               {v === "yes" ? "Yes" : "No"}
             </button>
           ))}
@@ -542,11 +743,22 @@ function QuestionCard({ question, onAnswer }: {
       )}
 
       {question.kind === "text" && (
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder="Type your answer…" className="w-full rounded-md bg-background/50 border border-white/10 px-2 py-1.5 text-[12px] outline-none focus:border-primary/50" />
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={3}
+          placeholder="Type your answer…"
+          className="w-full rounded-md bg-background/50 border border-white/10 px-2 py-1.5 text-[12px] outline-none focus:border-primary/50"
+        />
       )}
 
       <div className="mt-3 flex items-center gap-2">
-        <Button size="sm" variant="hero" disabled={!canSubmit || busy} onClick={() => void submit(false)}>
+        <Button
+          size="sm"
+          variant="hero"
+          disabled={!canSubmit || busy}
+          onClick={() => void submit(false)}
+        >
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : null} Submit
         </Button>
         {!question.required && (
@@ -564,12 +776,16 @@ function QuestionHistory({ questions }: { questions: JobQuestion[] }) {
   if (answered.length === 0) return null;
   return (
     <div className="rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1.5">
-      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">Q&A history</div>
+      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">
+        Q&A history
+      </div>
       <ul className="space-y-1">
         {answered.map((q) => (
           <li key={q.id} className="text-[11.5px]">
             <div className="text-foreground/90">{q.question}</div>
-            <div className="text-muted-foreground font-mono text-[11px]">→ {JSON.stringify(q.answer)}</div>
+            <div className="text-muted-foreground font-mono text-[11px]">
+              → {JSON.stringify(q.answer)}
+            </div>
           </li>
         ))}
       </ul>
@@ -582,8 +798,18 @@ function QuestionHistory({ questions }: { questions: JobQuestion[] }) {
 // failed. Built directly from persisted DB state.
 const TERMINAL: ReadonlyArray<string> = ["succeeded", "failed", "skipped", "cancelled"];
 
-function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; questions: JobQuestion[] }) {
-  const inProgress = steps.filter((s) => s.status === "queued" || s.status === "running" || s.status === "waiting_for_input");
+function ProofReport({
+  job,
+  steps,
+  questions,
+}: {
+  job: Job;
+  steps: JobStep[];
+  questions: JobQuestion[];
+}) {
+  const inProgress = steps.filter(
+    (s) => s.status === "queued" || s.status === "running" || s.status === "waiting_for_input",
+  );
   const failed = steps.filter((s) => s.status === "failed");
   const allTerminal = steps.length > 0 && steps.every((s) => TERMINAL.includes(s.status));
 
@@ -604,16 +830,24 @@ function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; qu
 
   return (
     <div className="rounded-md border border-white/10 bg-black/30">
-      <div className={cn("px-2.5 py-1.5 text-[11.5px] font-medium flex items-center gap-1.5", verdictColor)}>
+      <div
+        className={cn(
+          "px-2.5 py-1.5 text-[11.5px] font-medium flex items-center gap-1.5",
+          verdictColor,
+        )}
+      >
         {verdict.kind === "done" ? <CheckCircle2 className="h-3 w-3" /> : <X className="h-3 w-3" />}
         Proof report
       </div>
       <div className="px-2.5 pb-2 space-y-1.5">
         <div className={cn("text-[11.5px]", verdictColor)}>{verdict.line}</div>
         <div className="text-[10.5px] font-mono text-muted-foreground">
-          job id: {job.id}<br />
-          job type: {job.type}<br />
-          job status: {job.status}<br />
+          job id: {job.id}
+          <br />
+          job type: {job.type}
+          <br />
+          job status: {job.status}
+          <br />
           retries: {job.retryCount}
         </div>
         <ol className="space-y-1.5 mt-1.5">
@@ -625,22 +859,37 @@ function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; qu
                   <StatusDot status={s.status} />
                   <span className="font-medium">{s.title}</span>
                   <span className="text-muted-foreground font-mono text-[10px]">{s.stepKey}</span>
-                  <span className="text-muted-foreground font-mono text-[10px]">·attempt {s.attemptNumber}</span>
+                  <span className="text-muted-foreground font-mono text-[10px]">
+                    ·attempt {s.attemptNumber}
+                  </span>
                 </div>
                 <div className="text-[10.5px] font-mono text-muted-foreground/80">
                   step id: {s.id}
                 </div>
                 {Object.keys(s.input ?? {}).length > 0 && (
-                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">input: {JSON.stringify(s.input)}</div>
+                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">
+                    input: {JSON.stringify(s.input)}
+                  </div>
                 )}
                 {q && (
                   <div className="text-[10.5px] text-muted-foreground">
-                    Q: {q.question} → {q.answeredAt ? JSON.stringify(q.answer) : <span className="text-warning">(unanswered)</span>}
+                    Q: {q.question} →{" "}
+                    {q.answeredAt ? (
+                      JSON.stringify(q.answer)
+                    ) : (
+                      <span className="text-warning">(unanswered)</span>
+                    )}
                   </div>
                 )}
-                {s.error && <div className="text-[10.5px] text-destructive whitespace-pre-wrap">error: {s.error}</div>}
+                {s.error && (
+                  <div className="text-[10.5px] text-destructive whitespace-pre-wrap">
+                    error: {s.error}
+                  </div>
+                )}
                 {s.output && Object.keys(s.output).length > 0 && (
-                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">output: {JSON.stringify(s.output)}</div>
+                  <div className="text-[10.5px] font-mono text-muted-foreground/70 truncate">
+                    output: {JSON.stringify(s.output)}
+                  </div>
                 )}
                 {s.logs && s.logs.length > 0 && (
                   <div className="text-[10.5px] font-mono text-muted-foreground/60 truncate">
@@ -662,22 +911,40 @@ function ProofReport({ job, steps, questions }: { job: Job; steps: JobStep[]; qu
 
 // Detailed runner diagnostics for the selected job. Surfaces server-side
 // runner state and clearly distinguishes failure causes.
-function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, lastError, buildCfg }: {
+function RunnerDiagnostics({
+  job,
+  steps,
+  questions,
+  lastTick,
+  providerStatus,
+  lastError,
+  buildCfg,
+}: {
   job: Job;
   steps: JobStep[];
   questions: JobQuestion[];
-  lastTick: { advanced: boolean; jobId?: string; stepKey?: string; status?: string; error?: string; questionId?: string; cancelled?: boolean } | null;
+  lastTick: {
+    advanced: boolean;
+    jobId?: string;
+    stepKey?: string;
+    status?: string;
+    error?: string;
+    questionId?: string;
+    cancelled?: boolean;
+  } | null;
   providerStatus: Record<string, string> | null;
   lastError: string | null;
   buildCfg: BuildRunnerConfigSnapshot | null;
 }) {
-  const currentStep = steps.find((s) => s.status === "running")
-    ?? steps.find((s) => s.status === "waiting_for_input")
-    ?? steps.find((s) => s.status === "queued");
+  const currentStep =
+    steps.find((s) => s.status === "running") ??
+    steps.find((s) => s.status === "waiting_for_input") ??
+    steps.find((s) => s.status === "queued");
   const openQuestion = questions.find((q) => !q.answeredAt);
   const tickForThisJob = lastTick && lastTick.jobId === job.id ? lastTick : null;
   const failureCause = classifyFailure(tickForThisJob?.error ?? lastError ?? job.error);
-  const lastLog = currentStep?.logs?.[currentStep.logs.length - 1] ?? steps.flatMap((s) => s.logs).slice(-1)[0];
+  const lastLog =
+    currentStep?.logs?.[currentStep.logs.length - 1] ?? steps.flatMap((s) => s.logs).slice(-1)[0];
   const isBuildJob = job.type === "build.typecheck" || job.type === "build.production";
 
   return (
@@ -688,17 +955,49 @@ function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, la
         </div>
         <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
           <Row k="job status" v={job.status} />
-          <Row k="current step" v={currentStep ? `${currentStep.title} (${currentStep.stepKey}) · ${currentStep.status}` : "—"} />
-          <Row k="last server tick" v={tickForThisJob
-            ? `${tickForThisJob.advanced ? "advanced" : "no-op"}${tickForThisJob.status ? ` · ${tickForThisJob.status}` : ""}${tickForThisJob.cancelled ? " · cancelled" : ""}`
-            : "—"} />
-          <Row k="server error" v={tickForThisJob?.error ?? lastError ?? "—"} highlight={!!(tickForThisJob?.error ?? lastError)} />
+          <Row
+            k="current step"
+            v={
+              currentStep
+                ? `${currentStep.title} (${currentStep.stepKey}) · ${currentStep.status}`
+                : "—"
+            }
+          />
+          <Row
+            k="last server tick"
+            v={
+              tickForThisJob
+                ? `${tickForThisJob.advanced ? "advanced" : "no-op"}${tickForThisJob.status ? ` · ${tickForThisJob.status}` : ""}${tickForThisJob.cancelled ? " · cancelled" : ""}`
+                : "—"
+            }
+          />
+          <Row
+            k="server error"
+            v={tickForThisJob?.error ?? lastError ?? "—"}
+            highlight={!!(tickForThisJob?.error ?? lastError)}
+          />
           <Row k="failure cause" v={failureCause} />
-          <Row k="provider connections" v={providerStatus ? Object.entries(providerStatus).map(([p, s]) => `${p}=${s}`).join(", ") || "none" : "—"} />
-          <Row k="waiting for input" v={openQuestion ? `yes — "${openQuestion.question}"` : "no"} highlight={!!openQuestion} />
+          <Row
+            k="provider connections"
+            v={
+              providerStatus
+                ? Object.entries(providerStatus)
+                    .map(([p, s]) => `${p}=${s}`)
+                    .join(", ") || "none"
+                : "—"
+            }
+          />
+          <Row
+            k="waiting for input"
+            v={openQuestion ? `yes — "${openQuestion.question}"` : "no"}
+            highlight={!!openQuestion}
+          />
           <Row k="retry count" v={String(job.retryCount)} />
           <Row k="cancelled" v={job.status === "cancelled" ? "yes" : "no"} />
-          <Row k="last log" v={lastLog ? `${new Date(lastLog.ts).toLocaleTimeString()} — ${lastLog.msg}` : "—"} />
+          <Row
+            k="last log"
+            v={lastLog ? `${new Date(lastLog.ts).toLocaleTimeString()} — ${lastLog.msg}` : "—"}
+          />
         </dl>
       </div>
 
@@ -711,12 +1010,25 @@ function RunnerDiagnostics({ job, steps, questions, lastTick, providerStatus, la
             <>
               <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[11px]">
                 <Row k="mode" v={buildCfg.mode} highlight={buildCfg.mode === "none"} />
-                <Row k="BUILD_RUNNER_URL" v={buildCfg.hasBuildRunnerUrl ? "set" : "missing"} highlight={!buildCfg.hasBuildRunnerUrl && buildCfg.mode !== "local"} />
+                <Row
+                  k="BUILD_RUNNER_URL"
+                  v={buildCfg.hasBuildRunnerUrl ? "set" : "missing"}
+                  highlight={!buildCfg.hasBuildRunnerUrl && buildCfg.mode !== "local"}
+                />
                 <Row k="BUILD_RUNNER_TOKEN" v={buildCfg.hasBuildRunnerToken ? "set" : "missing"} />
                 <Row k="BUILD_RUNNER_MODE" v={buildCfg.hasBuildRunnerMode ? "set" : "missing"} />
-                <Row k="BUILD_COMMAND" v={buildCfg.hasBuildCommand ? "set (override)" : "default: npm run build"} />
-                <Row k="TYPECHECK_COMMAND" v={buildCfg.hasTypecheckCommand ? "set (override)" : "default: npm run typecheck"} />
-                <Row k="BUILD_PREVIEW_COMMAND" v={buildCfg.hasBuildPreviewCommand ? "set (override)" : "—"} />
+                <Row
+                  k="BUILD_COMMAND"
+                  v={buildCfg.hasBuildCommand ? "set (override)" : "default: npm run build"}
+                />
+                <Row
+                  k="TYPECHECK_COMMAND"
+                  v={buildCfg.hasTypecheckCommand ? "set (override)" : "default: npm run typecheck"}
+                />
+                <Row
+                  k="BUILD_PREVIEW_COMMAND"
+                  v={buildCfg.hasBuildPreviewCommand ? "set (override)" : "—"}
+                />
               </dl>
               <div className="text-[10.5px] text-muted-foreground/80 mt-1.5">{buildCfg.reason}</div>
             </>
@@ -733,7 +1045,9 @@ function Row({ k, v, highlight }: { k: string; v: string; highlight?: boolean })
   return (
     <>
       <dt className="text-muted-foreground font-mono">{k}</dt>
-      <dd className={cn("font-mono break-all", highlight ? "text-warning" : "text-foreground/90")}>{v}</dd>
+      <dd className={cn("font-mono break-all", highlight ? "text-warning" : "text-foreground/90")}>
+        {v}
+      </dd>
     </>
   );
 }
@@ -743,16 +1057,17 @@ function Row({ k, v, highlight }: { k: string; v: string; highlight?: boolean })
 function classifyFailure(err: string | null | undefined): string {
   if (!err) return "—";
   const s = err.toLowerCase();
-  if (s.includes("not connected for this project") || s.includes("connection is")) return "missing provider connection";
+  if (s.includes("not connected for this project") || s.includes("connection is"))
+    return "missing provider connection";
   if (s.includes("is not configured")) return "missing server env secret";
   if (s.includes("provider call is not wired yet")) return "provider API not wired yet";
-  if (s.includes("row-level security") || s.includes("rls") || s.includes("permission denied")) return "RLS/database error";
+  if (s.includes("row-level security") || s.includes("rls") || s.includes("permission denied"))
+    return "RLS/database error";
   if (s.includes("not authenticated") || s.includes("no bearer")) return "auth missing";
   if (s.includes("cancelled")) return "job cancelled";
   if (s.includes("awaiting") || s.includes("waiting_for_input")) return "user input required";
   return "unknown";
 }
-
 
 function StatusDot({ status }: { status: string }) {
   if (status === "running") return <Loader2 className="h-3 w-3 animate-spin text-primary" />;

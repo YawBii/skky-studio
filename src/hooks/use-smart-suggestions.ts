@@ -55,8 +55,15 @@ export interface SmartSuggestionsInput {
 
 export function useSmartSuggestions(input: SmartSuggestionsInput): SmartSuggestion[] {
   const {
-    workspace, project, jobs, connections,
-    connectionsSource, jobsSource, diagnostics, currentTab, hasDeployUrl,
+    workspace,
+    project,
+    jobs,
+    connections,
+    connectionsSource,
+    jobsSource,
+    diagnostics,
+    currentTab,
+    hasDeployUrl,
   } = input;
 
   return useMemo<SmartSuggestion[]>(() => {
@@ -147,7 +154,11 @@ export function useSmartSuggestions(input: SmartSuggestionsInput): SmartSuggesti
         intent: "connect_vercel",
         priority: 55,
         action: vercel
-          ? { kind: "enqueue_job", jobType: "vercel.create_preview_deploy", title: "Create preview deploy" }
+          ? {
+              kind: "enqueue_job",
+              jobType: "vercel.create_preview_deploy",
+              title: "Create preview deploy",
+            }
           : { kind: "navigate", to: "/connectors" },
       });
     }
@@ -165,7 +176,13 @@ export function useSmartSuggestions(input: SmartSuggestionsInput): SmartSuggesti
 
     // 9. If user is on a "Not connected yet" tab (database/deploy/code/history)
     //    offer the audit-buttons action so they can sanity-check what's wired.
-    if (currentTab && (currentTab === "database" || currentTab === "deploy" || currentTab === "code" || currentTab === "history")) {
+    if (
+      currentTab &&
+      (currentTab === "database" ||
+        currentTab === "deploy" ||
+        currentTab === "code" ||
+        currentTab === "history")
+    ) {
       out.push({
         id: "audit-builder-buttons",
         label: "Audit builder buttons",
@@ -189,8 +206,15 @@ export function useSmartSuggestions(input: SmartSuggestionsInput): SmartSuggesti
 
     return sortAndDedupe(out);
   }, [
-    workspace, project, jobs, connections,
-    connectionsSource, jobsSource, diagnostics.lastError, currentTab, hasDeployUrl,
+    workspace,
+    project,
+    jobs,
+    connections,
+    connectionsSource,
+    jobsSource,
+    diagnostics.lastError,
+    currentTab,
+    hasDeployUrl,
   ]);
 }
 

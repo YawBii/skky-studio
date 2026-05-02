@@ -34,7 +34,9 @@ export function useBuilderUIState(): BuilderUIState {
   const [state, setState] = useState<BuilderUIState>(current);
   useEffect(() => {
     listeners.add(setState);
-    return () => { listeners.delete(setState); };
+    return () => {
+      listeners.delete(setState);
+    };
   }, []);
   return state;
 }

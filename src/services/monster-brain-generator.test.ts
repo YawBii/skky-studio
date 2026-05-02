@@ -5,9 +5,21 @@ import {
   designSignature,
 } from "./monster-brain-generator";
 
-const goodhand = { id: "p-goodhand", name: "Goodhand", description: "Discover and verify community contributors with praise." };
-const skky     = { id: "p-skky",     name: "skkygroup", description: "A holding group of long-horizon ventures and infrastructure." };
-const ujob     = { id: "p-ujob",     name: "uJob",      description: "Marketplace for hiring and getting hired — find roles and candidates." };
+const goodhand = {
+  id: "p-goodhand",
+  name: "Goodhand",
+  description: "Discover and verify community contributors with praise.",
+};
+const skky = {
+  id: "p-skky",
+  name: "skkygroup",
+  description: "A holding group of long-horizon ventures and infrastructure.",
+};
+const ujob = {
+  id: "p-ujob",
+  name: "uJob",
+  description: "Marketplace for hiring and getting hired — find roles and candidates.",
+};
 
 function html(p: typeof goodhand) {
   return generateProjectFiles(p).find((f) => f.path === "index.html")!.content;
@@ -65,12 +77,22 @@ describe("Monster Brain v1 — outputs are visibly different", () => {
   });
 
   it("two projects of the same archetype still differ via design signature", () => {
-    const a = generateProjectFiles({ id: "id-a", name: "Goodhand A", description: "discovery praise" });
-    const b = generateProjectFiles({ id: "id-b", name: "Goodhand B", description: "discovery praise" });
-    expect(a.find((f) => f.path === "index.html")!.content)
-      .not.toEqual(b.find((f) => f.path === "index.html")!.content);
-    expect(designSignature({ id: "id-a", name: "Goodhand A" }, "social-good"))
-      .not.toEqual(designSignature({ id: "id-b", name: "Goodhand B" }, "social-good"));
+    const a = generateProjectFiles({
+      id: "id-a",
+      name: "Goodhand A",
+      description: "discovery praise",
+    });
+    const b = generateProjectFiles({
+      id: "id-b",
+      name: "Goodhand B",
+      description: "discovery praise",
+    });
+    expect(a.find((f) => f.path === "index.html")!.content).not.toEqual(
+      b.find((f) => f.path === "index.html")!.content,
+    );
+    expect(designSignature({ id: "id-a", name: "Goodhand A" }, "social-good")).not.toEqual(
+      designSignature({ id: "id-b", name: "Goodhand B" }, "social-good"),
+    );
   });
 });
 
