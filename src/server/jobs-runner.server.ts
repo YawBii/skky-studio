@@ -612,7 +612,10 @@ import {
   generateProjectFiles as monsterGenerate,
   inferProjectArchetype,
   designSignature as monsterSignature,
+  computeVisualFingerprint,
+  fingerprintToString,
   type Archetype,
+  type VisualFingerprint,
 } from "../services/monster-brain-generator";
 
 /**
