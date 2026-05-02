@@ -40,17 +40,17 @@ function commandText(input: DirectorInput): string {
 
 export function inferMonsterAppType(input: DirectorInput): string {
   const text = commandText(input);
+  if (has(text, /\b(law|legal|attorney|solicitor|contract|firm)\b/)) return "professional-services";
   if (has(text, /\b(crm|pipeline|lead|sales|customer)\b/)) return "crm";
   if (has(text, /\b(marketplace|auction|listing|seller|buyer|commerce|shop|store)\b/))
     return "marketplace";
-  if (has(text, /\b(admin|dashboard|analytics|metrics|ops|internal tool|backoffice)\b/))
-    return "saas-dashboard";
   if (has(text, /\b(booking|appointment|reservation|calendar|schedule)\b/))
     return "booking-platform";
   if (has(text, /\b(job|jobs|hiring|candidate|recruit|talent)\b/)) return "jobs-platform";
   if (has(text, /\b(finance|payment|invoice|billing|wallet|ledger|stripe|checkout)\b/))
     return "fintech-app";
-  if (has(text, /\b(law|legal|attorney|solicitor|contract)\b/)) return "professional-services";
+  if (has(text, /\b(admin|dashboard|analytics|metrics|ops|internal tool|backoffice)\b/))
+    return "saas-dashboard";
   if (has(text, /\b(portfolio|agency|studio|showcase|gallery)\b/)) return "portfolio-site";
   if (has(text, /\b(community|nonprofit|charity|volunteer|impact|civic)\b/))
     return "community-platform";
