@@ -24,6 +24,7 @@ import {
   type ProjectConnection,
 } from "@/services/project-connections";
 import { cn } from "@/lib/utils";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 const TabSchema = z.object({
   tab: z.enum(["projects", "github", "vercel", "import"]).optional(),
