@@ -355,9 +355,14 @@ function Builder() {
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
             generated={filesApi.generated}
-            regenerating={Boolean(regeneratingJobId)}
+            regenerating={false}
+            onRefreshLocalPreview={() => {
+              console.info("[yawb] preview.localRefresh.clicked", { projectId: project.id });
+              void filesApi.refresh().then(() => {
+                toast.success("Local preview refreshed");
+              });
+            }}
             onRegenerateDesign={async () => {
-              if (regeneratingJobId) return;
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
@@ -370,10 +375,9 @@ function Builder() {
                 return;
               }
               console.info("[yawb] regenerate.enqueued", { jobId: r.job.id });
-              toast.success("Regenerating design…");
-              setRegeneratingJobId(r.job.id);
+              toast.success("Regenerate job queued");
               setFocusJobId(r.job.id);
-              // Refresh jobs immediately so the watcher sees the new job.
+              // Refresh jobs list once so the new job appears in the panel.
               void ccJobs.refresh();
             }}
           />
