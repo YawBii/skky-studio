@@ -85,6 +85,14 @@ function sanitizeText(value: unknown, maxLen = 500): string {
 const escapeHtml = (v: string) => sanitizeText(v);
 void escapeHtml;
 
+// Stable, content-based 32-bit hash for iframe keying. Same content => same
+// key => no remount. Different content => exactly one remount.
+function stableHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
 export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "description">): string {
   const name = sanitizeText(project.name, 200) || "Untitled project";
   const description = sanitizeText(project.description || "No description yet.", 500);
@@ -241,15 +249,47 @@ export function PreviewPane({
     return resolved.url;
   }, [resolved, selectedPage]);
 
+  // Compute the iframe key the same way as the JSX so we can log remounts.
+  const iframeKey = useMemo(
+    () =>
+      resolved.kind === "local"
+        ? `local:${project.id}:${stableHash(localSrcDoc ?? "")}`
+        : `live:${iframeSrc ?? ""}`,
+    [resolved.kind, project.id, localSrcDoc, iframeSrc],
+  );
+  useEffect(() => {
+    console.info("[yawb] preview.iframe.remount", { key: iframeKey });
+  }, [iframeKey]);
+
   const [iframeState, setIframeState] = useState<IframeState>("idle");
   const [softHintVisible, setSoftHintVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset + start the load timer whenever the iframe URL or srcDoc changes.
-  // Local previews (srcDoc / same-origin route) get NO failure fallback —
-  // they shouldn't be blocked by CSP.
+
+  // Local previews render statically — no loading state, no overlay, no
+  // raf/timeout machinery. The loading overlay applies ONLY to live iframes
+  // (cross-origin, may be blocked by CSP). This effect short-circuits early
+  // for local so it cannot trigger remount/loading loops on file refresh.
   useEffect(() => {
+    if (resolved.kind === "local") {
+      // Cancel any in-flight live timers (mode switch live → local).
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (softHintRef.current) {
+        clearTimeout(softHintRef.current);
+        softHintRef.current = null;
+      }
+      setSoftHintVisible(false);
+      // Static render — never set "loading" for local.
+      console.info("[yawb] preview.local.render.static", {
+        source: resolved.source,
+        hasSrcDoc: Boolean(localSrcDoc || resolved.srcDoc),
+      });
+      return;
+    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -259,7 +299,7 @@ export function PreviewPane({
       softHintRef.current = null;
     }
     setSoftHintVisible(false);
-    if (!iframeSrc && !localSrcDoc && !resolved.srcDoc) {
+    if (!iframeSrc) {
       setIframeState("idle");
       return;
     }
@@ -267,24 +307,7 @@ export function PreviewPane({
     console.info("[yawb] preview.iframe.loading", {
       kind: resolved.kind,
       url: iframeSrc,
-      srcDoc: !!(localSrcDoc ?? resolved.srcDoc),
     });
-    if (resolved.kind === "local") {
-      // Local previews (srcDoc) don't reliably fire onLoad in all envs.
-      // Mark as loaded on next frame so the loading overlay never sticks.
-      const raf =
-        typeof requestAnimationFrame === "function"
-          ? requestAnimationFrame
-          : (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0);
-      raf(() => {
-        setIframeState("loaded");
-        console.info("[yawb] preview.local.loaded", {
-          source: resolved.source,
-          hasSrcDoc: Boolean(localSrcDoc || resolved.srcDoc),
-        });
-      });
-      return;
-    }
     if (resolved.kind !== "live") return; // skip CSP timeout for non-live
     softHintRef.current = setTimeout(() => {
       setSoftHintVisible(true);
@@ -545,7 +568,7 @@ export function PreviewPane({
               )}
             >
               <iframe
-                key={resolved.kind === "local" ? `local:${(localSrcDoc ?? "").length}` : `live:${iframeSrc ?? ""}`}
+                key={iframeKey}
                 title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
                 srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
