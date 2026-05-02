@@ -138,10 +138,14 @@ export function useProjectPresence({
       cleanup = () => {
         try {
           channel.untrack();
-        } catch {}
+        } catch {
+          /* ignore */
+        }
         try {
           supabase.removeChannel(channel);
-        } catch {}
+        } catch {
+          /* ignore */
+        }
       };
     })();
 

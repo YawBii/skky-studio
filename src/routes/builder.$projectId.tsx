@@ -57,7 +57,7 @@ export const Route = createFileRoute("/builder/$projectId")({
     ],
   }),
   errorComponent: ({ error }) => <div className="p-10">Error: {error.message}</div>,
-  notFoundComponent: () => {
+  notFoundComponent: function NotFoundComponent() {
     const { projectId } = Route.useParams();
     return (
       <div className="p-6 sm:p-10 text-center max-w-md mx-auto">

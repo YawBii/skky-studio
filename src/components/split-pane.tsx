@@ -81,7 +81,9 @@ export function SplitPane({
       draggingRef.current = false;
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch {
+        /* ignore */
+      }
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       onChange?.(rightWidth);
@@ -180,7 +182,9 @@ function MobileChatLayout({
     startYRef.current = null;
     try {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     const sheetH = sheetRef.current?.offsetHeight ?? 600;
     // Dismiss if dragged > 30% of sheet height OR fast flick (>120px).
     if (dy > sheetH * 0.3 || dy > 120) {

@@ -503,6 +503,7 @@ describe("PreviewPane — local preview hardening", () => {
     expect(html).toContain("&#61;");
     expect(html).toContain("&#96;");
     expect(html).toContain("&#47;");
+    // eslint-disable-next-line no-control-regex
     expect(html).not.toMatch(/[\u202E\u200B\u0000]/);
   });
 

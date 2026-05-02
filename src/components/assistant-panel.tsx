@@ -399,7 +399,9 @@ export function AssistantPanel() {
         STORE_KEY,
         JSON.stringify(next.map((c) => ({ id: c.id, enabled: c.enabled }))),
       );
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   };
 
   const buildProof = (): ProofItem[] => {

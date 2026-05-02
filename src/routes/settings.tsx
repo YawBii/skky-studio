@@ -64,7 +64,7 @@ function SettingsPage() {
   );
 }
 
-function Field({ label, children }: any) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <div className="text-xs text-muted-foreground mb-1.5 uppercase tracking-wider">{label}</div>
@@ -72,7 +72,7 @@ function Field({ label, children }: any) {
     </label>
   );
 }
-function Input(props: any) {
+function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}

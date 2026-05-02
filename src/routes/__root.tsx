@@ -166,7 +166,9 @@ function WorkspaceShell() {
   useEffect(() => {
     try {
       window.localStorage.removeItem("yawb:workspace-split");
-    } catch {}
+    } catch {
+      /* ignore */
+    }
   }, []);
   const { prefs, loaded, update } = useUserPreferences();
   const {

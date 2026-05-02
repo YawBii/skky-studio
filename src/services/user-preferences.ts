@@ -27,7 +27,9 @@ function writeLocal(prefs: UserPreferences) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(LS_KEY, JSON.stringify(prefs));
-  } catch {}
+  } catch {
+    /* ignore */
+  }
 }
 
 async function currentUserId(): Promise<string | null> {

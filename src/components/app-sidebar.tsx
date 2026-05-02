@@ -29,7 +29,9 @@ export function AppSidebar() {
   async function handleSignOut() {
     try {
       await signOut();
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     window.location.href = "/login";
   }
 

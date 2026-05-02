@@ -38,6 +38,7 @@ export interface JobRow {
   input: Record<string, unknown>;
 }
 export interface ProjectFilesSupabaseLike {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 interface StepRow {

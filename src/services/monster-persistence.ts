@@ -1,6 +1,7 @@
 import type { MonsterGeneratedFile, MonsterGenerationResult } from "./monster-orchestrator";
 
 export interface MonsterSupabaseLike {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 }
 
