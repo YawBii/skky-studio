@@ -39,7 +39,7 @@ export function SplitPane({
   // bottom-sheet drawer on true phone widths. Match that behavior so users
   // don't lose the live preview when the window is narrow.
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
+    const mq = window.matchMedia("(max-width: 768px)");
     const apply = () => setIsMobile(mq.matches);
     apply();
     mq.addEventListener("change", apply);
