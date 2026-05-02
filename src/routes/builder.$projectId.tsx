@@ -214,10 +214,12 @@ function Builder() {
       // the iframe keeps showing the previous HTML and the user thinks
       // "nothing changed".
       if (j.type === "ai.generate_changes") {
+        const pid = project?.id;
+        if (!pid) return;
         void filesApi.refresh().then(() => {
           setTab("preview");
           try {
-            window.localStorage.setItem(`yawb:preview-mode:${project.id}`, "local");
+            window.localStorage.setItem(`yawb:preview-mode:${pid}`, "local");
           } catch {
             /* localStorage may be blocked */
           }
@@ -229,7 +231,7 @@ function Builder() {
             description: "Local preview now shows the new design.",
           });
           window.dispatchEvent(
-            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
+            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: pid } }),
           );
         });
       }
