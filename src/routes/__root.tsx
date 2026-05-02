@@ -266,3 +266,23 @@ function WorkspaceShell() {
     </div>
   );
 }
+
+function MobileSignedOutEmpty() {
+  return (
+    <div className="min-h-full grid place-items-center px-5 py-10">
+      <div className="w-full max-w-md text-center">
+        <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Mobile session</div>
+        <h1 className="mt-2 text-2xl font-display font-semibold tracking-tight">Not signed in on this device</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in to load your workspace and projects on this phone.
+        </p>
+        <Button asChild variant="hero" className="mt-5">
+          <Link to="/login">Sign in</Link>
+        </Button>
+        <div className="mt-6 text-left">
+          <MobileBootstrapPanel projectsCount={0} workspacesCount={0} />
+        </div>
+      </div>
+    </div>
+  );
+}
