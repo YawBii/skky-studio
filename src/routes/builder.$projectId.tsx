@@ -69,6 +69,7 @@ function Builder() {
   const [device, setDevice] = useState<Device>("desktop");
   const [focusJobId, setFocusJobId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [regeneratingJobId, setRegeneratingJobId] = useState<string | null>(null);
   const [selectedPage, setSelectedPage] = useState<string>("/");
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
