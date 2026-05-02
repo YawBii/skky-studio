@@ -5,8 +5,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { MobileBootstrapPanel } from "./mobile-bootstrap-panel";
 import { AuthProvider } from "@/hooks/use-auth";
 
+let mockSession: { userId: string; email: string; displayName: string } | null = null;
+
 vi.mock("@/services/auth", () => ({
-  getSession: () => Promise.resolve(null),
+  getSession: () => Promise.resolve(mockSession),
   onAuthChange: () => Promise.resolve(() => {}),
 }));
 
@@ -23,7 +25,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
-beforeEach(() => { try { window.localStorage.clear(); } catch { /* ignore */ } });
+beforeEach(() => { mockSession = null; try { window.localStorage.clear(); } catch { /* ignore */ } });
 afterEach(() => {
   if (root) { act(() => root!.unmount()); root = null; }
   host?.remove(); host = null;
@@ -82,11 +84,13 @@ describe("MobileBootstrapPanel", () => {
   });
 
   it("workspace_members empty shows membership debug state", () => {
+    mockSession = { userId: "user-1", email: "user@example.com", displayName: "User" };
     const c = render(<MobileBootstrapPanel workspacesCount={0} projectsCount={0} />);
     expect(c.textContent).toContain("No workspace membership found for this account");
   });
 
   it("projects query empty shows projects debug state when workspace exists", () => {
+    mockSession = { userId: "user-1", email: "user@example.com", displayName: "User" };
     const c = render(<MobileBootstrapPanel selectedWorkspaceId="workspace-1" workspacesCount={1} projectsCount={0} />);
     expect(c.textContent).toContain("Workspace found but no projects returned");
     expect(c.textContent).toContain("workspace-1");
