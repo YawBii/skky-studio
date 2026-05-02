@@ -3,7 +3,7 @@
 // produces a status, what-changed bullets, files touched (when reported),
 // proof, and 1–3 suggested next actions.
 import { useMemo, useState } from "react";
-import { Check, AlertTriangle, X, HelpCircle, ChevronDown, ChevronRight, ClipboardCopy, FileText } from "lucide-react";
+import { Check, AlertTriangle, X, HelpCircle, ChevronDown, ChevronRight, ClipboardCopy, FileText, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Job, JobStep } from "@/services/jobs";
 import { toast } from "sonner";
@@ -73,6 +73,15 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
   const command = pickField<string>(steps, "command");
   const exitCode = pickField<number>(steps, "exitCode");
   const files = pickFiles(steps);
+  const generator = pickField<string>(steps, "generator");
+  const archetype = pickField<string>(steps, "archetype");
+  const designSignature = pickField<string>(steps, "designSignature");
+  const filesWritten = (() => {
+    const fw = pickField<unknown>(steps, "filesWritten");
+    return Array.isArray(fw) ? fw.filter((f): f is string => typeof f === "string") : null;
+  })();
+  const previewReady = pickField<boolean>(steps, "previewReady");
+  const hasGenerator = Boolean(generator || archetype || designSignature || filesWritten || previewReady !== null);
   const isAiPlanUnwired = job.type === "ai.plan" && (job.error?.includes("not wired") || stdoutTail?.includes("not wired"));
 
   const startedTs = job.startedAt ? Date.parse(job.startedAt) : Date.parse(job.createdAt);
@@ -104,6 +113,13 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
       "",
       files.length ? "Files touched:" : "",
       ...files.map((f) => `  • ${f}`),
+      hasGenerator ? "" : "",
+      hasGenerator ? "Generator:" : "",
+      generator ? `  generator: ${generator}` : "",
+      archetype ? `  archetype: ${archetype}` : "",
+      designSignature ? `  designSignature: ${designSignature}` : "",
+      filesWritten ? `  filesWritten: ${filesWritten.join(", ")}` : "",
+      previewReady !== null ? `  previewReady: ${previewReady}` : "",
     ].filter(Boolean).join("\n");
     void navigator.clipboard.writeText(parts);
     toast.success("Summary copied");
@@ -150,6 +166,33 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
             </ul>
           )}
         </div>
+
+        {hasGenerator && (
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-2">
+            <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-primary" /> Generator
+            </div>
+            <dl className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-[10.5px] font-mono">
+              {generator && (<><dt className="text-muted-foreground">generator</dt><dd className="text-foreground/90">{generator}</dd></>)}
+              {archetype && (<><dt className="text-muted-foreground">archetype</dt><dd className="text-foreground/90">{archetype}</dd></>)}
+              {designSignature && (<><dt className="text-muted-foreground">designSignature</dt><dd className="text-foreground/90 break-all">{designSignature}</dd></>)}
+              {filesWritten && (
+                <>
+                  <dt className="text-muted-foreground">filesWritten</dt>
+                  <dd className="text-foreground/90">{filesWritten.join(", ") || "—"}</dd>
+                </>
+              )}
+              {previewReady !== null && (
+                <>
+                  <dt className="text-muted-foreground">previewReady</dt>
+                  <dd className={cn("text-foreground/90", previewReady ? "text-success" : "text-warning")}>
+                    {previewReady ? "✓ true" : "false"}
+                  </dd>
+                </>
+              )}
+            </dl>
+          </div>
+        )}
 
         <div className="rounded-md border border-white/5 bg-black/30 p-2">
           <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">Proof</div>
