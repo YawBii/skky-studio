@@ -363,18 +363,27 @@ function Builder() {
               });
             }}
             onRegenerateDesign={async () => {
+              const regenerationSeed =
+                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID()
+                  : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              console.info("[yawb] regenerate.seed", { regenerationSeed, projectId: project.id });
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
                 type: "ai.generate_changes",
                 title: "Regenerate design",
-                input: { source: "preview_regenerate_design" },
+                input: {
+                  source: "preview_regenerate_design",
+                  regenerationSeed,
+                  forceVariant: true,
+                },
               });
               if (!r.ok) {
                 toast.error(`Couldn't regenerate: ${r.error}`);
                 return;
               }
-              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id });
+              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id, regenerationSeed });
               toast.success("Regenerate job queued");
               setFocusJobId(r.job.id);
               // Refresh jobs list once so the new job appears in the panel.

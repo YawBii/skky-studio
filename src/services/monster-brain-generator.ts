@@ -46,6 +46,21 @@ export interface MonsterBrainContext {
   previousFiles?: { path: string }[] | null;
   /** Last few job summaries — used as proof block hints. */
   recentJobs?: Array<{ type: string; status: string; summary?: string | null }> | null;
+  /** Per-regeneration entropy — when present, every regen produces a distinct design. */
+  regenerationSeed?: string | null;
+  /** Forces a non-default variant pick even when no chat request changed. */
+  forceVariant?: boolean;
+}
+
+/** Build the seed basis used for theme/copy/section variance. */
+function buildSeedBasis(project: ProjectLike, context?: MonsterBrainContext | null): string {
+  return [
+    project.id ?? "",
+    project.name ?? "",
+    project.description ?? "",
+    context?.regenerationSeed ?? "",
+    context?.chatRequest ?? "",
+  ].filter(Boolean).join(":") || "x";
 }
 
 type ProjectLike = Pick<Project, "id" | "name"> & { description?: string | null };
@@ -184,9 +199,14 @@ function baseThemeFor(archetype: Archetype): Theme {
   }
 }
 
-function shiftedTheme(base: Theme, projectId: string): Theme {
-  const hue = Math.abs(hash(projectId)) % 360;
+function shiftedTheme(base: Theme, seedBasis: string): Theme {
+  const hue = Math.abs(hash(seedBasis)) % 360;
   return { ...base, ring: base.ring, _hue: hue } as Theme & { _hue: number };
+}
+
+/** Variant index 0..N-1 derived from seedBasis — selects layout/order variant. */
+export function variantIndex(seedBasis: string, modulo: number = 6): number {
+  return Math.abs(hash(`v:${seedBasis}`)) % Math.max(1, modulo);
 }
 
 // ---------------------------------------------------------------------------
@@ -1055,13 +1075,13 @@ function renderJs(name: string, archetype: Archetype): string {
 // HTML
 // ---------------------------------------------------------------------------
 
-function renderHtml(blueprint: Blueprint, project: ProjectLike): string {
+function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: string): string {
   const name = (project.name ?? "Untitled").trim() || "Untitled";
   const safeName = esc(name, 200);
   const safeArchetype = esc(blueprint.archetype, 40);
-  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, project.id);
+  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, seedBasis);
   const sectionsHtml = blueprint.sections
-    .map((k) => k.startsWith("hero-") ? renderHero(k, name, blueprint.copy) : renderSection(k, name, blueprint.copy, blueprint.archetype, project.id ?? project.name ?? "x"))
+    .map((k) => k.startsWith("hero-") ? renderHero(k, name, blueprint.copy) : renderSection(k, name, blueprint.copy, blueprint.archetype, seedBasis))
     .join("\n      ");
 
   return `<!doctype html>
@@ -1088,9 +1108,53 @@ function renderHtml(blueprint: Blueprint, project: ProjectLike): string {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function designSignature(project: ProjectLike, archetype: Archetype): string {
-  const hue = Math.abs(hash(project.id ?? project.name ?? "x")) % 360;
-  return `mb-v1:${archetype}:hue${hue}:${(project.name ?? "").trim().toLowerCase().replace(/\s+/g, "-")}`;
+const HERO_VARIANTS: Record<Archetype, SectionKey[]> = {
+  "social-good": ["hero-spotlight", "hero-glass", "hero-default"],
+  corporate:     ["hero-glass", "hero-spotlight", "hero-default"],
+  jobs:          ["hero-search", "hero-default", "hero-spotlight"],
+  fintech:       ["hero-finance", "hero-default", "hero-glass"],
+  identity:      ["hero-identity", "hero-spotlight", "hero-default"],
+  gaming:        ["hero-gaming", "hero-spotlight", "hero-default"],
+  saas:          ["hero-default", "hero-glass", "hero-spotlight"],
+  portfolio:     ["hero-spotlight", "hero-default", "hero-glass"],
+  marketplace:   ["hero-search", "hero-spotlight", "hero-default"],
+  default:       ["hero-default", "hero-spotlight", "hero-glass"],
+};
+
+/** Apply seed-driven variance: swap hero variant + shuffle middle sections. */
+function applyVariance(
+  base: SectionKey[],
+  archetype: Archetype,
+  seedBasis: string,
+  active: boolean,
+): SectionKey[] {
+  if (!active) return base;
+  const rnd = rngFor(`sections:${seedBasis}`);
+  const heroOptions = HERO_VARIANTS[archetype] ?? HERO_VARIANTS.default;
+  const newHero = heroOptions[Math.floor(rnd() * heroOptions.length)];
+  // Keep first slot if it's a hero, last slot (footer), and CTA band order;
+  // shuffle the rest.
+  const head: SectionKey[] = base[0]?.startsWith("hero-") ? [newHero] : [];
+  const tailIdx = base.length - 1;
+  const tail: SectionKey[] = base[tailIdx] === "footer" ? ["footer"] : [];
+  const middle = base.slice(head.length, tail.length ? tailIdx : base.length);
+  const shuffled = shuffle(middle, rnd);
+  return [...head, ...shuffled, ...tail];
+}
+
+export function designSignature(
+  project: ProjectLike,
+  archetype: Archetype,
+  context?: MonsterBrainContext | null,
+): string {
+  const seedBasis = buildSeedBasis(project, context);
+  const hue = Math.abs(hash(seedBasis)) % 360;
+  const variant = variantIndex(seedBasis);
+  const seedTag = context?.regenerationSeed
+    ? `:seed${Math.abs(hash(context.regenerationSeed)).toString(36).slice(0, 6)}`
+    : "";
+  const slug = (project.name ?? "").trim().toLowerCase().replace(/\s+/g, "-");
+  return `mb-v1:${archetype}:hue${hue}:variant-${variant}${seedTag}:${slug}`;
 }
 
 export function generateProjectFiles(
@@ -1098,14 +1162,17 @@ export function generateProjectFiles(
   context?: MonsterBrainContext | null,
 ): GeneratedProjectFile[] {
   const archetype = inferProjectArchetype(project, context ?? null);
+  const seedBasis = buildSeedBasis(project, context);
   const baseTheme = baseThemeFor(archetype);
-  const theme = shiftedTheme(baseTheme, project.id ?? project.name ?? "x");
+  const theme = shiftedTheme(baseTheme, seedBasis);
   const copy = copyFor(archetype, project);
-  const sections = sectionsFor(archetype);
+  const baseSections = sectionsFor(archetype);
+  const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant);
+  const sections = applyVariance(baseSections, archetype, seedBasis, variance);
   const blueprint: Blueprint = { archetype, theme, copy, sections };
 
-  const html = renderHtml(blueprint, project);
-  const css = renderCss(theme as Theme & { _hue?: number }, archetype, project.id ?? project.name ?? "x");
+  const html = renderHtml(blueprint, project, seedBasis);
+  const css = renderCss(theme as Theme & { _hue?: number }, archetype, seedBasis);
   const js = renderJs(project.name ?? "Untitled", archetype);
 
   return [

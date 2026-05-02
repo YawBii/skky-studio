@@ -81,7 +81,8 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
     return Array.isArray(fw) ? fw.filter((f): f is string => typeof f === "string") : null;
   })();
   const previewReady = pickField<boolean>(steps, "previewReady");
-  const hasGenerator = Boolean(generator || archetype || designSignature || filesWritten || previewReady !== null);
+  const regenerationSeed = pickField<string>(steps, "regenerationSeed");
+  const hasGenerator = Boolean(generator || archetype || designSignature || filesWritten || previewReady !== null || regenerationSeed);
   const isAiPlanUnwired = job.type === "ai.plan" && (job.error?.includes("not wired") || stdoutTail?.includes("not wired"));
 
   const startedTs = job.startedAt ? Date.parse(job.startedAt) : Date.parse(job.createdAt);
@@ -176,6 +177,7 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
               {generator && (<><dt className="text-muted-foreground">generator</dt><dd className="text-foreground/90">{generator}</dd></>)}
               {archetype && (<><dt className="text-muted-foreground">archetype</dt><dd className="text-foreground/90">{archetype}</dd></>)}
               {designSignature && (<><dt className="text-muted-foreground">designSignature</dt><dd className="text-foreground/90 break-all">{designSignature}</dd></>)}
+              {regenerationSeed && (<><dt className="text-muted-foreground">regenerationSeed</dt><dd className="text-foreground/90 break-all">{regenerationSeed}</dd></>)}
               {filesWritten && (
                 <>
                   <dt className="text-muted-foreground">filesWritten</dt>

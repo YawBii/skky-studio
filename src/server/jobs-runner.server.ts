@@ -626,7 +626,7 @@ import {
 export async function generateAndPersistProjectFiles(
   sb: ProjectFilesSupabaseLike,
   job: JobRow,
-): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string; generator: "monster-brain-v1"; previewReady: boolean }> {
+): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string; generator: "monster-brain-v1"; previewReady: boolean; regenerationSeed?: string | null }> {
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
@@ -641,12 +641,17 @@ export async function generateAndPersistProjectFiles(
   const chatRequest = typeof input.chatRequest === "string"
     ? input.chatRequest
     : typeof input.prompt === "string" ? input.prompt : null;
+  const regenerationSeed = typeof input.regenerationSeed === "string" && input.regenerationSeed.length
+    ? input.regenerationSeed
+    : null;
+  const forceVariant = input.forceVariant === true || regenerationSeed !== null;
   const projectInput = { id: proj.id, name: proj.name ?? "", description: proj.description ?? null };
-  console.log("[yawb] monster.generate.start", { projectId: job.project_id, name: projectInput.name });
-  const archetype = inferProjectArchetype(projectInput, { chatRequest });
-  const files = monsterGenerate(projectInput, { chatRequest });
-  const sig = monsterSignature(projectInput, archetype);
-  console.log("[yawb] monster.generate.done", { archetype, designSignature: sig, paths: files.map((f) => f.path) });
+  console.log("[yawb] monster.generate.start", { projectId: job.project_id, name: projectInput.name, regenerationSeed, forceVariant });
+  const ctx = { chatRequest, regenerationSeed, forceVariant };
+  const archetype = inferProjectArchetype(projectInput, ctx);
+  const files = monsterGenerate(projectInput, ctx);
+  const sig = monsterSignature(projectInput, archetype, ctx);
+  console.log("[yawb] monster.generate.done", { archetype, designSignature: sig, regenerationSeed, paths: files.map((f) => f.path) });
   const written: string[] = [];
   for (const f of files) {
     console.log("[yawb] project_files.upsert.start", { projectId: job.project_id, path: f.path });
@@ -658,13 +663,13 @@ export async function generateAndPersistProjectFiles(
       );
     if (error) {
       console.error("[yawb] project_files.upsert.error", { projectId: job.project_id, path: f.path, error: error.message });
-      return { ok: false, written, error: `project_files upsert failed for ${f.path}: ${error.message}`, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: false };
+      return { ok: false, written, error: `project_files upsert failed for ${f.path}: ${error.message}`, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: false, regenerationSeed };
     }
     console.log("[yawb] project_files.upsert.done", { projectId: job.project_id, path: f.path, bytes: f.content.length });
     written.push(f.path);
   }
   const sortedWritten = [...written].sort();
-  return { ok: true, written: sortedWritten, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html") };
+  return { ok: true, written: sortedWritten, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html"), regenerationSeed };
 }
 
 const aiAdapter: ProviderAdapter = {
@@ -691,6 +696,7 @@ const aiAdapter: ProviderAdapter = {
         filesWritten: r.written,
         archetype: r.archetype,
         designSignature: r.designSignature,
+        regenerationSeed: r.regenerationSeed ?? null,
         previewReady: r.previewReady,
       };
       try {
