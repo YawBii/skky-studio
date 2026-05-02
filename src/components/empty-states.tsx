@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { createWorkspace, type Workspace } from "@/services/workspaces";
 import { createProject, type Project } from "@/services/projects";
 import { parseRepoInput, recordGitHubConnection, type ParsedRepo } from "@/services/github-import";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -79,6 +80,7 @@ export function CreateWorkspaceEmpty({
           Create workspace
         </Button>
       </div>
+      <MobileBootstrapPanel lastError={errorMessage ?? null} />
     </Shell>
   );
 }
@@ -167,6 +169,7 @@ export function CreateProjectEmpty({
           onCreated={onCreated}
         />
       )}
+      <MobileBootstrapPanel selectedWorkspaceId={workspaceId} />
     </Shell>
   );
 }

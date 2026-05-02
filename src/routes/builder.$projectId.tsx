@@ -22,6 +22,7 @@ import {
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
@@ -41,12 +42,21 @@ export const Route = createFileRoute("/builder/$projectId")({
     ],
   }),
   errorComponent: ({ error }) => <div className="p-10">Error: {error.message}</div>,
-  notFoundComponent: () => (
-    <div className="p-10 text-center">
-      <h1 className="text-2xl font-display font-bold">Project not found</h1>
-      <Link to="/" className="text-primary text-sm mt-3 inline-block">← Back to dashboard</Link>
-    </div>
-  ),
+  notFoundComponent: () => {
+    const { projectId } = Route.useParams();
+    return (
+      <div className="p-6 sm:p-10 text-center max-w-md mx-auto">
+        <h1 className="text-2xl font-display font-bold">Project not found</h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          We couldn't load <span className="font-mono">{projectId}</span>. It may not exist, or you may not have access.
+        </p>
+        <Link to="/" className="text-primary text-sm mt-3 inline-block">← Back to dashboard</Link>
+        <div className="mt-6 text-left">
+          <MobileBootstrapPanel urlProjectId={projectId} activeProjectId={null} />
+        </div>
+      </div>
+    );
+  },
   component: Builder,
 });
 

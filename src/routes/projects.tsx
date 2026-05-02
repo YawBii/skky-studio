@@ -24,6 +24,7 @@ import {
   type ProjectConnection,
 } from "@/services/project-connections";
 import { cn } from "@/lib/utils";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 const TabSchema = z.object({
   tab: z.enum(["projects", "github", "vercel", "import"]).optional(),
@@ -111,6 +112,13 @@ function ProjectsPage() {
               <div className="flex justify-center gap-2 mt-5">
                 <Button type="button" variant="hero" onClick={() => setCreateOpen(true)}><Plus className="h-3.5 w-3.5" /> New project</Button>
                 <Button type="button" variant="soft" onClick={() => setTab("github")}><Github className="h-3.5 w-3.5" /> Browse GitHub</Button>
+              </div>
+              <div className="mt-6 max-w-md mx-auto text-left">
+                <MobileBootstrapPanel
+                  selectedWorkspaceId={workspace?.id ?? null}
+                  projectsCount={projects.length}
+                  lastError={error ?? null}
+                />
               </div>
             </div>
           ) : (
