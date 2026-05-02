@@ -37,15 +37,22 @@ export type WorkspacesResult = {
 
 export async function listWorkspaces(): Promise<WorkspacesResult> {
   let uid: string | undefined;
+  let email: string | undefined;
   try {
     const { data: userData } = await supabase.auth.getUser();
     uid = userData.user?.id;
+    email = userData.user?.email ?? undefined;
   } catch {
     // auth call failed -> treat as signed-out
   }
-  if (!uid) return { workspaces: [DEMO_WORKSPACE], source: "demo-fallback" };
+  if (!uid) {
+    setDiag({ hasSession: false, userId: null, workspacesCount: 0, workspaceSource: "demo-fallback", workspaceMembersError: null });
+    pushDiag("workspace_members.skipped", { reason: "no-session" });
+    return { workspaces: [DEMO_WORKSPACE], source: "demo-fallback" };
+  }
 
   try {
+    console.info("[yawb] workspace_members.query", { userId: uid, email });
     const { data, error } = await supabase
       .from("workspace_members")
       .select("role, workspaces:workspace_id ( id, name, slug )")
@@ -53,6 +60,9 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
 
     if (error) {
       // Signed-in but query failed. Do NOT pretend Skky Group exists.
+      setDiag({ hasSession: true, userId: uid, workspacesCount: 0, workspaceSource: "error", workspaceMembersError: error });
+      pushDiag("workspace_members.error", { userId: uid, email, message: error.message, code: error.code, details: error.details, hint: error.hint });
+      console.warn("[yawb] workspace_members.error", { userId: uid, email, message: error.message, code: error.code });
       return { workspaces: [], source: "error", error: error.message };
     }
 
@@ -68,10 +78,21 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
       })
       .filter((x): x is Workspace => !!x);
 
-    if (rows.length === 0) return { workspaces: [], source: "demo-empty" };
+    if (rows.length === 0) {
+      setDiag({ hasSession: true, userId: uid, workspacesCount: 0, workspaceSource: "demo-empty", workspaceMembersError: null });
+      pushDiag("workspace_members.empty", { userId: uid, email, count: 0 });
+      console.info("[yawb] workspace_members.empty", { userId: uid, email });
+      return { workspaces: [], source: "demo-empty" };
+    }
+    setDiag({ hasSession: true, userId: uid, workspacesCount: rows.length, workspaceSource: "supabase", workspaceMembersError: null });
+    pushDiag("workspace_members.loaded", { userId: uid, email, count: rows.length, workspaceIds: rows.map((w) => w.id) });
+    console.info("[yawb] projects.loaded", { source: "workspace_members", count: rows.length });
     return { workspaces: rows, source: "supabase" };
   } catch (e) {
-    return { workspaces: [], source: "error", error: e instanceof Error ? e.message : String(e) };
+    const message = e instanceof Error ? e.message : String(e);
+    setDiag({ hasSession: true, userId: uid, workspacesCount: 0, workspaceSource: "error", workspaceMembersError: message });
+    pushDiag("workspace_members.exception", { userId: uid, email, message });
+    return { workspaces: [], source: "error", error: message };
   }
 }
 
