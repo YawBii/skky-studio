@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { listProjects, type Project, type ProjectsResult } from "@/services/projects";
 import { setDiag } from "@/lib/diagnostics";
-import { readCurrentProjectId, writeCurrentProjectId } from "@/lib/project-selection";
+import { readCurrentProjectId, readDirectProject, writeCurrentProjectId } from "@/lib/project-selection";
 
 export function useProjects(workspaceId: string | null | undefined) {
   const [result, setResult] = useState<ProjectsResult>({ projects: [], source: "no-workspace" });
@@ -11,14 +11,17 @@ export function useProjects(workspaceId: string | null | undefined) {
   const refresh = useCallback(async () => {
     setLoading(true);
     const r = await listProjects(workspaceId ?? null);
-    setResult(r);
+    const direct = readDirectProject();
+    const shouldInjectDirect = direct && direct.workspaceId === workspaceId && !r.projects.some((p) => p.id === direct.id);
+    const next = shouldInjectDirect ? { projects: [direct, ...r.projects], source: "supabase" as const } : r;
+    setResult(next);
     setLoading(false);
-    setDiag({ workspaceId: workspaceId ?? null, projectsCount: r.projects.length, projectsSource: r.source });
+    setDiag({ workspaceId: workspaceId ?? null, projectsCount: next.projects.length, projectsSource: next.source });
     if (typeof window !== "undefined") {
       // eslint-disable-next-line no-console
-      console.info("[yawb] projects source:", r.source, `count=${r.projects.length}`, r.error ?? "");
+      console.info("[yawb] projects source:", next.source, `count=${next.projects.length}`, r.error ?? "");
     }
-    return r;
+    return next;
   }, [workspaceId]);
 
   useEffect(() => {
