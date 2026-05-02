@@ -169,6 +169,7 @@ export function CreateProjectEmpty({
           onCreated={onCreated}
         />
       )}
+      <MobileBootstrapPanel selectedWorkspaceId={workspaceId} />
     </Shell>
   );
 }
