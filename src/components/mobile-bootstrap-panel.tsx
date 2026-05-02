@@ -4,6 +4,7 @@
 // the floating Diagnostics panel.
 import { useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { getSupabaseDiagnostics } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,9 +13,14 @@ import { useDiagnostics } from "@/lib/diagnostics";
 export interface MobileBootstrapPanelProps {
   membershipsCount?: number | null;
   selectedWorkspaceId?: string | null;
+  workspaceSource?: string | null;
+  workspacesCount?: number | null;
   projectsCount?: number | null;
+  projectsSource?: string | null;
   activeProjectId?: string | null;
   urlProjectId?: string | null;
+  workspaceMembersError?: string | null;
+  projectsQueryError?: string | null;
   lastError?: string | null;
 }
 
@@ -37,16 +43,25 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
     return () => { cancelled = true; };
   }, [session?.userId]);
 
-  const memberships =
-    props.membershipsCount ?? state.workspacesCount ?? null;
+  const workspacesCount =
+    props.workspacesCount ?? props.membershipsCount ?? state.workspacesCount ?? null;
   const workspaceId =
     props.selectedWorkspaceId ?? state.workspaceId ?? null;
   const projects = props.projectsCount ?? state.projectsCount ?? null;
   const projectId = props.activeProjectId ?? state.projectId ?? null;
+  const workspaceSource = props.workspaceSource ?? state.workspaceSource ?? "—";
+  const projectsSource = props.projectsSource ?? state.projectsSource ?? "—";
+  const workspaceMembersError =
+    props.workspaceMembersError ?? extractMessage(state.workspaceMembersError) ?? null;
+  const projectsQueryError =
+    props.projectsQueryError ?? extractMessage(state.projectsQueryError) ?? null;
+  const supabaseProjectRef = env.urlHost ? env.urlHost.split(".")[0] : "—";
 
   // Pick the most relevant Supabase error (workspace + project paths).
   const lastError =
     props.lastError ??
+    workspaceMembersError ??
+    projectsQueryError ??
     extractMessage(state.workspaceSelectError) ??
     extractMessage(state.workspaceInsertError) ??
     extractMessage(state.projectSelectError) ??
@@ -58,16 +73,21 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
     ["authLoading", String(authLoading)],
     ["hasSession", String(!!session)],
     ["userId", session?.userId ?? "—"],
-    ["userEmail", email ?? "—"],
-    ["membershipsCount", memberships == null ? "—" : String(memberships)],
+    ["userEmail", session?.email ?? email ?? "—"],
     ["selectedWorkspaceId", workspaceId ?? "—"],
+    ["workspaceSource", workspaceSource],
+    ["workspacesCount", workspacesCount == null ? "—" : String(workspacesCount)],
     ["projectsCount", projects == null ? "—" : String(projects)],
+    ["projectsSource", projectsSource],
     ["activeProjectId", projectId ?? "—"],
-    ["urlProjectId", props.urlProjectId ?? "—"],
-    ["supabaseUrlHost", env.urlHost || "—"],
-    ["supabaseEnvOk", String(env.ok)],
+    ["routeProjectId", props.urlProjectId ?? "—"],
+    ["supabaseUrlProjectRef", env.urlHost ? `${env.urlHost} / ${supabaseProjectRef}` : "—"],
+    ["latestWorkspaceMembersError", workspaceMembersError ?? "—"],
+    ["latestProjectsQueryError", projectsQueryError ?? "—"],
     ["lastSupabaseError", lastError ?? "—"],
   ];
+
+  const stateMessage = getBootstrapStateMessage({ authLoading, hasSession: !!session, workspacesCount, workspaceId, projects });
 
   async function copyAll() {
     const text =
@@ -108,9 +128,28 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+      {stateMessage && (
+        <div className="mb-2 rounded-lg border border-white/10 bg-white/[0.03] p-2 font-sans">
+          <div className="text-[12px] font-medium text-foreground" data-testid="mobile-bootstrap-state-title">
+            {stateMessage.title}
+          </div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground break-words" data-testid="mobile-bootstrap-state-detail">
+            {stateMessage.detail}
+          </div>
+          {stateMessage.signIn && (
+            <Link
+              to="/login"
+              className="mt-2 inline-flex min-h-9 items-center rounded-md border border-white/10 px-3 text-[12px] text-foreground hover:bg-white/[0.05]"
+              data-testid="mobile-bootstrap-sign-in"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-[140px_1fr] gap-x-2 gap-y-0.5 leading-relaxed">
         {rows.map(([k, v]) => {
-          const isError = k === "lastSupabaseError" && v !== "—";
+          const isError = (k === "lastSupabaseError" || k === "latestWorkspaceMembersError" || k === "latestProjectsQueryError") && v !== "—";
           const isFalseSession = k === "hasSession" && v === "false";
           return (
             <Row
