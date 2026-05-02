@@ -27,11 +27,23 @@ interface ProjectLite {
   description: string | null;
 }
 
+interface ProjectLite {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+interface GithubLink {
+  repoFullName: string | null;
+  repoUrl: string | null;
+}
+
 function LocalPreview() {
   const { projectId } = Route.useParams();
   const [project, setProject] = useState<ProjectLite | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasFiles, setHasFiles] = useState(false);
+  const [github, setGithub] = useState<GithubLink | null>(null);
 
   // Make this route truly chrome-less and full-viewport. Strip any inherited
   // app background so the embedded iframe shows the preview document only.
