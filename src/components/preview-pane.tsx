@@ -134,6 +134,8 @@ export function PreviewPane({
   activeDeployUrl,
   connections,
   generated,
+  onRegenerateDesign,
+  regenerating,
 }: PreviewPaneProps) {
   const viewport = DEVICE_VIEWPORTS[device];
 
@@ -361,6 +363,24 @@ export function PreviewPane({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
+        {onRegenerateDesign && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
+            data-testid="preview-regenerate-design"
+            onClick={() => {
+              console.info("[yawb] preview.regenerate.clicked", { projectId: project.id });
+              onRegenerateDesign();
+            }}
+            disabled={regenerating}
+            title="Rewrite project_files with a fresh design"
+          >
+            {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Regenerate design
+          </Button>
+        )}
 
         {/* Local | Live toggle */}
         <div
