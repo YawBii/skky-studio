@@ -829,3 +829,33 @@ export function PreviewPane({
     </div>
   );
 }
+
+function DesignProofPill({
+  html,
+  fallbackAngle,
+}: {
+  html: string | null;
+  fallbackAngle: DesignAngle;
+}) {
+  const proof = useMemo(() => parseDesignProof(html), [html]);
+  const angleId = (proof.designMode as DesignAngle | null) ?? fallbackAngle;
+  const angleLabel = DESIGN_ANGLES.find((a) => a.id === angleId)?.label ?? angleId;
+  const hero = proof.heroLayout ?? "—";
+  const palette = proof.palette ?? "—";
+  return (
+    <div
+      data-testid="preview-design-pill"
+      data-design-mode={angleId}
+      data-hero-layout={proof.heroLayout ?? ""}
+      data-palette={proof.palette ?? ""}
+      className="px-3 py-1.5 border-b border-white/5 bg-white/[0.02] text-[11px] text-muted-foreground flex items-center gap-2 overflow-x-auto scrollbar-thin"
+    >
+      <span className="text-foreground font-medium">Design:</span>
+      <span className="text-foreground">{angleLabel}</span>
+      <span className="opacity-50">·</span>
+      <span className="font-mono">{hero}</span>
+      <span className="opacity-50">·</span>
+      <span className="font-mono">{palette}</span>
+    </div>
+  );
+}
