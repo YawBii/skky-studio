@@ -696,6 +696,81 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
           ].map(([t, d], i) => `<article class="mb-card"><span class="mb-card-num">0${i + 1}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}
         </div>
       </section>`;
+    case "pricing-tiers": {
+      const tiers = shuffle([
+        { n: "Starter",      p: "$0",   blurb: "For solo builders just getting traction.",   feats: ["1 workspace", "Community support", "Basic analytics"] },
+        { n: "Team",         p: "$24",  blurb: "Small teams shipping every week.",            feats: ["Unlimited projects", "Priority support", "Audit log", "Roles"] },
+        { n: "Scale",        p: "$98",  blurb: "Operating teams that need guarantees.",       feats: ["SSO + SCIM", "99.99% SLA", "Dedicated CSM", "Custom contracts"] },
+      ], rnd);
+      return `<section id="pricing" class="mb-section">
+        <h2 class="mb-h2">Pricing</h2>
+        <p class="mb-sub">Honest tiers. No surprise overages.</p>
+        <div class="mb-grid mb-grid-3">
+          ${tiers.map((t, i) => `<article class="mb-card mb-card-tier${i === 1 ? " featured" : ""}">
+            <h3>${esc(t.n)}</h3>
+            <div class="mb-tier-price">${esc(t.p)}<span>/mo</span></div>
+            <p>${esc(t.blurb)}</p>
+            <ul class="mb-checklist">${t.feats.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
+            <button type="button" class="mb-cta sm">${esc(copy.primaryCta, 40)}</button>
+          </article>`).join("")}
+        </div>
+      </section>`;
+    }
+    case "faq-accordion": {
+      const faqs = shuffle([
+        ["Is my data encrypted?", "Yes — AES-256 at rest, TLS 1.3 in transit, and per-tenant keys."],
+        ["How do you handle exports?", "One-click CSV/JSON export from every table. No vendor lock-in."],
+        ["Do you offer SSO?", "SAML SSO and SCIM provisioning are included on Scale and above."],
+        ["What's your uptime?", "99.99% measured SLA with public status history."],
+        ["Can I self-host?", "Self-hosted runtime is available for Scale customers under contract."],
+        ["Is there a free trial?", "Yes — 14 days, full feature access, no credit card."],
+      ], rnd).slice(0, 5);
+      return `<section id="faq" class="mb-section">
+        <h2 class="mb-h2">Frequently asked</h2>
+        <div class="mb-faq">
+          ${faqs.map(([q, a]) => `<details class="mb-faq-row"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}
+        </div>
+      </section>`;
+    }
+    case "testimonial-wall": {
+      const quotes = shuffle([
+        { q: `${name} replaced four tools in our stack. We didn't expect that.`, a: "Lena V.", r: "VP Eng, Northwind" },
+        { q: `The team ships like it's a personal project. Rare and great.`,    a: "Marcus T.", r: "Founder, Atlas" },
+        { q: `Best onboarding I've done in years. We were live the same day.`,   a: "Priya R.", r: "Head of Ops, Quill" },
+        { q: `Quiet, clear, and unreasonably reliable.`,                          a: "Jordan B.", r: "CTO, Field" },
+        { q: `It feels like the product knows what we want before we do.`,        a: "Aiko S.",  r: "PM, Lumen" },
+      ], rnd).slice(0, 3);
+      return `<section id="testimonials" class="mb-section">
+        <h2 class="mb-h2">Trusted by teams that ship</h2>
+        <div class="mb-grid mb-grid-3">
+          ${quotes.map((t) => `<figure class="mb-card mb-card-quote">
+            <blockquote>“${esc(t.q)}”</blockquote>
+            <figcaption><strong>${esc(t.a)}</strong><span>${esc(t.r)}</span></figcaption>
+          </figure>`).join("")}
+        </div>
+      </section>`;
+    }
+    case "logo-strip": {
+      const logos = shuffle(["northwind", "atlas", "quill", "field", "orbit", "lumen", "halo", "ember", "nyx"], rnd).slice(0, 6);
+      return `<section class="mb-section mb-logos" aria-label="Customer logos">
+        <p class="mb-logos-eyebrow">Trusted by teams at</p>
+        <div class="mb-logos-row">${logos.map((l) => `<span class="mb-logo">${esc(l)}</span>`).join("")}</div>
+      </section>`;
+    }
+    case "process-steps": {
+      const steps = [
+        ["01", "Connect", "Plug in your sources in under 5 minutes."],
+        ["02", "Configure", "Pick the workflow that fits your team's shape."],
+        ["03", "Operate", "Run, audit, and iterate without leaving the app."],
+        ["04", "Improve", "Weekly insights point to the next compounding fix."],
+      ];
+      return `<section id="how-it-works" class="mb-section">
+        <h2 class="mb-h2">How it works</h2>
+        <ol class="mb-process">
+          ${steps.map(([n, t, d]) => `<li><span class="mb-process-num">${esc(n)}</span><div><h3>${esc(t)}</h3><p>${esc(d)}</p></div></li>`).join("")}
+        </ol>
+      </section>`;
+    }
     case "cta-band":
       return `<section class="mb-section mb-cta-band">
         <h2 class="mb-h2">${esc(`Ready to see ${name} in motion?`)}</h2>
