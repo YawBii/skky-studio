@@ -16,6 +16,9 @@ import { useProjectConnections } from "@/hooks/use-project-connections";
 import { CreateWorkspaceEmpty, CreateProjectEmpty } from "@/components/empty-states";
 import { DiagnosticsPanel } from "@/components/diagnostics-panel";
 import { setDiag } from "@/lib/diagnostics";
+import { useAuth } from "@/hooks/use-auth";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
+import { Button } from "@/components/ui/button";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -124,6 +127,7 @@ function RootComponent() {
 
 function WorkspaceShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { session, loading: authLoading } = useAuth();
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
@@ -196,7 +200,9 @@ function WorkspaceShell() {
   // navigation isn't "stuck" on the create-workspace screen.
   const isHomeRoute = pathname === "/" || pathname === "/projects";
   let mainContent: React.ReactNode;
-  if (isHomeRoute && workspaceEmpty) {
+  if (isHomeRoute && !authLoading && !session) {
+    mainContent = <MobileSignedOutEmpty />;
+  } else if (isHomeRoute && workspaceEmpty) {
     mainContent = (
       <CreateWorkspaceEmpty
         errorMessage={workspaceError ? workspaceErrorMessage : undefined}
@@ -257,6 +263,26 @@ function WorkspaceShell() {
         workspaceName={workspaceName}
       />
       <DiagnosticsPanel />
+    </div>
+  );
+}
+
+function MobileSignedOutEmpty() {
+  return (
+    <div className="min-h-full grid place-items-center px-5 py-10">
+      <div className="w-full max-w-md text-center">
+        <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Mobile session</div>
+        <h1 className="mt-2 text-2xl font-display font-semibold tracking-tight">Not signed in on this device</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in to load your workspace and projects on this phone.
+        </p>
+        <Button asChild variant="hero" className="mt-5">
+          <Link to="/login">Sign in</Link>
+        </Button>
+        <div className="mt-6 text-left">
+          <MobileBootstrapPanel projectsCount={0} workspacesCount={0} />
+        </div>
+      </div>
     </div>
   );
 }

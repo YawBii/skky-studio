@@ -106,6 +106,7 @@ const INITIAL: Msg[] = [
 export function AssistantPanel() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Msg[]>(INITIAL);
+  const [queuedSummaryJobs, setQueuedSummaryJobs] = useState<Record<string, Job>>({});
   const [checklist, setChecklist] = useState(loadChecklist);
   const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
   const { project, workspace } = useSelectedProject();
@@ -418,7 +419,10 @@ export function AssistantPanel() {
     }
     console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
     toast.success("Request queued");
-    setMessages((m) => [...m, { role: "assistant", content: `Queued ai.plan job. Open the Jobs tab to watch progress.` }]);
+    summarizedRef.current.add(r.job.id);
+    persistSummarized(project.id, summarizedRef.current);
+    setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
+    setMessages((m) => [...m, { role: "assistant", content: `Queued ai.plan job. I'll keep the live summary under this message.`, summaryJobId: r.job.id }]);
   };
 
   const runJob = async (type: JobType, title: string) => {
@@ -435,7 +439,10 @@ export function AssistantPanel() {
       setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue ${type}: ${r.error}` }]);
       return;
     }
-    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). Open the Jobs tab to watch progress.` }]);
+    summarizedRef.current.add(r.job.id);
+    persistSummarized(project.id, summarizedRef.current);
+    setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
+    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). I'll keep the live summary under this message.`, summaryJobId: r.job.id }]);
   };
 
   return (
@@ -491,7 +498,7 @@ export function AssistantPanel() {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-5 space-y-4">
         {messages.map((m, i) => {
-          const job: Job | undefined = m.summaryJobId ? jobsState.jobs.find((j) => j.id === m.summaryJobId) : undefined;
+          const job: Job | undefined = m.summaryJobId ? (jobsState.jobs.find((j) => j.id === m.summaryJobId) ?? queuedSummaryJobs[m.summaryJobId]) : undefined;
           const steps = m.summaryJobId ? (jobsState.stepsByJob[m.summaryJobId] ?? []) : [];
           const nextActions = job
             ? (job.status === "failed"

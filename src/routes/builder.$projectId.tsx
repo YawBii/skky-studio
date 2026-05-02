@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import type { Project } from "@/services/projects";
+import { getProjectById, type Project } from "@/services/projects";
+import { rememberDirectProject } from "@/lib/project-selection";
 import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
 import { enqueueJob } from "@/services/jobs";
@@ -109,22 +109,13 @@ function Builder() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, workspace_id, name, slug, description, created_at")
-        .eq("id", projectId)
-        .maybeSingle();
+      const direct = await getProjectById(projectId);
       if (cancelled) return;
-      if (error || !data) { setMissing(true); setProject(null); }
+      if (!direct.project) { setMissing(true); setProject(null); }
       else {
-        setProject({
-          id: data.id,
-          workspaceId: data.workspace_id,
-          name: data.name,
-          slug: data.slug,
-          description: data.description,
-          createdAt: data.created_at,
-        });
+        setProject(direct.project);
+        setMissing(false);
+        rememberDirectProject(direct.project);
       }
       setLoading(false);
     })();

@@ -27,15 +27,43 @@ export type ProjectsResult = {
 // so the empty state renders cleanly instead.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function toProject(r: {
+  id: string;
+  workspace_id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_at?: string | null;
+}): Project {
+  return {
+    id: r.id,
+    workspaceId: r.workspace_id,
+    name: r.name,
+    slug: r.slug,
+    description: r.description,
+    createdAt: r.created_at ?? undefined,
+  };
+}
+
+export function isUuid(value: string | null | undefined): value is string {
+  return !!value && UUID_RE.test(value);
+}
+
 export async function listProjects(workspaceId: string | null | undefined): Promise<ProjectsResult> {
-  if (!workspaceId) return { projects: [], source: "no-workspace" };
+  if (!workspaceId) {
+    setDiag({ workspaceId: null, projectsCount: 0, projectsSource: "no-workspace", projectsQueryError: null });
+    return { projects: [], source: "no-workspace" };
+  }
   if (!UUID_RE.test(workspaceId)) {
     // eslint-disable-next-line no-console
     console.info("[yawb] projects.list skipped — non-UUID workspaceId", { workspaceId });
+    setDiag({ workspaceId, projectsCount: 0, projectsSource: "no-workspace", projectsQueryError: null });
+    pushDiag("projects.skipped", { reason: "non-uuid-workspace", workspaceId });
     return { projects: [], source: "no-workspace" };
   }
 
   try {
+    console.info("[yawb] projects.query", { workspaceId });
     const { data, error } = await supabase
       .from("projects")
       .select("id, workspace_id, name, slug, description, created_at")
@@ -45,24 +73,65 @@ export async function listProjects(workspaceId: string | null | undefined): Prom
     if (error) {
       // eslint-disable-next-line no-console
       console.warn("[yawb] projects.list error", error);
+      setDiag({ workspaceId, projectsCount: 0, projectsSource: "error", projectsQueryError: error });
+      pushDiag("projects.query.error", { workspaceId, message: error.message, code: error.code, details: error.details, hint: error.hint });
       return { projects: [], source: "error", error: error.message };
     }
     if (!data || data.length === 0) {
+      setDiag({ workspaceId, projectsCount: 0, projectsSource: "empty", projectsQueryError: null });
+      pushDiag("projects.query.empty", { workspaceId, count: 0 });
       return { projects: [], source: "empty" };
     }
+    const projects = data.map(toProject);
+    setDiag({ workspaceId, projectsCount: projects.length, projectsSource: "supabase", projectsQueryError: null });
+    pushDiag("projects.loaded", { workspaceId, count: projects.length, projectIds: projects.map((p) => p.id) });
+    console.info("[yawb] projects.loaded", { workspaceId, count: projects.length });
     return {
-      projects: data.map((r) => ({
-        id: r.id,
-        workspaceId: r.workspace_id,
-        name: r.name,
-        slug: r.slug,
-        description: r.description,
-        createdAt: r.created_at,
-      })),
+      projects,
       source: "supabase",
     };
   } catch (e) {
-    return { projects: [], source: "error", error: e instanceof Error ? e.message : String(e) };
+    const message = e instanceof Error ? e.message : String(e);
+    setDiag({ workspaceId, projectsCount: 0, projectsSource: "error", projectsQueryError: message });
+    pushDiag("projects.query.exception", { workspaceId, message });
+    return { projects: [], source: "error", error: message };
+  }
+}
+
+export async function getProjectById(projectId: string | null | undefined): Promise<{ project: Project | null; error?: string }> {
+  if (!isUuid(projectId)) {
+    pushDiag("project.byId.skipped", { reason: "non-uuid-project", projectId });
+    return { project: null, error: "Project id is not a UUID." };
+  }
+
+  try {
+    console.info("[yawb] project.byId.query", { projectId });
+    const { data, error } = await supabase
+      .from("projects")
+      .select("id, workspace_id, name, slug, description, created_at")
+      .eq("id", projectId)
+      .maybeSingle();
+
+    if (error) {
+      setDiag({ projectId, projectSelectError: error, projectsQueryError: error });
+      pushDiag("project.byId.error", { projectId, message: error.message, code: error.code, details: error.details, hint: error.hint });
+      return { project: null, error: error.message };
+    }
+    if (!data) {
+      setDiag({ projectId, projectSelectError: "Project not found by route id" });
+      pushDiag("project.byId.empty", { projectId });
+      return { project: null };
+    }
+    const project = toProject(data);
+    setDiag({ projectId: project.id, workspaceId: project.workspaceId, projectSelectError: null });
+    pushDiag("project.selected", { source: "route-project-id", projectId: project.id, workspaceId: project.workspaceId });
+    console.info("[yawb] project.selected", { source: "route-project-id", projectId: project.id, workspaceId: project.workspaceId });
+    return { project };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    setDiag({ projectId, projectSelectError: message, projectsQueryError: message });
+    pushDiag("project.byId.exception", { projectId, message });
+    return { project: null, error: message };
   }
 }
 
