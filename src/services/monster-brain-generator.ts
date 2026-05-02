@@ -210,6 +210,190 @@ export function variantIndex(seedBasis: string, modulo: number = 6): number {
 }
 
 // ---------------------------------------------------------------------------
+// Visual fingerprint catalog
+// ---------------------------------------------------------------------------
+
+export type DesignMode =
+  | "editorial-luxury"
+  | "glass-dashboard"
+  | "civic-map"
+  | "neon-command"
+  | "magazine-cards"
+  | "minimal-light"
+  | "brutalist-data";
+
+export type HeroLayoutId =
+  | "editorial-split"
+  | "dashboard-grid"
+  | "map-impact"
+  | "command-terminal"
+  | "magazine-portrait"
+  | "minimal-stack"
+  | "brutalist-blocks";
+
+export type PaletteId =
+  | "cream-ink"
+  | "graphite-mint"
+  | "deep-civic"
+  | "neon-violet"
+  | "paper-coral"
+  | "snow-noir"
+  | "concrete-acid";
+
+export type TypographyId =
+  | "fraunces-inter"
+  | "playfair-inter"
+  | "spacegrotesk-inter"
+  | "jetbrains-inter"
+  | "bricolage-inter"
+  | "inter-inter"
+  | "ibmplex-mono";
+
+export type ShapeLanguageId = "soft" | "sharp" | "blocky" | "pill";
+
+export interface VisualFingerprint {
+  archetype: Archetype;
+  designMode: DesignMode;
+  heroLayout: HeroLayoutId;
+  palette: PaletteId;
+  typography: TypographyId;
+  shapeLanguage: ShapeLanguageId;
+  sectionOrder: SectionKey[];
+}
+
+const DESIGN_MODES: DesignMode[] = [
+  "editorial-luxury",
+  "glass-dashboard",
+  "civic-map",
+  "neon-command",
+  "magazine-cards",
+  "minimal-light",
+  "brutalist-data",
+];
+
+interface ModeRecipe {
+  mode: DesignMode;
+  hero: HeroLayoutId;
+  palette: PaletteId;
+  typography: TypographyId;
+  shape: ShapeLanguageId;
+}
+
+const MODE_RECIPES: Record<DesignMode, ModeRecipe> = {
+  "editorial-luxury": { mode: "editorial-luxury", hero: "editorial-split",   palette: "cream-ink",      typography: "fraunces-inter",      shape: "soft"   },
+  "glass-dashboard":  { mode: "glass-dashboard",  hero: "dashboard-grid",    palette: "graphite-mint",  typography: "spacegrotesk-inter",  shape: "soft"   },
+  "civic-map":        { mode: "civic-map",        hero: "map-impact",        palette: "deep-civic",     typography: "playfair-inter",      shape: "pill"   },
+  "neon-command":     { mode: "neon-command",     hero: "command-terminal",  palette: "neon-violet",    typography: "jetbrains-inter",     shape: "sharp"  },
+  "magazine-cards":   { mode: "magazine-cards",   hero: "magazine-portrait", palette: "paper-coral",    typography: "bricolage-inter",     shape: "soft"   },
+  "minimal-light":    { mode: "minimal-light",    hero: "minimal-stack",     palette: "snow-noir",      typography: "inter-inter",         shape: "sharp"  },
+  "brutalist-data":   { mode: "brutalist-data",   hero: "brutalist-blocks",  palette: "concrete-acid",  typography: "ibmplex-mono",        shape: "blocky" },
+};
+
+interface PaletteSpec {
+  bg: string; surface: string; surface2: string; fg: string; muted: string;
+  accent: string; accent2: string; ring: string;
+  isLight: boolean;
+}
+
+const PALETTES: Record<PaletteId, PaletteSpec> = {
+  "cream-ink":     { bg: "#f6f1e6", surface: "#ffffff", surface2: "#efe6d2", fg: "#1a1410", muted: "#6b5e4c", accent: "#b8421f", accent2: "#1a1410", ring: "rgba(184,66,31,.30)", isLight: true },
+  "graphite-mint": { bg: "#0e1316", surface: "#161d22", surface2: "#1d262c", fg: "#e8f4ee", muted: "#7e8e8a", accent: "#3ddc84", accent2: "#7cf5ff", ring: "rgba(61,220,132,.32)", isLight: false },
+  "deep-civic":    { bg: "#0a1a2e", surface: "#11253f", surface2: "#173052", fg: "#eaf3ff", muted: "#7e9bbd", accent: "#ffb547", accent2: "#5b8cff", ring: "rgba(255,181,71,.32)", isLight: false },
+  "neon-violet":   { bg: "#06050d", surface: "#0e0a1f", surface2: "#15102c", fg: "#f4eeff", muted: "#9b8fc4", accent: "#b06bff", accent2: "#3ddcff", ring: "rgba(176,107,255,.40)", isLight: false },
+  "paper-coral":   { bg: "#fff8f3", surface: "#ffffff", surface2: "#ffe8d8", fg: "#2b1a14", muted: "#7a5a4a", accent: "#ff5e3a", accent2: "#2b1a14", ring: "rgba(255,94,58,.28)", isLight: true },
+  "snow-noir":     { bg: "#fafafa", surface: "#ffffff", surface2: "#f0f0f0", fg: "#0a0a0a", muted: "#6a6a6a", accent: "#0a0a0a", accent2: "#5b8cff", ring: "rgba(10,10,10,.18)", isLight: true },
+  "concrete-acid": { bg: "#1c1c1c", surface: "#262626", surface2: "#2f2f2f", fg: "#f0f0e8", muted: "#9a9a90", accent: "#d6ff3a", accent2: "#ff3a8a", ring: "rgba(214,255,58,.40)", isLight: false },
+};
+
+const TYPOGRAPHY: Record<TypographyId, { display: string; body: string }> = {
+  "fraunces-inter":     { display: '"Fraunces", Georgia, serif',                       body: '"Inter", system-ui, sans-serif' },
+  "playfair-inter":     { display: '"Playfair Display", Georgia, serif',               body: '"Inter", system-ui, sans-serif' },
+  "spacegrotesk-inter": { display: '"Space Grotesk", "Inter", sans-serif',             body: '"Inter", system-ui, sans-serif' },
+  "jetbrains-inter":    { display: '"JetBrains Mono", ui-monospace, monospace',        body: '"Inter", system-ui, sans-serif' },
+  "bricolage-inter":    { display: '"Bricolage Grotesque", "Inter", sans-serif',       body: '"Inter", system-ui, sans-serif' },
+  "inter-inter":        { display: '"Inter", system-ui, sans-serif',                   body: '"Inter", system-ui, sans-serif' },
+  "ibmplex-mono":       { display: '"IBM Plex Mono", ui-monospace, monospace',         body: '"IBM Plex Sans", "Inter", system-ui, sans-serif' },
+};
+
+/** Choose a design mode index from seed. */
+function pickModeIndex(seedBasis: string): number {
+  return Math.abs(hash(`mode:${seedBasis}`)) % DESIGN_MODES.length;
+}
+
+/**
+ * Compute a visual fingerprint from project + seed, optionally rotating away
+ * from a previous fingerprint so two consecutive regenerations never look the
+ * same. Tries up to 5 seed perturbations, then forces the next mode in the list.
+ */
+export function chooseVisualFingerprint(
+  archetype: Archetype,
+  seedBasis: string,
+  previous?: VisualFingerprint | null,
+): VisualFingerprint {
+  const baseSections = sectionsFor(archetype);
+  let recipe: ModeRecipe = MODE_RECIPES[DESIGN_MODES[pickModeIndex(seedBasis)]];
+  let attempt = 0;
+  while (previous && recipe.mode === previous.designMode && attempt < 5) {
+    attempt += 1;
+    const idx = Math.abs(hash(`mode-retry:${attempt}:${seedBasis}`)) % DESIGN_MODES.length;
+    recipe = MODE_RECIPES[DESIGN_MODES[idx]];
+  }
+  if (previous && recipe.mode === previous.designMode) {
+    // Forced rotation to next mode in list.
+    const cur = DESIGN_MODES.indexOf(previous.designMode);
+    const next = DESIGN_MODES[(cur + 1) % DESIGN_MODES.length];
+    recipe = MODE_RECIPES[next];
+  }
+  const rnd = rngFor(`order:${seedBasis}:${recipe.mode}`);
+  const head: SectionKey[] = baseSections[0]?.startsWith("hero-") ? [baseSections[0]] : [];
+  const lastIdx = baseSections.length - 1;
+  const tail: SectionKey[] = baseSections[lastIdx] === "footer" ? ["footer"] : [];
+  const middle = baseSections.slice(head.length, tail.length ? lastIdx : baseSections.length);
+  const sectionOrder: SectionKey[] = [...head, ...shuffle(middle, rnd), ...tail];
+  return {
+    archetype,
+    designMode: recipe.mode,
+    heroLayout: recipe.hero,
+    palette: recipe.palette,
+    typography: recipe.typography,
+    shapeLanguage: recipe.shape,
+    sectionOrder,
+  };
+}
+
+export function fingerprintToString(fp: VisualFingerprint): string {
+  return `mb-v1:${fp.archetype}:${fp.designMode}:${fp.heroLayout}:${fp.palette}:${fp.typography}:${fp.shapeLanguage}`;
+}
+
+/**
+ * Parse a visualFingerprint back from a previously-generated index.html (or
+ * any HTML carrying the meta tags we emit). Returns null if not present.
+ */
+export function parseVisualFingerprintFromHtml(html: string): VisualFingerprint | null {
+  if (!html) return null;
+  const get = (n: string) => {
+    const m = html.match(new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"));
+    return m ? m[1] : null;
+  };
+  const archetype = get("yawb-archetype") as Archetype | null;
+  const designMode = get("yawb-design-mode") as DesignMode | null;
+  const heroLayout = get("yawb-hero-layout") as HeroLayoutId | null;
+  const palette = get("yawb-palette") as PaletteId | null;
+  const typography = get("yawb-typography") as TypographyId | null;
+  const shape = get("yawb-shape-language") as ShapeLanguageId | null;
+  if (!archetype || !designMode || !heroLayout || !palette || !typography) return null;
+  return {
+    archetype,
+    designMode,
+    heroLayout,
+    palette,
+    typography,
+    shapeLanguage: shape ?? "soft",
+    sectionOrder: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Copy per archetype (sections + nav + metrics)
 // ---------------------------------------------------------------------------
 
