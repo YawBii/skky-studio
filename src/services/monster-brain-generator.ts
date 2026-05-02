@@ -1265,11 +1265,19 @@ function renderJs(name: string, archetype: Archetype): string {
 function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: string): string {
   const name = (project.name ?? "Untitled").trim() || "Untitled";
   const safeName = esc(name, 200);
+  const fp = blueprint.fingerprint;
   const safeArchetype = esc(blueprint.archetype, 40);
-  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, seedBasis);
+  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, seedBasis, fp);
+  const heroOverride = renderModeHero(fp, name, blueprint.copy);
   const sectionsHtml = blueprint.sections
-    .map((k) => k.startsWith("hero-") ? renderHero(k, name, blueprint.copy) : renderSection(k, name, blueprint.copy, blueprint.archetype, seedBasis))
+    .map((k, i) => {
+      if (i === 0 && k.startsWith("hero-") && heroOverride) return heroOverride;
+      return k.startsWith("hero-")
+        ? renderHero(k, name, blueprint.copy)
+        : renderSection(k, name, blueprint.copy, blueprint.archetype, seedBasis);
+    })
     .join("\n      ");
+  const fpString = fingerprintToString(fp);
 
   return `<!doctype html>
 <html lang="en">
@@ -1279,16 +1287,117 @@ function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: strin
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" />
     <meta name="referrer" content="no-referrer" />
     <meta name="generator" content="yawb monster-brain v1 (${safeArchetype})" />
+    <meta name="yawb-generator" content="monster-brain-v1" />
+    <meta name="yawb-archetype" content="${esc(fp.archetype, 40)}" />
+    <meta name="yawb-design-mode" content="${esc(fp.designMode, 40)}" />
+    <meta name="yawb-hero-layout" content="${esc(fp.heroLayout, 40)}" />
+    <meta name="yawb-palette" content="${esc(fp.palette, 40)}" />
+    <meta name="yawb-typography" content="${esc(fp.typography, 40)}" />
+    <meta name="yawb-shape-language" content="${esc(fp.shapeLanguage, 40)}" />
+    <meta name="yawb-visual-fingerprint" content="${esc(fpString, 200)}" />
     <title>${safeName}</title>
     <style>${css}</style>
   </head>
-  <body>
+  <body class="mb-mode mb-mode-${esc(fp.designMode, 40)} mb-shape-${esc(fp.shapeLanguage, 20)}">
     <div class="mb-shell">
       ${renderNav(name, blueprint.copy)}
       ${sectionsHtml}
     </div>
   </body>
 </html>`;
+}
+
+/** Render a mode-distinct hero. Returns null when no override applies. */
+function renderModeHero(fp: VisualFingerprint, name: string, copy: Copy): string | null {
+  const eyebrow = esc(copy.eyebrow, 80);
+  const title   = esc(copy.title, 240);
+  const lede    = esc(copy.lede, 600);
+  const primary = esc(copy.primaryCta, 40);
+  const secondary = esc(copy.secondaryCta, 40);
+  const safeName = esc(name, 80);
+  switch (fp.heroLayout) {
+    case "editorial-split":
+      return `<section class="mb-mode-hero mb-hero-editorial">
+        <div class="mb-edl-left">
+          <span class="mb-edl-eyebrow">${eyebrow}</span>
+          <h1 class="mb-edl-title">${title}</h1>
+          <p class="mb-edl-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+        <aside class="mb-edl-right" aria-hidden="true">
+          <div class="mb-edl-chip">№ 01 · ${safeName}</div>
+          <div class="mb-edl-pull">“${esc(copy.lede, 140)}”</div>
+        </aside>
+      </section>`;
+    case "dashboard-grid":
+      return `<section class="mb-mode-hero mb-hero-dashboard">
+        <header class="mb-dash-head">
+          <span class="mb-dash-eyebrow">${eyebrow}</span>
+          <h1 class="mb-dash-title">${title}</h1>
+          <p class="mb-dash-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </header>
+        <div class="mb-dash-grid" aria-hidden="true">
+          ${copy.metricLabels.slice(0, 4).map((l, i) => `<div class="mb-dash-card"><div class="mb-dash-val">${esc(copy.metricValues[i] ?? "—", 24)}</div><div class="mb-dash-lab">${esc(l, 40)}</div></div>`).join("")}
+        </div>
+      </section>`;
+    case "map-impact":
+      return `<section class="mb-mode-hero mb-hero-map">
+        <div class="mb-map-bg" aria-hidden="true">
+          ${Array.from({ length: 14 }, (_, i) => `<span class="mb-map-pin p${i % 5}" style="left:${5 + ((i * 37) % 90)}%;top:${10 + ((i * 53) % 70)}%"></span>`).join("")}
+        </div>
+        <div class="mb-map-card">
+          <span class="mb-eyebrow">${eyebrow}</span>
+          <h1 class="mb-map-title">${title}</h1>
+          <p class="mb-map-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+      </section>`;
+    case "command-terminal":
+      return `<section class="mb-mode-hero mb-hero-terminal">
+        <div class="mb-term-bar"><span></span><span></span><span></span><span class="mb-term-name">${safeName}://command</span></div>
+        <div class="mb-term-body">
+          <pre class="mb-term-line">$ scan --target=${safeName.toLowerCase()}</pre>
+          <pre class="mb-term-line dim">→ initialising neon command grid…</pre>
+          <h1 class="mb-term-title">${title}</h1>
+          <p class="mb-term-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta neon">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+      </section>`;
+    case "magazine-portrait":
+      return `<section class="mb-mode-hero mb-hero-magazine">
+        <div class="mb-mag-portrait" aria-hidden="true"><span class="mb-mag-mono">${safeName.charAt(0)}</span></div>
+        <div class="mb-mag-body">
+          <span class="mb-mag-issue">Vol. 01 · ${eyebrow}</span>
+          <h1 class="mb-mag-title">${title}</h1>
+          <p class="mb-mag-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+      </section>`;
+    case "minimal-stack":
+      return `<section class="mb-mode-hero mb-hero-minimal">
+        <span class="mb-min-eyebrow">${eyebrow}</span>
+        <h1 class="mb-min-title">${title}</h1>
+        <p class="mb-min-lede">${lede}</p>
+        <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        <hr class="mb-min-rule" />
+      </section>`;
+    case "brutalist-blocks":
+      return `<section class="mb-mode-hero mb-hero-brutalist">
+        <div class="mb-brut-tag">[ ${eyebrow} ]</div>
+        <h1 class="mb-brut-title">${title}</h1>
+        <p class="mb-brut-lede">${lede}</p>
+        <div class="mb-brut-cta-row">
+          <button type="button" class="mb-brut-cta">${primary} →</button>
+          <button type="button" class="mb-brut-cta alt">${secondary}</button>
+        </div>
+        <div class="mb-brut-grid" aria-hidden="true">
+          ${["DATA", "FLOW", "OPS", "GRID"].map((l) => `<div class="mb-brut-cell">${l}</div>`).join("")}
+        </div>
+      </section>`;
+    default:
+      return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
