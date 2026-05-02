@@ -418,7 +418,9 @@ export function AssistantPanel() {
     }
     console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
     toast.success("Request queued");
-    setMessages((m) => [...m, { role: "assistant", content: `Queued ai.plan job. Open the Jobs tab to watch progress.` }]);
+    summarizedRef.current.add(r.job.id);
+    persistSummarized(project.id, summarizedRef.current);
+    setMessages((m) => [...m, { role: "assistant", content: `Queued ai.plan job. I'll keep the live summary under this message.`, summaryJobId: r.job.id }]);
   };
 
   const runJob = async (type: JobType, title: string) => {
@@ -435,7 +437,9 @@ export function AssistantPanel() {
       setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue ${type}: ${r.error}` }]);
       return;
     }
-    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). Open the Jobs tab to watch progress.` }]);
+    summarizedRef.current.add(r.job.id);
+    persistSummarized(project.id, summarizedRef.current);
+    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). I'll keep the live summary under this message.`, summaryJobId: r.job.id }]);
   };
 
   return (
