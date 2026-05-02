@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye, Globe, BarChart3 } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye, Globe, BarChart3, Check, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useSelectedProject } from "@/hooks/use-selected-project";
 import type { ConnectionProvider, ConnectionStatus, ProjectConnection } from "@/services/project-connections";
 
 export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
