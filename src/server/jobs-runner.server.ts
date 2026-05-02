@@ -696,6 +696,7 @@ const aiAdapter: ProviderAdapter = {
         filesWritten: r.written,
         archetype: r.archetype,
         designSignature: r.designSignature,
+        regenerationSeed: r.regenerationSeed ?? null,
         previewReady: r.previewReady,
       };
       try {
