@@ -392,7 +392,7 @@ export function PreviewPane({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="h-11 border-b border-white/5 px-4 flex items-center gap-2">
+      <div className="h-11 border-b border-white/5 px-2 sm:px-4 flex items-center gap-2 overflow-x-auto scrollbar-thin flex-nowrap min-w-0">
         <Button
           type="button"
           variant="ghost"
