@@ -26,7 +26,7 @@ export function useProjects(workspaceId: string | null | undefined) {
     const r = await listProjects(workspaceId ?? null);
     setResult(r);
     setLoading(false);
-    setDiag({ workspaceId: workspaceId ?? null, projectsCount: r.projects.length });
+    setDiag({ workspaceId: workspaceId ?? null, projectsCount: r.projects.length, projectsSource: r.source });
     if (typeof window !== "undefined") {
       // eslint-disable-next-line no-console
       console.info("[yawb] projects source:", r.source, `count=${r.projects.length}`, r.error ?? "");
@@ -53,6 +53,19 @@ export function useProjects(workspaceId: string | null | undefined) {
     writeCurrent(workspaceId, id);
   }, [workspaceId]);
 
+  const inject = useCallback((project: Project) => {
+    setResult((prev) => {
+      const exists = prev.projects.some((p) => p.id === project.id);
+      const projects = exists
+        ? prev.projects.map((p) => (p.id === project.id ? project : p))
+        : [project, ...prev.projects];
+      setDiag({ workspaceId: project.workspaceId, projectId: project.id, projectsCount: projects.length, projectsSource: prev.source === "supabase" ? "supabase" : "supabase" });
+      return { projects, source: "supabase" };
+    });
+    setCurrentId(project.id);
+    writeCurrent(project.workspaceId, project.id);
+  }, []);
+
   const current: Project | null =
     result.projects.find((p) => p.id === currentId) ?? result.projects[0] ?? null;
 
@@ -66,6 +79,7 @@ export function useProjects(workspaceId: string | null | undefined) {
     isError: result.source === "error",
     loading,
     select,
+    inject,
     refresh,
   };
 }
