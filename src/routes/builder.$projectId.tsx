@@ -75,6 +75,7 @@ function Builder() {
   const [selectedPage, setSelectedPage] = useState<string>("/");
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   // Mirror UI state to the global hook so the chat panel reads it.
   useEffect(() => {
