@@ -199,9 +199,14 @@ function baseThemeFor(archetype: Archetype): Theme {
   }
 }
 
-function shiftedTheme(base: Theme, projectId: string): Theme {
-  const hue = Math.abs(hash(projectId)) % 360;
+function shiftedTheme(base: Theme, seedBasis: string): Theme {
+  const hue = Math.abs(hash(seedBasis)) % 360;
   return { ...base, ring: base.ring, _hue: hue } as Theme & { _hue: number };
+}
+
+/** Variant index 0..N-1 derived from seedBasis — selects layout/order variant. */
+export function variantIndex(seedBasis: string, modulo: number = 6): number {
+  return Math.abs(hash(`v:${seedBasis}`)) % Math.max(1, modulo);
 }
 
 // ---------------------------------------------------------------------------
