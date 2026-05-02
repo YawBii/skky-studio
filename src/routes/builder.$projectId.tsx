@@ -21,6 +21,7 @@ import {
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
+import { regenerateOutcome } from "@/lib/regenerate-watcher";
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
   { path: "/",          label: "Home" },
@@ -69,6 +70,7 @@ function Builder() {
   const [device, setDevice] = useState<Device>("desktop");
   const [focusJobId, setFocusJobId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [regeneratingJobId, setRegeneratingJobId] = useState<string | null>(null);
   const [selectedPage, setSelectedPage] = useState<string>("/");
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
@@ -166,6 +168,25 @@ function Builder() {
       }
     },
   });
+
+  // Watch the regenerate-design job until it reaches a terminal state.
+  // On success: refresh project_files (bumps filesApi.version → iframe remount)
+  // and toast. On failure/cancel: surface the real error.
+  useEffect(() => {
+    if (!regeneratingJobId) return;
+    const outcome = regenerateOutcome(ccJobs.jobs, regeneratingJobId);
+    if (outcome.kind === "succeeded") {
+      console.info("[yawb] regenerate.succeeded", { jobId: regeneratingJobId });
+      void filesApi.refresh().then(() => {
+        toast.success("Design regenerated");
+      });
+      setRegeneratingJobId(null);
+    } else if (outcome.kind === "failed") {
+      console.info("[yawb] regenerate.failed", { jobId: regeneratingJobId, error: outcome.message });
+      toast.error(outcome.message);
+      setRegeneratingJobId(null);
+    }
+  }, [ccJobs.jobs, regeneratingJobId, filesApi]);
 
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
@@ -352,8 +373,9 @@ function Builder() {
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
             generated={filesApi.generated}
-            regenerating={starting}
+            regenerating={Boolean(regeneratingJobId)}
             onRegenerateDesign={async () => {
+              if (regeneratingJobId) return;
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
@@ -365,8 +387,12 @@ function Builder() {
                 toast.error(`Couldn't regenerate: ${r.error}`);
                 return;
               }
+              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id });
               toast.success("Regenerating design…");
+              setRegeneratingJobId(r.job.id);
               setFocusJobId(r.job.id);
+              // Refresh jobs immediately so the watcher sees the new job.
+              void ccJobs.refresh();
             }}
           />
         )}
