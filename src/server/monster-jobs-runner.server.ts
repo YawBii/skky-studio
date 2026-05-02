@@ -1,9 +1,8 @@
 // Monster job runner shim.
 //
-// This file replaces the ai.generate_changes path without deleting the legacy
-// runner yet. Non-Monster job types still delegate to the legacy runner, so
-// existing GitHub/Vercel/Supabase/build behavior stays intact while Monster
-// generation starts writing blueprint + frontend + backend + proof together.
+// This file routes explicit command-first app build jobs through Monster
+// generation while preserving the legacy runner for provider/build jobs and
+// normal planning conversations.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runNextJobStepServer as runLegacyNextJobStepServer } from "./jobs-runner.server";
@@ -84,18 +83,59 @@ async function findNextJob(sb: SupabaseClient, projectId: string): Promise<JobRo
   return (data as JobRow | null) ?? null;
 }
 
-async function findGenerateStep(sb: SupabaseClient, jobId: string): Promise<StepRow | null> {
+async function findMonsterStep(sb: SupabaseClient, job: JobRow): Promise<StepRow | null> {
+  const keys = job.type === "ai.plan" ? ["plan", "generate"] : ["generate", "plan"];
   const { data, error } = await sb
     .from("project_job_steps")
     .select("id, job_id, step_key, title, status, position, input, output, logs")
-    .eq("job_id", jobId)
-    .eq("step_key", "generate")
+    .eq("job_id", job.id)
+    .in("step_key", keys)
     .in("status", ["queued", "running"])
     .order("position", { ascending: true })
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(`step lookup failed: ${error.message}`);
   return (data as StepRow | null) ?? null;
+}
+
+function jobPrompt(job: JobRow): string {
+  const input = (job.input ?? {}) as Record<string, unknown>;
+  return [
+    job.title ?? "",
+    typeof input.chatRequest === "string" ? input.chatRequest : "",
+    typeof input.prompt === "string" ? input.prompt : "",
+    typeof input.message === "string" ? input.message : "",
+    typeof input.request === "string" ? input.request : "",
+  ].join(" ").trim();
+}
+
+function isExplicitMonsterBuildIntent(job: JobRow): boolean {
+  const text = jobPrompt(job).toLowerCase();
+  if (!text) return false;
+
+  if (/\b(rollout plan|migration strategy|implementation plan|project plan|go[- ]to[- ]market plan|roadmap|strategy|proposal|spec|prd|requirements|architecture review|explain|summari[sz]e|compare|audit|review)\b/.test(text)) {
+    return false;
+  }
+
+  if (/\b(build|create|make|ship|scaffold|implement)\b.{0,80}\b(app|site|website|web app|dashboard|admin panel|portal|landing page|saas|marketplace|crm|tool|backend|frontend|full first version|first version)\b/.test(text)) {
+    return true;
+  }
+
+  if (/\b(build this as|generate the full first version|generate first version|build the first screen|build first screen)\b/.test(text)) {
+    return true;
+  }
+
+  if (/\b(auth|supabase|backend|database|admin panel|payments?)\b/.test(text) && /\b(app|site|website|dashboard|portal|platform|saas|marketplace)\b/.test(text)) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldMonsterHandle(job: JobRow): boolean {
+  if (job.type === "ai.generate_changes") return true;
+  if (job.type === "ai.plan" && isExplicitMonsterBuildIntent(job)) return true;
+  return false;
 }
 
 async function listConnectedProviders(sb: SupabaseClient, projectId: string): Promise<string[]> {
@@ -109,10 +149,7 @@ async function listConnectedProviders(sb: SupabaseClient, projectId: string): Pr
     .filter(Boolean);
 }
 
-async function readPreviousIndexHtml(
-  sb: SupabaseClient,
-  projectId: string,
-): Promise<string | null> {
+async function readPreviousIndexHtml(sb: SupabaseClient, projectId: string): Promise<string | null> {
   const { data } = await sb
     .from("project_files")
     .select("content")
@@ -160,7 +197,7 @@ async function runMonsterGenerateChanges(input: {
     jobId: input.job.id,
     stepId: input.step.id,
     status: "running",
-    log: "Monster generation started.",
+    log: `Monster generation started from ${input.job.type}.`,
   });
 
   const { data: project, error: projectErr } = await input.sb
@@ -170,34 +207,20 @@ async function runMonsterGenerateChanges(input: {
     .maybeSingle();
   if (projectErr || !project) {
     const error = projectErr?.message ?? "project not found";
-    await markJobAndStep({
-      sb: input.sb,
-      jobId: input.job.id,
-      stepId: input.step.id,
-      status: "failed",
-      error,
-    });
-    return {
-      advanced: true,
-      jobId: input.job.id,
-      stepKey: input.step.step_key,
-      status: "failed",
-      error,
-    };
+    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
+    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
   }
 
   const jobInput = (input.job.input ?? {}) as Record<string, unknown>;
   const chatRequest =
-    typeof jobInput.chatRequest === "string"
-      ? jobInput.chatRequest
-      : typeof jobInput.prompt === "string"
-        ? jobInput.prompt
-        : null;
-  const regenerationSeed =
-    typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
+    typeof jobInput.chatRequest === "string" ? jobInput.chatRequest
+      : typeof jobInput.prompt === "string" ? jobInput.prompt
+        : typeof jobInput.message === "string" ? jobInput.message
+          : typeof jobInput.request === "string" ? jobInput.request
+            : input.job.title;
+  const regenerationSeed = typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
   const forceVariant = jobInput.forceVariant === true || Boolean(regenerationSeed);
-  const requestedDesignMode =
-    typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
+  const requestedDesignMode = typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
 
   try {
     const generation = generateMonsterProject({
@@ -231,18 +254,14 @@ async function runMonsterGenerateChanges(input: {
         error,
         output: { written: persisted.written },
       });
-      return {
-        advanced: true,
-        jobId: input.job.id,
-        stepKey: input.step.step_key,
-        status: "failed",
-        error,
-      };
+      return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
     }
 
     const output = {
       ...(persisted.output ?? generation.output),
       written: persisted.written,
+      handledJobType: input.job.type,
+      handledStepKey: input.step.step_key,
     };
     await markJobAndStep({
       sb: input.sb,
@@ -253,28 +272,11 @@ async function runMonsterGenerateChanges(input: {
       error: null,
       log: `Monster generated ${persisted.written.length} files: ${generation.output.blueprintSummary}`,
     });
-    return {
-      advanced: true,
-      jobId: input.job.id,
-      stepKey: input.step.step_key,
-      status: "succeeded",
-    };
+    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "succeeded" };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    await markJobAndStep({
-      sb: input.sb,
-      jobId: input.job.id,
-      stepId: input.step.id,
-      status: "failed",
-      error,
-    });
-    return {
-      advanced: true,
-      jobId: input.job.id,
-      stepKey: input.step.step_key,
-      status: "failed",
-      error,
-    };
+    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
+    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
   }
 }
 
@@ -284,10 +286,10 @@ export async function runNextJobStepServer(input: {
 }): Promise<MonsterRunnerTickResult> {
   const sb = buildUserScopedClient(input.accessToken);
   const job = await findNextJob(sb, input.projectId);
-  if (!job || job.type !== "ai.generate_changes") {
+  if (!job || !shouldMonsterHandle(job)) {
     return runLegacyNextJobStepServer(input);
   }
-  const step = await findGenerateStep(sb, job.id);
+  const step = await findMonsterStep(sb, job);
   if (!step) {
     return runLegacyNextJobStepServer(input);
   }
