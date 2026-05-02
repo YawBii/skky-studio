@@ -362,7 +362,7 @@ function Builder() {
         {tab === "preview"  && (
           <PreviewPane
             device={device}
-            setDevice={setDevice}
+            setDevice={handleDeviceChange}
             project={project}
             onStartBuild={onStartBuild}
             starting={starting}
