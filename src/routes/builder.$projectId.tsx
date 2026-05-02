@@ -352,6 +352,22 @@ function Builder() {
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
             generated={filesApi.generated}
+            regenerating={starting}
+            onRegenerateDesign={async () => {
+              const r = await enqueueJob({
+                projectId: project.id,
+                workspaceId: project.workspaceId,
+                type: "ai.generate_changes",
+                title: "Regenerate design",
+                input: { source: "preview_regenerate_design" },
+              });
+              if (!r.ok) {
+                toast.error(`Couldn't regenerate: ${r.error}`);
+                return;
+              }
+              toast.success("Regenerating design…");
+              setFocusJobId(r.job.id);
+            }}
           />
         )}
         {tab === "code"     && <NotConnected title="Code editor" hint="In-app code editing connects in the next pass." />}

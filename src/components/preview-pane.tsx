@@ -28,6 +28,9 @@ export interface PreviewPaneProps {
   connections?: ProjectConnection[] | null;
   /** Optional generated-files blob for in-browser local preview via srcDoc. */
   generated?: GeneratedFiles | null;
+  /** Optional handler for the "Regenerate design" toolbar action. */
+  onRegenerateDesign?: () => void;
+  regenerating?: boolean;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
@@ -131,6 +134,8 @@ export function PreviewPane({
   activeDeployUrl,
   connections,
   generated,
+  onRegenerateDesign,
+  regenerating,
 }: PreviewPaneProps) {
   const viewport = DEVICE_VIEWPORTS[device];
 
@@ -358,6 +363,24 @@ export function PreviewPane({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
+        {onRegenerateDesign && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
+            data-testid="preview-regenerate-design"
+            onClick={() => {
+              console.info("[yawb] preview.regenerate.clicked", { projectId: project.id });
+              onRegenerateDesign();
+            }}
+            disabled={regenerating}
+            title="Rewrite project_files with a fresh design"
+          >
+            {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Regenerate design
+          </Button>
+        )}
 
         {/* Local | Live toggle */}
         <div
@@ -499,22 +522,24 @@ export function PreviewPane({
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div
               className={cn(
-                "bg-background h-full min-h-[inherit] overflow-hidden relative",
+                "bg-background h-full overflow-hidden relative",
                 device === "desktop"
                   ? "w-full"
-                  : "rounded-2xl border border-white/10 shadow-elevated",
+                  : "min-h-[inherit] rounded-2xl border border-white/10 shadow-elevated",
               )}
             >
               <iframe
+                key={resolved.kind === "local" ? `local:${(localSrcDoc ?? "").length}` : `live:${iframeSrc ?? ""}`}
                 title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
                 srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
                 data-testid="preview-iframe"
                 data-preview-kind={resolved.kind}
+                data-scroll="auto"
                 onLoad={onIframeLoad}
                 onError={onIframeError}
                 referrerPolicy="no-referrer"
-                loading="lazy"
+                scrolling="auto"
                 className="h-full w-full border-0 block bg-background"
                 sandbox={
                   resolved.kind === "local"
