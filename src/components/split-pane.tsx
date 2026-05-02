@@ -39,11 +39,16 @@ export function SplitPane({
   // bottom-sheet drawer on true phone widths. Match that behavior so users
   // don't lose the live preview when the window is narrow.
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
+    const mq = window.matchMedia("(max-width: 768px)");
     const apply = () => setIsMobile(mq.matches);
     apply();
     mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    const openChat = () => setChatOpen(true);
+    window.addEventListener("yawb:open-chat", openChat as EventListener);
+    return () => {
+      mq.removeEventListener("change", apply);
+      window.removeEventListener("yawb:open-chat", openChat as EventListener);
+    };
   }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -168,12 +173,17 @@ function MobileChatLayout({
     <div className="relative h-full w-full">
       <div className="absolute inset-0">{left}</div>
 
-      {/* Persistent floating chat button — always visible on mobile/tablet */}
+      {/* Persistent floating chat button — always visible on mobile/tablet.
+          Hidden by default on the builder route, which renders its own bottom
+          tab bar that includes a Chat tab. The builder dispatches the
+          'yawb:open-chat' event to open this sheet. */}
       <button
         type="button"
         onClick={() => onOpenChange(true)}
+        data-testid="mobile-chat-fab"
         className={cn(
-          "fixed bottom-5 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-4 py-3 text-[13px] font-medium text-primary-foreground shadow-glow transition-opacity",
+          "fixed right-4 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-4 py-3 text-[13px] font-medium text-primary-foreground shadow-glow transition-opacity",
+          "bottom-[calc(env(safe-area-inset-bottom)+72px)]",
           open && "opacity-0 pointer-events-none",
         )}
         aria-label="Open yawB chat"
@@ -192,7 +202,8 @@ function MobileChatLayout({
           />
           <div
             ref={sheetRef}
-            className="relative h-[85vh] w-full bg-sidebar border-t border-white/10 rounded-t-2xl flex flex-col overflow-hidden shadow-elevated"
+            data-testid="mobile-chat-sheet"
+            className="relative h-[88dvh] w-full bg-sidebar border-t border-white/10 rounded-t-2xl flex flex-col overflow-hidden shadow-elevated pb-[env(safe-area-inset-bottom)]"
             style={{
               transform: `translateY(${dragY}px)`,
               transition: dragY === 0 ? "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)" : "none",
@@ -204,13 +215,13 @@ function MobileChatLayout({
               onPointerMove={onDragMove}
               onPointerUp={onDragEnd}
               onPointerCancel={onDragEnd}
-              className="relative h-9 flex items-center justify-center border-b border-white/5 cursor-grab active:cursor-grabbing touch-none"
+              className="relative h-11 flex items-center justify-center border-b border-white/5 cursor-grab active:cursor-grabbing touch-none"
               style={{ touchAction: "none" }}
             >
               <div className="h-1 w-10 rounded-full bg-white/20" />
               <button
                 onClick={() => onOpenChange(false)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-white/5"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-md grid place-items-center text-muted-foreground hover:text-foreground hover:bg-white/5"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />

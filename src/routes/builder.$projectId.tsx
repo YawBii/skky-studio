@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Eye, Code2, Database, Rocket, History as HistoryIcon, Plus, Activity, ChevronDown, FileText, Globe } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Eye, Code2, Database, Rocket, History as HistoryIcon, Plus, Activity, ChevronDown, FileText, Globe, MessageSquare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -11,6 +11,7 @@ import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
 import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
 import {
   CommandCenterPill,
@@ -74,6 +75,20 @@ function Builder() {
   const [selectedPage, setSelectedPage] = useState<string>("/");
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const userPickedDeviceRef = useRef(false);
+
+  // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
+  // Once the user picks a device manually we stop overriding.
+  useEffect(() => {
+    if (userPickedDeviceRef.current) return;
+    setDevice(isMobile ? "mobile" : "desktop");
+  }, [isMobile]);
+
+  const handleDeviceChange = (d: Device) => {
+    userPickedDeviceRef.current = true;
+    setDevice(d);
+  };
 
   // Mirror UI state to the global hook so the chat panel reads it.
   useEffect(() => {
@@ -231,7 +246,7 @@ function Builder() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative z-40 h-11 border-b border-white/5 px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto">
+      <div className="relative z-40 h-11 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto min-w-0 flex-nowrap overflow-hidden">
         {/* Project selector — currently jumps to the project list, will become a switcher. */}
         <button
           type="button"
@@ -246,14 +261,14 @@ function Builder() {
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
-        <span className="text-muted-foreground/40 text-xs">/</span>
+        <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
-        {/* Page picker */}
+        {/* Page picker — hidden on phones to avoid header overflow. */}
         <Popover onOpenChange={(o) => o && (console.info("[yawb] pagePicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "page-picker" }))}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer"
               title="Switch page"
             >
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
@@ -280,7 +295,7 @@ function Builder() {
           </PopoverContent>
         </Popover>
 
-        <span className="text-muted-foreground/40 text-xs">/</span>
+        <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
         {/* Environment picker */}
         <Popover onOpenChange={(o) => o && (console.info("[yawb] environmentPicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "environment-picker" }))}>
@@ -318,9 +333,9 @@ function Builder() {
           </PopoverContent>
         </Popover>
 
-        <div className="h-4 w-px bg-white/5 mx-1" />
+        <div className="hidden md:block h-4 w-px bg-white/5 mx-1" />
 
-        <div className="flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -343,11 +358,11 @@ function Builder() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden relative">
+      <div className="flex-1 min-h-0 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom)+56px)] md:pb-0">
         {tab === "preview"  && (
           <PreviewPane
             device={device}
-            setDevice={setDevice}
+            setDevice={handleDeviceChange}
             project={project}
             onStartBuild={onStartBuild}
             starting={starting}
@@ -417,7 +432,148 @@ function Builder() {
           </>
         )}
       </div>
+
+      {/* Mobile bottom tab bar — only visible <=768px. Provides Preview / Chat /
+          Jobs / More. The Chat tab opens the SplitPane bottom-sheet via the
+          'yawb:open-chat' custom event. */}
+      <MobileBottomNav
+        currentTab={tab}
+        onTabClick={onTabClick}
+        onOpenChat={() => {
+          console.info("[yawb] mobile.bottomNav.chat.clicked");
+          window.dispatchEvent(new CustomEvent("yawb:open-chat"));
+        }}
+      />
     </div>
+  );
+}
+
+const MOBILE_PRIMARY_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "preview", label: "Preview", icon: Eye },
+  { id: "jobs",    label: "Jobs",    icon: Activity },
+];
+const MOBILE_OVERFLOW_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "code",     label: "Code",     icon: Code2 },
+  { id: "database", label: "Database", icon: Database },
+  { id: "deploy",   label: "Deploy",   icon: Rocket },
+  { id: "history",  label: "History",  icon: HistoryIcon },
+];
+
+function MobileBottomNav({
+  currentTab,
+  onTabClick,
+  onOpenChat,
+}: {
+  currentTab: Tab;
+  onTabClick: (id: Tab) => void;
+  onOpenChat: () => void;
+}) {
+  const inOverflow = MOBILE_OVERFLOW_TABS.some((t) => t.id === currentTab);
+  return (
+    <nav
+      data-testid="mobile-bottom-nav"
+      aria-label="Builder sections"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-background/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
+    >
+      <ul className="flex items-stretch justify-around">
+        {/* Preview */}
+        <li className="flex-1">
+          <BottomNavButton
+            label="Preview"
+            icon={Eye}
+            active={currentTab === "preview"}
+            onClick={() => onTabClick("preview")}
+            testId="mobile-tab-preview"
+          />
+        </li>
+        {/* Chat — opens bottom sheet, not a tab */}
+        <li className="flex-1">
+          <BottomNavButton
+            label="Chat"
+            icon={MessageSquare}
+            active={false}
+            onClick={onOpenChat}
+            testId="mobile-tab-chat"
+          />
+        </li>
+        {/* Jobs */}
+        <li className="flex-1">
+          <BottomNavButton
+            label="Jobs"
+            icon={Activity}
+            active={currentTab === "jobs"}
+            onClick={() => onTabClick("jobs")}
+            testId="mobile-tab-jobs"
+          />
+        </li>
+        {/* More */}
+        <li className="flex-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                data-testid="mobile-tab-more"
+                className={cn(
+                  "w-full h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] touch-manipulation",
+                  inOverflow ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+                <span>More</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="top"
+              className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50 mb-2"
+            >
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">More</div>
+              {MOBILE_PRIMARY_TABS.concat(MOBILE_OVERFLOW_TABS).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onTabClick(t.id)}
+                  data-testid={`mobile-more-${t.id}`}
+                  className={cn(
+                    "w-full text-left flex items-center gap-2 rounded-md px-2 py-2 text-[13px] hover:bg-white/[0.05] touch-manipulation min-h-11",
+                    currentTab === t.id && "bg-white/[0.06] text-foreground",
+                  )}
+                >
+                  <t.icon className="h-4 w-4 text-muted-foreground" />
+                  {t.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+function BottomNavButton({
+  label, icon: Icon, active, onClick, testId,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid={testId}
+      aria-pressed={active}
+      className={cn(
+        "w-full h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] touch-manipulation",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <Icon className="h-5 w-5" />
+      <span>{label}</span>
+    </button>
   );
 }
 

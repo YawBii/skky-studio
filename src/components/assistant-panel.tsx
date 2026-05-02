@@ -465,7 +465,7 @@ export function AssistantPanel() {
       </div>
 
       {/* Composer */}
-      <div className="p-3 border-t border-white/5 space-y-2">
+      <div className="p-3 border-t border-white/5 space-y-2 pb-[calc(env(safe-area-inset-bottom)+12px)]">
         {suggestions.length > 0 && (
           <SmartSuggestionChips suggestions={suggestions} onAction={dispatchSuggestion} onDismiss={onDismissSuggestion} />
         )}
@@ -482,7 +482,8 @@ export function AssistantPanel() {
             }}
             rows={3}
             placeholder="Ask yawB to build, fix or ship anything…"
-            className="w-full resize-none bg-transparent px-2 py-1.5 text-[13px] leading-relaxed placeholder:text-muted-foreground/70 outline-none"
+            data-testid="chat-composer"
+            className="w-full resize-none bg-transparent px-2 py-1.5 text-[13px] leading-relaxed placeholder:text-muted-foreground/70 outline-none max-h-48 overflow-y-auto"
           />
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-1">
@@ -524,7 +525,7 @@ export function AssistantPanel() {
                 </PopoverContent>
               </Popover>
             </div>
-            <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send}>
+            <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send} className="min-h-11 sm:min-h-9 px-4" data-testid="chat-send">
               <Send className="h-3.5 w-3.5" /> Send
             </Button>
           </div>

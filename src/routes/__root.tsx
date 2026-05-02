@@ -42,7 +42,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "yawB — Production-first AI app builder | Skky Group" },
       { name: "description", content: "yawB by Skky Group: build, repair, and maintain production apps with AI. Import, scan, repair, and deploy projects from GitHub, Vercel, and Supabase." },
       { property: "og:title", content: "yawB — Production-first AI app builder | Skky Group" },
@@ -222,7 +222,7 @@ function WorkspaceShell() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-[100dvh] w-full overflow-hidden">
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         <WorkspaceTopBar

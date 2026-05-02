@@ -392,7 +392,7 @@ export function PreviewPane({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="h-11 border-b border-white/5 px-4 flex items-center gap-2">
+      <div className="h-11 border-b border-white/5 px-2 sm:px-4 flex items-center gap-2 overflow-x-auto scrollbar-thin flex-nowrap min-w-0">
         <Button
           type="button"
           variant="ghost"
@@ -482,7 +482,7 @@ export function PreviewPane({
 
         <div
           data-testid="preview-url-bar"
-          className="flex-1 mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono"
+          className="flex-1 min-w-[120px] mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono overflow-hidden"
         >
           <ExternalLink className="h-3 w-3" />
           {resolved.kind === "live" && activeDeployUrl ? (
@@ -558,7 +558,7 @@ export function PreviewPane({
           "flex-1 min-h-0 bg-[oklch(0.13_0_0)]",
           device === "desktop"
             ? "overflow-hidden"
-            : "overflow-auto p-8 grid place-items-start justify-center",
+            : "overflow-auto p-2 sm:p-8 grid place-items-start justify-center",
         )}
       >
         <div
