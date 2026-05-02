@@ -370,6 +370,26 @@ function hash(s: string): number {
   return h;
 }
 
+/** Tiny deterministic PRNG seeded from project id. */
+function rngFor(seed: string): () => number {
+  let s = Math.abs(hash(seed)) || 1;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0xffffffff;
+  };
+}
+
+function shuffle<T>(arr: T[], rnd: () => number): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick<T>(arr: T[], rnd: () => number): T { return arr[Math.floor(rnd() * arr.length)]; }
+
 // ---------------------------------------------------------------------------
 // Section renderers — return inner HTML strings
 // ---------------------------------------------------------------------------
