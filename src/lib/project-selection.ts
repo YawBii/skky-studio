@@ -3,6 +3,7 @@ import type { Project } from "@/services/projects";
 export const CURRENT_WORKSPACE_KEY = "yawb:current-workspace-id";
 export const CURRENT_PROJECT_PREFIX = "yawb:current-project-id:";
 const DIRECT_WORKSPACE_KEY = "yawb:direct-workspace";
+const DIRECT_PROJECT_KEY = "yawb:direct-project";
 
 export type DirectWorkspace = { id: string; name: string; slug: string };
 
@@ -44,6 +45,16 @@ export function readDirectWorkspace(): DirectWorkspace | null {
   } catch { return null; }
 }
 
+export function readDirectProject(): Project | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DIRECT_PROJECT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Project;
+    return parsed?.id && parsed?.workspaceId ? parsed : null;
+  } catch { return null; }
+}
+
 export function rememberDirectProject(project: Project) {
   if (typeof window === "undefined") return;
   const workspace: DirectWorkspace = {
@@ -51,7 +62,10 @@ export function rememberDirectProject(project: Project) {
     name: "Current workspace",
     slug: "current-workspace",
   };
-  try { window.localStorage.setItem(DIRECT_WORKSPACE_KEY, JSON.stringify(workspace)); } catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(DIRECT_WORKSPACE_KEY, JSON.stringify(workspace));
+    window.localStorage.setItem(DIRECT_PROJECT_KEY, JSON.stringify(project));
+  } catch { /* ignore */ }
   writeCurrentWorkspaceId(project.workspaceId);
   writeCurrentProjectId(project.workspaceId, project.id);
   window.dispatchEvent(new CustomEvent("yawb:project-bootstrap", { detail: { project } }));
