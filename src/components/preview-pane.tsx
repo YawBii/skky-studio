@@ -269,7 +269,23 @@ export function PreviewPane({
       url: iframeSrc,
       srcDoc: !!(localSrcDoc ?? resolved.srcDoc),
     });
-    if (resolved.kind !== "live") return; // skip CSP timeout for local
+    if (resolved.kind === "local") {
+      // Local previews (srcDoc) don't reliably fire onLoad in all envs.
+      // Mark as loaded on next frame so the loading overlay never sticks.
+      const raf =
+        typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame
+          : (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0);
+      raf(() => {
+        setIframeState("loaded");
+        console.info("[yawb] preview.local.loaded", {
+          source: resolved.source,
+          hasSrcDoc: Boolean(localSrcDoc || resolved.srcDoc),
+        });
+      });
+      return;
+    }
+    if (resolved.kind !== "live") return; // skip CSP timeout for non-live
     softHintRef.current = setTimeout(() => {
       setSoftHintVisible(true);
       console.info("[yawb] preview.fallback.visible", {
@@ -547,7 +563,7 @@ export function PreviewPane({
                     : "allow-scripts allow-same-origin allow-forms allow-popups"
                 }
               />
-              {iframeState === "loading" && (
+              {iframeState === "loading" && resolved.kind === "live" && (
                 <div
                   data-testid="preview-iframe-loading"
                   className="absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-sm pointer-events-none"
