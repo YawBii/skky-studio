@@ -419,7 +419,148 @@ function Builder() {
           </>
         )}
       </div>
+
+      {/* Mobile bottom tab bar — only visible <=768px. Provides Preview / Chat /
+          Jobs / More. The Chat tab opens the SplitPane bottom-sheet via the
+          'yawb:open-chat' custom event. */}
+      <MobileBottomNav
+        currentTab={tab}
+        onTabClick={onTabClick}
+        onOpenChat={() => {
+          console.info("[yawb] mobile.bottomNav.chat.clicked");
+          window.dispatchEvent(new CustomEvent("yawb:open-chat"));
+        }}
+      />
     </div>
+  );
+}
+
+const MOBILE_PRIMARY_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "preview", label: "Preview", icon: Eye },
+  { id: "jobs",    label: "Jobs",    icon: Activity },
+];
+const MOBILE_OVERFLOW_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "code",     label: "Code",     icon: Code2 },
+  { id: "database", label: "Database", icon: Database },
+  { id: "deploy",   label: "Deploy",   icon: Rocket },
+  { id: "history",  label: "History",  icon: HistoryIcon },
+];
+
+function MobileBottomNav({
+  currentTab,
+  onTabClick,
+  onOpenChat,
+}: {
+  currentTab: Tab;
+  onTabClick: (id: Tab) => void;
+  onOpenChat: () => void;
+}) {
+  const inOverflow = MOBILE_OVERFLOW_TABS.some((t) => t.id === currentTab);
+  return (
+    <nav
+      data-testid="mobile-bottom-nav"
+      aria-label="Builder sections"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-background/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
+    >
+      <ul className="flex items-stretch justify-around">
+        {/* Preview */}
+        <li className="flex-1">
+          <BottomNavButton
+            label="Preview"
+            icon={Eye}
+            active={currentTab === "preview"}
+            onClick={() => onTabClick("preview")}
+            testId="mobile-tab-preview"
+          />
+        </li>
+        {/* Chat — opens bottom sheet, not a tab */}
+        <li className="flex-1">
+          <BottomNavButton
+            label="Chat"
+            icon={MessageSquare}
+            active={false}
+            onClick={onOpenChat}
+            testId="mobile-tab-chat"
+          />
+        </li>
+        {/* Jobs */}
+        <li className="flex-1">
+          <BottomNavButton
+            label="Jobs"
+            icon={Activity}
+            active={currentTab === "jobs"}
+            onClick={() => onTabClick("jobs")}
+            testId="mobile-tab-jobs"
+          />
+        </li>
+        {/* More */}
+        <li className="flex-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                data-testid="mobile-tab-more"
+                className={cn(
+                  "w-full h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] touch-manipulation",
+                  inOverflow ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+                <span>More</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="top"
+              className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50 mb-2"
+            >
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">More</div>
+              {MOBILE_PRIMARY_TABS.concat(MOBILE_OVERFLOW_TABS).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => onTabClick(t.id)}
+                  data-testid={`mobile-more-${t.id}`}
+                  className={cn(
+                    "w-full text-left flex items-center gap-2 rounded-md px-2 py-2 text-[13px] hover:bg-white/[0.05] touch-manipulation min-h-11",
+                    currentTab === t.id && "bg-white/[0.06] text-foreground",
+                  )}
+                >
+                  <t.icon className="h-4 w-4 text-muted-foreground" />
+                  {t.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
+function BottomNavButton({
+  label, icon: Icon, active, onClick, testId,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid={testId}
+      aria-pressed={active}
+      className={cn(
+        "w-full h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] touch-manipulation",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <Icon className="h-5 w-5" />
+      <span>{label}</span>
+    </button>
   );
 }
 
