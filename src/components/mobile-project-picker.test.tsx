@@ -92,10 +92,7 @@ describe("MobileProjectPicker", () => {
       <MobileProjectPicker open onOpenChange={() => {}} projects={projects} currentProjectId={null} onSelect={() => {}} />,
     );
     const search = document.body.querySelector('[data-testid="mobile-project-picker-search"]') as HTMLInputElement;
-    act(() => {
-      search.value = "Project 2";
-      search.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    typeInto(search, "Project 2");
     const rows = document.body.querySelectorAll('[data-testid^="mobile-project-picker-item-"]');
     expect(rows.length).toBe(1);
   });
@@ -150,10 +147,7 @@ describe("MobileProjectPicker", () => {
       <MobileProjectPicker open onOpenChange={() => {}} projects={makeProjects(3)} currentProjectId={null} onSelect={() => {}} />,
     );
     const search = document.body.querySelector('[data-testid="mobile-project-picker-search"]') as HTMLInputElement;
-    act(() => {
-      search.value = "zzznomatch";
-      search.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    typeInto(search, "zzznomatch");
     expect(document.body.textContent).toMatch(/No matches/);
     expect(document.body.textContent).toMatch(/Clear search/);
   });
