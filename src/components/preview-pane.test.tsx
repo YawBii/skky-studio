@@ -462,7 +462,7 @@ describe("PreviewPane — local preview hardening", () => {
     const iframe = c.querySelector('[data-testid="preview-iframe"]') as HTMLIFrameElement;
     expect(iframe.getAttribute("sandbox")).toBe("");
     expect(iframe.getAttribute("referrerpolicy")).toBe("no-referrer");
-    expect(iframe.getAttribute("loading")).toBe("lazy");
+    expect(iframe.getAttribute("scrolling")).toBe("auto");
   });
 
   it("live iframe keeps script/same-origin sandbox tokens", () => {
