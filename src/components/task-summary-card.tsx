@@ -82,7 +82,12 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
   })();
   const previewReady = pickField<boolean>(steps, "previewReady");
   const regenerationSeed = pickField<string>(steps, "regenerationSeed");
-  const hasGenerator = Boolean(generator || archetype || designSignature || filesWritten || previewReady !== null || regenerationSeed);
+  const visualFingerprint = pickField<string>(steps, "visualFingerprint");
+  const designMode = pickField<string>(steps, "designMode");
+  const heroLayout = pickField<string>(steps, "heroLayout");
+  const palette = pickField<string>(steps, "palette");
+  const typography = pickField<string>(steps, "typography");
+  const hasGenerator = Boolean(generator || archetype || designSignature || filesWritten || previewReady !== null || regenerationSeed || visualFingerprint || designMode);
   const isAiPlanUnwired = job.type === "ai.plan" && (job.error?.includes("not wired") || stdoutTail?.includes("not wired"));
 
   const startedTs = job.startedAt ? Date.parse(job.startedAt) : Date.parse(job.createdAt);
@@ -178,6 +183,11 @@ export function TaskSummaryCard({ job, steps, nextActions = [] }: Props) {
               {archetype && (<><dt className="text-muted-foreground">archetype</dt><dd className="text-foreground/90">{archetype}</dd></>)}
               {designSignature && (<><dt className="text-muted-foreground">designSignature</dt><dd className="text-foreground/90 break-all">{designSignature}</dd></>)}
               {regenerationSeed && (<><dt className="text-muted-foreground">regenerationSeed</dt><dd className="text-foreground/90 break-all">{regenerationSeed}</dd></>)}
+              {designMode && (<><dt className="text-muted-foreground">designMode</dt><dd className="text-foreground/90">{designMode}</dd></>)}
+              {heroLayout && (<><dt className="text-muted-foreground">heroLayout</dt><dd className="text-foreground/90">{heroLayout}</dd></>)}
+              {palette && (<><dt className="text-muted-foreground">palette</dt><dd className="text-foreground/90">{palette}</dd></>)}
+              {typography && (<><dt className="text-muted-foreground">typography</dt><dd className="text-foreground/90">{typography}</dd></>)}
+              {visualFingerprint && (<><dt className="text-muted-foreground">visualFingerprint</dt><dd className="text-foreground/90 break-all">{visualFingerprint}</dd></>)}
               {filesWritten && (
                 <>
                   <dt className="text-muted-foreground">filesWritten</dt>
