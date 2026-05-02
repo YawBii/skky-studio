@@ -499,22 +499,24 @@ export function PreviewPane({
           {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div
               className={cn(
-                "bg-background h-full min-h-[inherit] overflow-hidden relative",
+                "bg-background h-full overflow-hidden relative",
                 device === "desktop"
                   ? "w-full"
-                  : "rounded-2xl border border-white/10 shadow-elevated",
+                  : "min-h-[inherit] rounded-2xl border border-white/10 shadow-elevated",
               )}
             >
               <iframe
+                key={resolved.kind === "local" ? `local:${(localSrcDoc ?? "").length}` : `live:${iframeSrc ?? ""}`}
                 title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
                 srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
                 data-testid="preview-iframe"
                 data-preview-kind={resolved.kind}
+                data-scroll="auto"
                 onLoad={onIframeLoad}
                 onError={onIframeError}
                 referrerPolicy="no-referrer"
-                loading="lazy"
+                scrolling="auto"
                 className="h-full w-full border-0 block bg-background"
                 sandbox={
                   resolved.kind === "local"
