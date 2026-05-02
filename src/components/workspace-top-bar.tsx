@@ -194,7 +194,7 @@ export function WorkspaceTopBar({
           variant="ghost"
           size="sm"
           onClick={onShare ?? (() => toast("Coming next: workspace invites"))}
-          className="text-[12px]"
+          className="text-[12px] hidden sm:inline-flex"
         >
           <UserPlus className="h-3.5 w-3.5" /> Share
         </Button>
@@ -213,20 +213,20 @@ export function WorkspaceTopBar({
           </Link>
         )}
 
-        <Button variant="ghost" size="sm" onClick={() => toast("Opening analytics…")} className="hidden md:inline-flex">
+        <Button variant="ghost" size="sm" onClick={() => toast("Opening analytics…")} className="hidden lg:inline-flex">
           <BarChart3 className="h-3.5 w-3.5" /> Analytics
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={() => toast("Coming next: connect a custom domain")}>
+        <Button variant="ghost" size="sm" onClick={() => toast("Coming next: connect a custom domain")} className="hidden md:inline-flex">
           <Globe className="h-3.5 w-3.5" /> Domain
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={() => toast("Opening preview…")}>
+        <Button variant="ghost" size="sm" onClick={() => toast("Opening preview…")} className="hidden md:inline-flex">
           <Play className="h-3.5 w-3.5" /> Preview
         </Button>
 
-        <Button variant="hero" size="sm" onClick={onDeploy ?? (() => toast.success("Deploy queued"))}>
-          <Rocket className="h-3.5 w-3.5" /> Publish
+        <Button variant="hero" size="sm" onClick={onDeploy ?? (() => toast.success("Deploy queued"))} className="shrink-0">
+          <Rocket className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Publish</span>
         </Button>
       </div>
     </header>
