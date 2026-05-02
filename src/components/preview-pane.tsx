@@ -249,10 +249,23 @@ export function PreviewPane({
     return resolved.url;
   }, [resolved, selectedPage]);
 
+  // Compute the iframe key the same way as the JSX so we can log remounts.
+  const iframeKey = useMemo(
+    () =>
+      resolved.kind === "local"
+        ? `local:${project.id}:${stableHash(localSrcDoc ?? "")}`
+        : `live:${iframeSrc ?? ""}`,
+    [resolved.kind, project.id, localSrcDoc, iframeSrc],
+  );
+  useEffect(() => {
+    console.info("[yawb] preview.iframe.remount", { key: iframeKey });
+  }, [iframeKey]);
+
   const [iframeState, setIframeState] = useState<IframeState>("idle");
   const [softHintVisible, setSoftHintVisible] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   // Local previews render statically — no loading state, no overlay, no
   // raf/timeout machinery. The loading overlay applies ONLY to live iframes
