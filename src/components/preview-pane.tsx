@@ -299,9 +299,23 @@ export function PreviewPane({
     try {
       window.localStorage.setItem(TOGGLE_KEY(project.id), mode);
     } catch {
-      /* ignore */
+      /* localStorage may be blocked */
     }
   }, [mode, project.id]);
+
+  // Listen for cross-component "force-reload to local" requests fired after a
+  // successful Regenerate Design job, so the user immediately sees the new
+  // design instead of having to manually toggle Local + Refresh.
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { projectId?: string } | undefined;
+      if (!detail || detail.projectId !== project.id) return;
+      console.info("[yawb] preview.forceReload.received", { projectId: project.id });
+      setMode("local");
+    };
+    window.addEventListener("yawb:preview-force-reload", handler);
+    return () => window.removeEventListener("yawb:preview-force-reload", handler);
+  }, [project.id]);
 
   const resolved: ResolvedPreviewSource = useMemo(
     () =>
