@@ -76,6 +76,19 @@ function Builder() {
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const userPickedDeviceRef = useRef(false);
+
+  // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
+  // Once the user picks a device manually we stop overriding.
+  useEffect(() => {
+    if (userPickedDeviceRef.current) return;
+    setDevice(isMobile ? "mobile" : "desktop");
+  }, [isMobile]);
+
+  const handleDeviceChange = (d: Device) => {
+    userPickedDeviceRef.current = true;
+    setDevice(d);
+  };
 
   // Mirror UI state to the global hook so the chat panel reads it.
   useEffect(() => {
