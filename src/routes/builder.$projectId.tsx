@@ -202,11 +202,35 @@ function Builder() {
         toast.success("Preview deploy ready");
       }
       // After a build.production succeeds, refresh project_files once so the
-      // local preview reflects the new build. ai.generate_changes does NOT
-      // auto-refresh — the user must press "Refresh local preview" to pull.
+      // local preview reflects the new build.
       if (j.type === "build.production") {
         void filesApi.refresh().then(() => {
           toast.success("Local preview updated");
+        });
+      }
+      // After ai.generate_changes succeeds, also refresh project_files and
+      // switch the user to Preview + Local so the new design is visible
+      // immediately. Without this, the regenerate job runs on the server but
+      // the iframe keeps showing the previous HTML and the user thinks
+      // "nothing changed".
+      if (j.type === "ai.generate_changes") {
+        void filesApi.refresh().then(() => {
+          setTab("preview");
+          try {
+            window.localStorage.setItem(`yawb:preview-mode:${project.id}`, "local");
+          } catch {
+            /* localStorage may be blocked */
+          }
+          const designMode =
+            (j.output && typeof j.output === "object"
+              ? ((j.output as Record<string, unknown>).designMode as string | undefined)
+              : undefined) ?? "design";
+          toast.success(`Design updated — ${designMode}`, {
+            description: "Local preview now shows the new design.",
+          });
+          window.dispatchEvent(
+            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
+          );
         });
       }
     },
