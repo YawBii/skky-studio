@@ -338,20 +338,26 @@ export function chooseVisualFingerprint(
   archetype: Archetype,
   seedBasis: string,
   previous?: VisualFingerprint | null,
+  forcedMode?: DesignMode | null,
 ): VisualFingerprint {
   const baseSections = sectionsFor(archetype);
-  let recipe: ModeRecipe = MODE_RECIPES[DESIGN_MODES[pickModeIndex(seedBasis)]];
-  let attempt = 0;
-  while (previous && recipe.mode === previous.designMode && attempt < 5) {
-    attempt += 1;
-    const idx = Math.abs(hash(`mode-retry:${attempt}:${seedBasis}`)) % DESIGN_MODES.length;
-    recipe = MODE_RECIPES[DESIGN_MODES[idx]];
-  }
-  if (previous && recipe.mode === previous.designMode) {
-    // Forced rotation to next mode in list.
-    const cur = DESIGN_MODES.indexOf(previous.designMode);
-    const next = DESIGN_MODES[(cur + 1) % DESIGN_MODES.length];
-    recipe = MODE_RECIPES[next];
+  let recipe: ModeRecipe;
+  if (forcedMode && MODE_RECIPES[forcedMode]) {
+    // User-selected Design Angle wins. Seed only affects section order.
+    recipe = MODE_RECIPES[forcedMode];
+  } else {
+    recipe = MODE_RECIPES[DESIGN_MODES[pickModeIndex(seedBasis)]];
+    let attempt = 0;
+    while (previous && recipe.mode === previous.designMode && attempt < 5) {
+      attempt += 1;
+      const idx = Math.abs(hash(`mode-retry:${attempt}:${seedBasis}`)) % DESIGN_MODES.length;
+      recipe = MODE_RECIPES[DESIGN_MODES[idx]];
+    }
+    if (previous && recipe.mode === previous.designMode) {
+      const cur = DESIGN_MODES.indexOf(previous.designMode);
+      const next = DESIGN_MODES[(cur + 1) % DESIGN_MODES.length];
+      recipe = MODE_RECIPES[next];
+    }
   }
   const rnd = rngFor(`order:${seedBasis}:${recipe.mode}`);
   const head: SectionKey[] = baseSections[0]?.startsWith("hero-") ? [baseSections[0]] : [];
