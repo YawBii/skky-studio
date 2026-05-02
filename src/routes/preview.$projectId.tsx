@@ -102,6 +102,27 @@ function LocalPreview() {
       } catch {
         setHasFiles(false);
       }
+      // Detect a GitHub link so we can show a "linked to repo" state instead
+      // of the generic "no preview yet" placeholder when the project came
+      // from a GitHub import.
+      try {
+        const { data: conn } = await supabase
+          .from("project_connections")
+          .select("repo_full_name, repo_url, status")
+          .eq("project_id", projectId)
+          .eq("provider", "github")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled && conn) {
+          setGithub({
+            repoFullName: (conn.repo_full_name as string | null) ?? null,
+            repoUrl: (conn.repo_url as string | null) ?? null,
+          });
+        }
+      } catch {
+        /* table may not exist — fall through to default empty state */
+      }
       setLoading(false);
       console.info("[yawb] preview.local.rendered", { projectId, hasFiles: !!indexHtml });
     })();
