@@ -1,9 +1,10 @@
+// @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { TaskSummaryCard } from "./task-summary-card";
 import type { Job, JobStep } from "@/services/jobs";
 
-const baseJob: Job = {
+const baseJob = {
   id: "job-1",
   projectId: "proj-1",
   type: "ai.generate_changes",
@@ -14,7 +15,7 @@ const baseJob: Job = {
   finishedAt: new Date().toISOString(),
 } as unknown as Job;
 
-const stepWithGen: JobStep = {
+const stepWithGen = {
   id: "step-1",
   jobId: "job-1",
   title: "build.production",
@@ -30,24 +31,25 @@ const stepWithGen: JobStep = {
 
 describe("TaskSummaryCard — generator proof block", () => {
   it("renders generator, archetype, designSignature, filesWritten and previewReady when present", () => {
-    render(<TaskSummaryCard job={baseJob} steps={[stepWithGen]} />);
-    expect(screen.getByText("Generator")).toBeInTheDocument();
-    expect(screen.getByText("monster-brain-v1")).toBeInTheDocument();
-    expect(screen.getByText("social-good")).toBeInTheDocument();
-    expect(screen.getByText("sig-abc-123")).toBeInTheDocument();
-    expect(screen.getByText("index.html, app.css, app.js")).toBeInTheDocument();
-    expect(screen.getByText("✓ true")).toBeInTheDocument();
+    const html = renderToStaticMarkup(<TaskSummaryCard job={baseJob} steps={[stepWithGen]} />);
+    expect(html).toContain("Generator");
+    expect(html).toContain("monster-brain-v1");
+    expect(html).toContain("social-good");
+    expect(html).toContain("sig-abc-123");
+    expect(html).toContain("index.html, app.css, app.js");
+    expect(html).toContain("✓ true");
   });
 
   it("hides the Generator block when no generator metadata is reported", () => {
-    const plainStep: JobStep = {
+    const plainStep = {
       id: "s",
       jobId: "job-1",
       title: "noop",
       status: "succeeded",
       output: { stdoutTail: "hello" },
     } as unknown as JobStep;
-    render(<TaskSummaryCard job={baseJob} steps={[plainStep]} />);
-    expect(screen.queryByText("Generator")).not.toBeInTheDocument();
+    const html = renderToStaticMarkup(<TaskSummaryCard job={baseJob} steps={[plainStep]} />);
+    // The "Generator" header should not appear (the proof block shows job/type/etc., not "Generator")
+    expect(html).not.toContain(">Generator<");
   });
 });
