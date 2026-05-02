@@ -12,8 +12,10 @@ This branch adds the first internal contracts for that behavior:
 
 - `src/services/monster-blueprint.ts` defines the production blueprint yawB should create before generation.
 - `src/services/monster-director.ts` turns a user command into app type, design mode, routes, Supabase backend plan, integrations, workflows, and acceptance tests.
+- `src/services/monster-backend-generator.ts` turns a Monster Blueprint into Supabase migration SQL, backend docs, and blueprint JSON artifacts.
 - `src/services/monster-quality-gates.ts` defines the proof gates yawB must pass before it can declare a build done.
 - `src/services/monster-director.test.ts` locks in the command-first behavior with tests.
+- `src/services/monster-backend-generator.test.ts` locks in backend artifact generation and RLS expectations.
 
 ## Product standard
 
@@ -45,11 +47,22 @@ Done means:
 build, verify, prove, then declare done
 ```
 
+## Backend generation contract
+
+Monster Backend v1 produces:
+
+- `supabase/migrations/monster_<app>_initial.sql`
+- `docs/generated/<app>_monster_backend.md`
+- `docs/generated/<app>_monster_blueprint.json`
+
+The migration enables row level security for generated tables and emits policy drafts from the blueprint. These policies are intentionally conservative first drafts: they are meant to be verified by the Supabase/RLS job before production promotion.
+
 ## Next wiring steps
 
 1. Call `createMonsterBlueprint()` inside `ai.generate_changes` before `monsterGenerate()`.
 2. Pass `blueprint.design.mode` as the default `designMode` when the user did not manually override design.
-3. Persist the blueprint into job output so the UI can show Monster Proof.
-4. Hide the Design Angle selector from the first-run happy path; keep it as advanced regeneration override.
-5. Implement real provider actions for GitHub commit, Supabase migration/RLS verification, and Vercel deployment.
-6. Feed build/typecheck/lint/test results into `MonsterProofReport`.
+3. Call `generateMonsterBackendFiles()` and persist those files alongside generated frontend files.
+4. Persist the blueprint and Monster Proof report into job output so the UI can show proof.
+5. Hide the Design Angle selector from the first-run happy path; keep it as advanced regeneration override.
+6. Implement real provider actions for GitHub commit, Supabase migration/RLS verification, and Vercel deployment.
+7. Feed build/typecheck/lint/test results into `MonsterProofReport`.
