@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { getProjectById, type Project } from "@/services/projects";
 import { rememberDirectProject } from "@/lib/project-selection";
 import { JobsPanel } from "@/components/jobs-panel";
