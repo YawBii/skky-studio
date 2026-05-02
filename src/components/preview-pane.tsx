@@ -568,11 +568,7 @@ export function PreviewPane({
               )}
             >
               <iframe
-                key={
-                  resolved.kind === "local"
-                    ? `local:${project.id}:${stableHash(localSrcDoc ?? "")}`
-                    : `live:${iframeSrc ?? ""}`
-                }
+                key={iframeKey}
                 title={`${sanitizeText(project.name, 200) || "Project"} preview`}
                 src={resolved.kind === "live" ? (iframeSrc ?? undefined) : undefined}
                 srcDoc={resolved.kind === "local" ? localSrcDoc : undefined}
