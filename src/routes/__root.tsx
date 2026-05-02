@@ -16,6 +16,9 @@ import { useProjectConnections } from "@/hooks/use-project-connections";
 import { CreateWorkspaceEmpty, CreateProjectEmpty } from "@/components/empty-states";
 import { DiagnosticsPanel } from "@/components/diagnostics-panel";
 import { setDiag } from "@/lib/diagnostics";
+import { useAuth } from "@/hooks/use-auth";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
+import { Button } from "@/components/ui/button";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -124,6 +127,7 @@ function RootComponent() {
 
 function WorkspaceShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { session, loading: authLoading } = useAuth();
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try { window.localStorage.removeItem("yawb:workspace-split"); } catch {}
@@ -196,7 +200,9 @@ function WorkspaceShell() {
   // navigation isn't "stuck" on the create-workspace screen.
   const isHomeRoute = pathname === "/" || pathname === "/projects";
   let mainContent: React.ReactNode;
-  if (isHomeRoute && workspaceEmpty) {
+  if (isHomeRoute && !authLoading && !session) {
+    mainContent = <MobileSignedOutEmpty />;
+  } else if (isHomeRoute && workspaceEmpty) {
     mainContent = (
       <CreateWorkspaceEmpty
         errorMessage={workspaceError ? workspaceErrorMessage : undefined}
