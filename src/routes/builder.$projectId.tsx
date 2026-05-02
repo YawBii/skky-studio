@@ -448,6 +448,21 @@ function Builder() {
   );
 }
 
+function useUnreadSummaries(): { count: number; clear: () => void } {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const onSummary = () => setCount((c) => c + 1);
+    const onChatOpen = () => setCount(0);
+    window.addEventListener("yawb:summary-appended", onSummary as EventListener);
+    window.addEventListener("yawb:open-chat", onChatOpen as EventListener);
+    return () => {
+      window.removeEventListener("yawb:summary-appended", onSummary as EventListener);
+      window.removeEventListener("yawb:open-chat", onChatOpen as EventListener);
+    };
+  }, []);
+  return { count, clear: () => setCount(0) };
+}
+
 const MOBILE_PRIMARY_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "preview", label: "Preview", icon: Eye },
   { id: "jobs",    label: "Jobs",    icon: Activity },
