@@ -189,6 +189,26 @@ function Row({
   );
 }
 
+function getBootstrapStateMessage({
+  authLoading,
+  hasSession,
+  workspacesCount,
+  workspaceId,
+  projects,
+}: {
+  authLoading: boolean;
+  hasSession: boolean;
+  workspacesCount: number | null;
+  workspaceId: string | null;
+  projects: number | null;
+}): { title: string; detail: string; signIn?: boolean } | null {
+  if (authLoading) return { title: "Checking session…", detail: "Waiting for mobile auth storage to restore." };
+  if (!hasSession) return { title: "Not signed in on this device", detail: "Mobile has no restored auth session, so workspace/project queries are blocked.", signIn: true };
+  if (workspacesCount === 0) return { title: "No workspace membership found for this account", detail: "workspace_members returned 0 rows for the shown userEmail/userId." };
+  if (workspaceId && projects === 0) return { title: "Workspace found but no projects returned", detail: `projects returned 0 rows for workspaceId ${workspaceId}.` };
+  return null;
+}
+
 function extractMessage(v: unknown): string | null {
   if (!v) return null;
   if (typeof v === "string") return v;
