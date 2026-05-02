@@ -249,6 +249,18 @@ export function PreviewPane({
     return liveAvailable ? "live" : "local";
   });
 
+  // Persisted Design Angle per project.
+  const [designAngle, setDesignAngle] = useState<DesignAngle>(() => {
+    try {
+      const stored = window.localStorage.getItem(DESIGN_ANGLE_KEY(project.id)) as DesignAngle | null;
+      if (stored && DESIGN_ANGLES.some((a) => a.id === stored)) return stored;
+    } catch { /* ignore */ }
+    return "editorial-luxury";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(DESIGN_ANGLE_KEY(project.id), designAngle); } catch { /* ignore */ }
+  }, [designAngle, project.id]);
+
   // Auto-switch when availability changes (e.g. preview deploy lands).
   useEffect(() => {
     if (mode === "live" && !liveAvailable) setMode("local");
