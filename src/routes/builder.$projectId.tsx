@@ -373,8 +373,9 @@ function Builder() {
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
             generated={filesApi.generated}
-            regenerating={starting}
+            regenerating={Boolean(regeneratingJobId)}
             onRegenerateDesign={async () => {
+              if (regeneratingJobId) return;
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
@@ -386,8 +387,12 @@ function Builder() {
                 toast.error(`Couldn't regenerate: ${r.error}`);
                 return;
               }
+              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id });
               toast.success("Regenerating design…");
+              setRegeneratingJobId(r.job.id);
               setFocusJobId(r.job.id);
+              // Refresh jobs immediately so the watcher sees the new job.
+              void ccJobs.refresh();
             }}
           />
         )}
