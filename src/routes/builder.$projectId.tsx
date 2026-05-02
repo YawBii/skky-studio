@@ -248,14 +248,14 @@ function Builder() {
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
-        <span className="text-muted-foreground/40 text-xs">/</span>
+        <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
-        {/* Page picker */}
+        {/* Page picker — hidden on phones to avoid header overflow. */}
         <Popover onOpenChange={(o) => o && (console.info("[yawb] pagePicker.opened", { projectId: project.id }), console.info("[yawb] topbar.clicked", { control: "page-picker" }))}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.05] transition touch-manipulation pointer-events-auto cursor-pointer"
               title="Switch page"
             >
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
