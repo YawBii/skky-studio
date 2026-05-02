@@ -31,6 +31,8 @@ export interface PreviewPaneProps {
   /** Optional handler for the "Regenerate design" toolbar action. */
   onRegenerateDesign?: () => void;
   regenerating?: boolean;
+  /** Optional handler for the "Refresh local preview" toolbar action. */
+  onRefreshLocalPreview?: () => void;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
