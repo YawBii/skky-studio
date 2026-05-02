@@ -173,17 +173,16 @@ function Builder() {
   // and toast. On failure/cancel: surface the real error.
   useEffect(() => {
     if (!regeneratingJobId) return;
-    const job = ccJobs.jobs.find((j) => j.id === regeneratingJobId);
-    if (!job) return;
-    if (job.status === "succeeded") {
-      console.info("[yawb] regenerate.succeeded", { jobId: job.id });
+    const outcome = regenerateOutcome(ccJobs.jobs, regeneratingJobId);
+    if (outcome.kind === "succeeded") {
+      console.info("[yawb] regenerate.succeeded", { jobId: regeneratingJobId });
       void filesApi.refresh().then(() => {
         toast.success("Design regenerated");
       });
       setRegeneratingJobId(null);
-    } else if (job.status === "failed" || job.status === "cancelled") {
-      console.info("[yawb] regenerate.failed", { jobId: job.id, error: job.error });
-      toast.error(job.error || "Regenerate design failed");
+    } else if (outcome.kind === "failed") {
+      console.info("[yawb] regenerate.failed", { jobId: regeneratingJobId, error: outcome.message });
+      toast.error(outcome.message);
       setRegeneratingJobId(null);
     }
   }, [ccJobs.jobs, regeneratingJobId, filesApi]);
