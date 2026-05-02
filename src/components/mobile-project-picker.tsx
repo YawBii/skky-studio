@@ -1,7 +1,9 @@
 // Full-screen project picker for phones — opened from the top-bar switcher
 // when isMobile is true. Single-tap selection navigates straight into the
-// builder for that project. Keeps the popover behavior on desktop.
+// builder for that project. Portal-mounted with max z-index so it sits
+// above the builder tabs, preview iframe, bottom nav, and chat FAB.
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { Check, FolderKanban, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,17 +49,21 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
     void navigate({ to: "/builder/$projectId", params: { projectId: id } });
   };
 
-  return (
+  const hasProjects = projects.length > 0;
+  const isSearchEmpty = hasProjects && filtered.length === 0;
+
+  const node = (
     <div
       data-testid="mobile-project-picker"
       role="dialog"
       aria-modal="true"
       aria-label="Switch project"
-      className="fixed inset-0 z-[60] flex flex-col bg-background"
+      className="fixed inset-0 z-[9999] flex flex-col bg-background"
+      style={{ height: "100dvh" }}
     >
       {/* Header */}
       <div
-        className="flex items-center gap-2 px-3 h-14 border-b border-white/5"
+        className="flex items-center gap-2 px-3 h-14 border-b border-white/5 shrink-0"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <button
@@ -74,7 +80,7 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2 border-b border-white/5">
+      <div className="px-3 py-2 border-b border-white/5 shrink-0">
         <label className="flex items-center gap-2 h-11 rounded-md bg-white/[0.04] border border-white/5 px-3">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -83,25 +89,30 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search projects…"
             data-testid="mobile-project-picker-search"
-            autoFocus
+            inputMode="search"
+            autoComplete="off"
             className="flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/70"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </label>
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin pb-[env(safe-area-inset-bottom)]">
-        {filtered.length === 0 ? (
-          <div className="px-4 py-12 text-center text-[13px] text-muted-foreground">
-            <div>{projects.length === 0 ? "No projects returned." : "No matches."}</div>
-            {projects.length === 0 && (
-              <div className="mt-4 text-left">
-                <MobileBootstrapPanel projectsCount={0} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <ul>
+      <ul
+        data-testid="mobile-project-picker-list"
+        className="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
+      >
+        {hasProjects ? (
+          <>
             {filtered.map((p) => {
               const isCurrent = p.id === currentProjectId;
               return (
@@ -111,7 +122,7 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
                     onClick={() => pick(p.id)}
                     data-testid={`mobile-project-picker-item-${p.id}`}
                     className={cn(
-                      "w-full text-left flex items-center gap-3 px-4 py-3 min-h-14 border-b border-white/[0.04] hover:bg-white/[0.04] active:bg-white/[0.07] touch-manipulation",
+                      "w-full text-left flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-white/[0.04] hover:bg-white/[0.04] active:bg-white/[0.07] touch-manipulation",
                       isCurrent && "bg-white/[0.05]",
                     )}
                   >
@@ -127,9 +138,31 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
                 </li>
               );
             })}
-          </ul>
+            {isSearchEmpty && (
+              <li className="px-4 py-10 text-center text-[13px] text-muted-foreground">
+                <div>No matches.</div>
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-white/[0.06] hover:bg-white/[0.1] text-foreground text-[13px] touch-manipulation"
+                >
+                  Clear search
+                </button>
+              </li>
+            )}
+          </>
+        ) : (
+          <li className="px-4 py-12 text-center text-[13px] text-muted-foreground">
+            <div>No projects returned.</div>
+            <div className="mt-4 text-left">
+              <MobileBootstrapPanel projectsCount={0} />
+            </div>
+          </li>
         )}
-      </div>
+      </ul>
     </div>
   );
+
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
 }
