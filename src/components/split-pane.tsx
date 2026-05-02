@@ -43,7 +43,12 @@ export function SplitPane({
     const apply = () => setIsMobile(mq.matches);
     apply();
     mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+    const openChat = () => setChatOpen(true);
+    window.addEventListener("yawb:open-chat", openChat as EventListener);
+    return () => {
+      mq.removeEventListener("change", apply);
+      window.removeEventListener("yawb:open-chat", openChat as EventListener);
+    };
   }, []);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
