@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Code2, Database, Rocket, History as HistoryIcon, Plus, Activity, ChevronDown, FileText, Globe } from "lucide-react";
+import { Eye, Code2, Database, Rocket, History as HistoryIcon, Plus, Activity, ChevronDown, FileText, Globe, MessageSquare, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -11,6 +11,7 @@ import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
 import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
 import {
   CommandCenterPill,
