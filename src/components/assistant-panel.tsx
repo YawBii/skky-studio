@@ -524,7 +524,7 @@ export function AssistantPanel() {
                 </PopoverContent>
               </Popover>
             </div>
-            <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send}>
+            <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send} className="min-h-11 sm:min-h-9 px-4" data-testid="chat-send">
               <Send className="h-3.5 w-3.5" /> Send
             </Button>
           </div>
