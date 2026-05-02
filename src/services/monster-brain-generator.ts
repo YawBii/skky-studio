@@ -59,7 +59,7 @@ const ARCHETYPE_RULES: Array<{ archetype: Archetype; pattern: RegExp }> = [
   { archetype: "corporate",   pattern: /\b(skky\s*group|skkygroup|skky|holding|holdings|group|ventures|capital|portfolio[-\s]?group|infrastructure|corporate|conglomerate|enterprise)\b/i },
   { archetype: "jobs",        pattern: /\b(ujob|u[-\s]?job|job|jobs|hiring|hire|recruit|recruiter|candidate|candidates|career|careers|work|workforce|gig|gigs|talent|employer|employee)\b/i },
   { archetype: "fintech",     pattern: /\b(fintech|payment|payments|invoice|invoices|invoicing|money|wallet|bank|banking|ledger|finance|treasury|payroll|stripe|billing|checkout|transactions?)\b/i },
-  { archetype: "identity",    pattern: /\b(identity|identify|verification|verify|verified|trust|kyc|aml|compliance|auth|authn|authz|passport|credential|credentials|id[-\s]?check)\b/i },
+  { archetype: "identity",    pattern: /\b(identity|identify|verification|verify|verified|trust|kyc|aml|compliance|auth|authn|authz|passport|credential|credentials|id[-\s]?check|last[-\s]?man|lastman)\b/i },
   { archetype: "gaming",      pattern: /\b(gaming|game|games|player|players|leaderboard|esports|arcade|guild|clan|quest|tournament|multiplayer)\b/i },
   { archetype: "saas",        pattern: /\b(saas|dashboard|analytics|metrics|crm|admin|platform|workspace|si4|ops|devtool|devtools|monitoring|observability)\b/i },
   { archetype: "portfolio",   pattern: /\b(portfolio|case[-\s]?stud(?:y|ies)|showcase|gallery|works|selected[-\s]?work|designer|artist)\b/i },
@@ -147,6 +147,11 @@ type SectionKey =
   | "leaderboard"
   | "community-cta"
   | "feature-grid"
+  | "pricing-tiers"
+  | "faq-accordion"
+  | "testimonial-wall"
+  | "logo-strip"
+  | "process-steps"
   | "cta-band"
   | "footer";
 
@@ -308,25 +313,25 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
 function sectionsFor(archetype: Archetype): SectionKey[] {
   switch (archetype) {
     case "social-good":
-      return ["hero-spotlight", "scanner-feed", "praise-cards", "impact-metrics", "trust-panel", "cta-band", "footer"];
+      return ["hero-spotlight", "scanner-feed", "impact-metrics", "praise-cards", "process-steps", "trust-panel", "testimonial-wall", "cta-band", "footer"];
     case "corporate":
-      return ["hero-glass", "portfolio-grid", "operating-principles", "regions", "architecture", "cta-band", "footer"];
+      return ["hero-glass", "logo-strip", "portfolio-grid", "operating-principles", "regions", "architecture", "testimonial-wall", "cta-band", "footer"];
     case "jobs":
-      return ["hero-search", "featured-roles", "candidate-company-split", "trust-badges", "metrics-strip", "cta-band", "footer"];
+      return ["hero-search", "logo-strip", "featured-roles", "candidate-company-split", "process-steps", "trust-badges", "metrics-strip", "testimonial-wall", "cta-band", "footer"];
     case "fintech":
-      return ["hero-finance", "transaction-cards", "security-layer", "metrics-strip", "cta-band", "footer"];
+      return ["hero-finance", "metrics-strip", "transaction-cards", "security-layer", "compliance-cards", "pricing-tiers", "faq-accordion", "cta-band", "footer"];
     case "identity":
-      return ["hero-identity", "trust-graph", "compliance-cards", "activity-timeline", "cta-band", "footer"];
+      return ["hero-identity", "trust-graph", "compliance-cards", "activity-timeline", "process-steps", "security-layer", "faq-accordion", "cta-band", "footer"];
     case "gaming":
-      return ["hero-gaming", "game-cards", "leaderboard", "community-cta", "footer"];
+      return ["hero-gaming", "game-cards", "leaderboard", "metrics-strip", "community-cta", "testimonial-wall", "footer"];
     case "saas":
-      return ["hero-default", "feature-grid", "metrics-strip", "cta-band", "footer"];
+      return ["hero-default", "logo-strip", "feature-grid", "metrics-strip", "process-steps", "pricing-tiers", "testimonial-wall", "faq-accordion", "cta-band", "footer"];
     case "portfolio":
-      return ["hero-spotlight", "portfolio-grid", "operating-principles", "cta-band", "footer"];
+      return ["hero-spotlight", "portfolio-grid", "operating-principles", "process-steps", "testimonial-wall", "cta-band", "footer"];
     case "marketplace":
-      return ["hero-search", "feature-grid", "trust-badges", "cta-band", "footer"];
+      return ["hero-search", "feature-grid", "logo-strip", "trust-badges", "testimonial-wall", "pricing-tiers", "faq-accordion", "cta-band", "footer"];
     default:
-      return ["hero-default", "feature-grid", "metrics-strip", "cta-band", "footer"];
+      return ["hero-default", "feature-grid", "metrics-strip", "process-steps", "testimonial-wall", "cta-band", "footer"];
   }
 }
 
