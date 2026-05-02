@@ -487,7 +487,7 @@ export function PreviewPane({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        {onRegenerateDesign && (
+        {onRegenerateDesign && !isGithubLinked && (
           <>
             <select
               data-testid="preview-design-angle"
