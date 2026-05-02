@@ -484,6 +484,8 @@ function MobileBottomNav({
   onOpenChat: () => void;
 }) {
   const inOverflow = MOBILE_OVERFLOW_TABS.some((t) => t.id === currentTab);
+  const { count: unreadSummaries, clear: clearUnread } = useUnreadSummaries();
+  const handleChat = () => { clearUnread(); onOpenChat(); };
   return (
     <nav
       data-testid="mobile-bottom-nav"
@@ -507,8 +509,9 @@ function MobileBottomNav({
             label="Chat"
             icon={MessageSquare}
             active={false}
-            onClick={onOpenChat}
+            onClick={handleChat}
             testId="mobile-tab-chat"
+            badge={unreadSummaries}
           />
         </li>
         {/* Jobs */}
@@ -567,13 +570,14 @@ function MobileBottomNav({
 }
 
 function BottomNavButton({
-  label, icon: Icon, active, onClick, testId,
+  label, icon: Icon, active, onClick, testId, badge = 0,
 }: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   active: boolean;
   onClick: () => void;
   testId: string;
+  badge?: number;
 }) {
   return (
     <button
@@ -582,11 +586,21 @@ function BottomNavButton({
       data-testid={testId}
       aria-pressed={active}
       className={cn(
-        "w-full h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] touch-manipulation",
+        "relative w-full h-14 flex flex-col items-center justify-center gap-0.5 text-[11px] touch-manipulation",
         active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
       )}
     >
-      <Icon className="h-5 w-5" />
+      <span className="relative">
+        <Icon className="h-5 w-5" />
+        {badge > 0 && (
+          <span
+            data-testid={`${testId}-badge`}
+            className="absolute -top-1.5 -right-2 min-w-4 h-4 px-1 rounded-full bg-destructive text-[9px] font-semibold text-destructive-foreground inline-flex items-center justify-center ring-2 ring-background"
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </span>
       <span>{label}</span>
     </button>
   );
