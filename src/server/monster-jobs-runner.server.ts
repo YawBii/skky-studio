@@ -1,7 +1,8 @@
 // Monster job runner shim.
 //
-// This file routes command-first build jobs through Monster generation while
-// preserving the legacy runner for provider/build jobs that already existed.
+// This file routes explicit command-first app build jobs through Monster
+// generation while preserving the legacy runner for provider/build jobs and
+// normal planning conversations.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runNextJobStepServer as runLegacyNextJobStepServer } from "./jobs-runner.server";
@@ -97,21 +98,50 @@ async function findMonsterStep(sb: SupabaseClient, job: JobRow): Promise<StepRow
   return (data as StepRow | null) ?? null;
 }
 
-function isBuildIntent(job: JobRow): boolean {
+function jobPrompt(job: JobRow): string {
   const input = (job.input ?? {}) as Record<string, unknown>;
-  const text = [
+  return [
     job.title ?? "",
     typeof input.chatRequest === "string" ? input.chatRequest : "",
     typeof input.prompt === "string" ? input.prompt : "",
     typeof input.message === "string" ? input.message : "",
     typeof input.request === "string" ? input.request : "",
-  ].join(" ");
-  return /\b(build|create|generate|make|ship|design|app|website|dashboard|admin|backend|supabase|auth|payments?|full first version|first version)\b/i.test(text);
+  ].join(" ").trim();
+}
+
+function isExplicitMonsterBuildIntent(job: JobRow): boolean {
+  const text = jobPrompt(job).toLowerCase();
+  if (!text) return false;
+
+  // Planning-only wording must stay in ai.plan. These prompts may use words
+  // like "generate" or "design" but are asking for advice/documents, not for
+  // yawB to overwrite project_files.
+  if (/\b(rollout plan|migration strategy|implementation plan|project plan|go[- ]to[- ]market plan|roadmap|strategy|proposal|spec|prd|requirements|architecture review|explain|summari[sz]e|compare|audit|review)\b/.test(text)) {
+    return false;
+  }
+
+  // Direct command-first build language.
+  if (/\b(build|create|make|ship|scaffold|implement)\b.{0,80}\b(app|site|website|web app|dashboard|admin panel|portal|landing page|saas|marketplace|crm|tool|backend|frontend|full first version|first version)\b/.test(text)) {
+    return true;
+  }
+
+  // The existing UI prompt pattern: "Build this as ... Generate the full first version now."
+  if (/\b(build this as|generate the full first version|generate first version|build the first screen|build first screen)\b/.test(text)) {
+    return true;
+  }
+
+  // Backend-heavy generation requests should also be handled by Monster, but
+  // only when paired with app-building nouns.
+  if (/\b(auth|supabase|backend|database|admin panel|payments?)\b/.test(text) && /\b(app|site|website|dashboard|portal|platform|saas|marketplace)\b/.test(text)) {
+    return true;
+  }
+
+  return false;
 }
 
 function shouldMonsterHandle(job: JobRow): boolean {
   if (job.type === "ai.generate_changes") return true;
-  if (job.type === "ai.plan" && isBuildIntent(job)) return true;
+  if (job.type === "ai.plan" && isExplicitMonsterBuildIntent(job)) return true;
   return false;
 }
 
