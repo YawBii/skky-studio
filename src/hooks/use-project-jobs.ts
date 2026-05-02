@@ -22,6 +22,7 @@ import {
 } from "@/services/jobs";
 
 const TICK_MS = 1500;
+const IDLE_REFRESH_MS = 2500;
 
 export function useProjectJobs(
   projectId: string | null | undefined,
@@ -78,21 +79,42 @@ export function useProjectJobs(
     setAttemptsByJob((prev) => ({ ...prev, [jobId]: r.attempts }));
   }, []);
 
-  // Driver: while there are queued/running jobs, keep ticking.
+  // Driver: keep polling while the project is open. This is intentionally
+  // not limited to the current `jobs` array being active, because chat sends
+  // call enqueueJob() directly and then render a queued summary before this
+  // hook has refreshed. The idle refresh catches those newly queued jobs and
+  // the next loop triggers the server runner.
   useEffect(() => {
     if (!projectId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
+    const schedule = (ms: number) => {
+      if (cancelled) return;
+      timer = setTimeout(loop, ms);
+    };
+
     const loop = async () => {
       if (cancelled || !projectId) return;
-      const hasActive = jobs.some((j) => j.status === "queued" || j.status === "running");
+      const latest = await listJobs(projectId);
+      if (cancelled) return;
+      setJobs(latest.jobs);
+      setSource(latest.source);
+      setError(latest.error ?? null);
+      setSqlFile(latest.sqlFile ?? null);
+      void reportProviderConnections(projectId);
+
+      const hasActive = latest.jobs.some((j) => j.status === "queued" || j.status === "running");
       if (!hasActive) {
         setTicking(false);
         tickingRef.current = false;
+        schedule(IDLE_REFRESH_MS);
         return;
       }
-      if (tickingRef.current) return;
+      if (tickingRef.current) {
+        schedule(TICK_MS);
+        return;
+      }
       tickingRef.current = true;
       setTicking(true);
       const r = await tickJobs(projectId);
@@ -104,8 +126,7 @@ export function useProjectJobs(
         await refreshQuestions(r.jobId);
         await refreshAttempts(r.jobId);
       }
-      await refresh();
-      timer = setTimeout(loop, TICK_MS);
+      schedule(TICK_MS);
     };
 
     void loop();
@@ -113,7 +134,7 @@ export function useProjectJobs(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [projectId, jobs, refresh, refreshSteps, refreshQuestions, refreshAttempts]);
+  }, [projectId, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
   useEffect(() => {
