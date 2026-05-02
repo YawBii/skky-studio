@@ -44,6 +44,8 @@ export interface MonsterBrainContext {
   connectedProviders?: string[] | null;
   /** Files already produced — generator may preserve or evolve them later. */
   previousFiles?: { path: string }[] | null;
+  /** Previously generated index.html — fingerprint is parsed and avoided. */
+  previousIndexHtml?: string | null;
   /** Last few job summaries — used as proof block hints. */
   recentJobs?: Array<{ type: string; status: string; summary?: string | null }> | null;
   /** Per-regeneration entropy — when present, every regen produces a distinct design. */
@@ -131,6 +133,7 @@ interface Blueprint {
   copy: Copy;
   /** Ordered list of section render keys. */
   sections: SectionKey[];
+  fingerprint: VisualFingerprint;
 }
 
 type SectionKey =
@@ -207,6 +210,190 @@ function shiftedTheme(base: Theme, seedBasis: string): Theme {
 /** Variant index 0..N-1 derived from seedBasis — selects layout/order variant. */
 export function variantIndex(seedBasis: string, modulo: number = 6): number {
   return Math.abs(hash(`v:${seedBasis}`)) % Math.max(1, modulo);
+}
+
+// ---------------------------------------------------------------------------
+// Visual fingerprint catalog
+// ---------------------------------------------------------------------------
+
+export type DesignMode =
+  | "editorial-luxury"
+  | "glass-dashboard"
+  | "civic-map"
+  | "neon-command"
+  | "magazine-cards"
+  | "minimal-light"
+  | "brutalist-data";
+
+export type HeroLayoutId =
+  | "editorial-split"
+  | "dashboard-grid"
+  | "map-impact"
+  | "command-terminal"
+  | "magazine-portrait"
+  | "minimal-stack"
+  | "brutalist-blocks";
+
+export type PaletteId =
+  | "cream-ink"
+  | "graphite-mint"
+  | "deep-civic"
+  | "neon-violet"
+  | "paper-coral"
+  | "snow-noir"
+  | "concrete-acid";
+
+export type TypographyId =
+  | "fraunces-inter"
+  | "playfair-inter"
+  | "spacegrotesk-inter"
+  | "jetbrains-inter"
+  | "bricolage-inter"
+  | "inter-inter"
+  | "ibmplex-mono";
+
+export type ShapeLanguageId = "soft" | "sharp" | "blocky" | "pill";
+
+export interface VisualFingerprint {
+  archetype: Archetype;
+  designMode: DesignMode;
+  heroLayout: HeroLayoutId;
+  palette: PaletteId;
+  typography: TypographyId;
+  shapeLanguage: ShapeLanguageId;
+  sectionOrder: SectionKey[];
+}
+
+const DESIGN_MODES: DesignMode[] = [
+  "editorial-luxury",
+  "glass-dashboard",
+  "civic-map",
+  "neon-command",
+  "magazine-cards",
+  "minimal-light",
+  "brutalist-data",
+];
+
+interface ModeRecipe {
+  mode: DesignMode;
+  hero: HeroLayoutId;
+  palette: PaletteId;
+  typography: TypographyId;
+  shape: ShapeLanguageId;
+}
+
+const MODE_RECIPES: Record<DesignMode, ModeRecipe> = {
+  "editorial-luxury": { mode: "editorial-luxury", hero: "editorial-split",   palette: "cream-ink",      typography: "fraunces-inter",      shape: "soft"   },
+  "glass-dashboard":  { mode: "glass-dashboard",  hero: "dashboard-grid",    palette: "graphite-mint",  typography: "spacegrotesk-inter",  shape: "soft"   },
+  "civic-map":        { mode: "civic-map",        hero: "map-impact",        palette: "deep-civic",     typography: "playfair-inter",      shape: "pill"   },
+  "neon-command":     { mode: "neon-command",     hero: "command-terminal",  palette: "neon-violet",    typography: "jetbrains-inter",     shape: "sharp"  },
+  "magazine-cards":   { mode: "magazine-cards",   hero: "magazine-portrait", palette: "paper-coral",    typography: "bricolage-inter",     shape: "soft"   },
+  "minimal-light":    { mode: "minimal-light",    hero: "minimal-stack",     palette: "snow-noir",      typography: "inter-inter",         shape: "sharp"  },
+  "brutalist-data":   { mode: "brutalist-data",   hero: "brutalist-blocks",  palette: "concrete-acid",  typography: "ibmplex-mono",        shape: "blocky" },
+};
+
+interface PaletteSpec {
+  bg: string; surface: string; surface2: string; fg: string; muted: string;
+  accent: string; accent2: string; ring: string;
+  isLight: boolean;
+}
+
+const PALETTES: Record<PaletteId, PaletteSpec> = {
+  "cream-ink":     { bg: "#f6f1e6", surface: "#ffffff", surface2: "#efe6d2", fg: "#1a1410", muted: "#6b5e4c", accent: "#b8421f", accent2: "#1a1410", ring: "rgba(184,66,31,.30)", isLight: true },
+  "graphite-mint": { bg: "#0e1316", surface: "#161d22", surface2: "#1d262c", fg: "#e8f4ee", muted: "#7e8e8a", accent: "#3ddc84", accent2: "#7cf5ff", ring: "rgba(61,220,132,.32)", isLight: false },
+  "deep-civic":    { bg: "#0a1a2e", surface: "#11253f", surface2: "#173052", fg: "#eaf3ff", muted: "#7e9bbd", accent: "#ffb547", accent2: "#5b8cff", ring: "rgba(255,181,71,.32)", isLight: false },
+  "neon-violet":   { bg: "#06050d", surface: "#0e0a1f", surface2: "#15102c", fg: "#f4eeff", muted: "#9b8fc4", accent: "#b06bff", accent2: "#3ddcff", ring: "rgba(176,107,255,.40)", isLight: false },
+  "paper-coral":   { bg: "#fff8f3", surface: "#ffffff", surface2: "#ffe8d8", fg: "#2b1a14", muted: "#7a5a4a", accent: "#ff5e3a", accent2: "#2b1a14", ring: "rgba(255,94,58,.28)", isLight: true },
+  "snow-noir":     { bg: "#fafafa", surface: "#ffffff", surface2: "#f0f0f0", fg: "#0a0a0a", muted: "#6a6a6a", accent: "#0a0a0a", accent2: "#5b8cff", ring: "rgba(10,10,10,.18)", isLight: true },
+  "concrete-acid": { bg: "#1c1c1c", surface: "#262626", surface2: "#2f2f2f", fg: "#f0f0e8", muted: "#9a9a90", accent: "#d6ff3a", accent2: "#ff3a8a", ring: "rgba(214,255,58,.40)", isLight: false },
+};
+
+const TYPOGRAPHY: Record<TypographyId, { display: string; body: string }> = {
+  "fraunces-inter":     { display: '"Fraunces", Georgia, serif',                       body: '"Inter", system-ui, sans-serif' },
+  "playfair-inter":     { display: '"Playfair Display", Georgia, serif',               body: '"Inter", system-ui, sans-serif' },
+  "spacegrotesk-inter": { display: '"Space Grotesk", "Inter", sans-serif',             body: '"Inter", system-ui, sans-serif' },
+  "jetbrains-inter":    { display: '"JetBrains Mono", ui-monospace, monospace',        body: '"Inter", system-ui, sans-serif' },
+  "bricolage-inter":    { display: '"Bricolage Grotesque", "Inter", sans-serif',       body: '"Inter", system-ui, sans-serif' },
+  "inter-inter":        { display: '"Inter", system-ui, sans-serif',                   body: '"Inter", system-ui, sans-serif' },
+  "ibmplex-mono":       { display: '"IBM Plex Mono", ui-monospace, monospace',         body: '"IBM Plex Sans", "Inter", system-ui, sans-serif' },
+};
+
+/** Choose a design mode index from seed. */
+function pickModeIndex(seedBasis: string): number {
+  return Math.abs(hash(`mode:${seedBasis}`)) % DESIGN_MODES.length;
+}
+
+/**
+ * Compute a visual fingerprint from project + seed, optionally rotating away
+ * from a previous fingerprint so two consecutive regenerations never look the
+ * same. Tries up to 5 seed perturbations, then forces the next mode in the list.
+ */
+export function chooseVisualFingerprint(
+  archetype: Archetype,
+  seedBasis: string,
+  previous?: VisualFingerprint | null,
+): VisualFingerprint {
+  const baseSections = sectionsFor(archetype);
+  let recipe: ModeRecipe = MODE_RECIPES[DESIGN_MODES[pickModeIndex(seedBasis)]];
+  let attempt = 0;
+  while (previous && recipe.mode === previous.designMode && attempt < 5) {
+    attempt += 1;
+    const idx = Math.abs(hash(`mode-retry:${attempt}:${seedBasis}`)) % DESIGN_MODES.length;
+    recipe = MODE_RECIPES[DESIGN_MODES[idx]];
+  }
+  if (previous && recipe.mode === previous.designMode) {
+    // Forced rotation to next mode in list.
+    const cur = DESIGN_MODES.indexOf(previous.designMode);
+    const next = DESIGN_MODES[(cur + 1) % DESIGN_MODES.length];
+    recipe = MODE_RECIPES[next];
+  }
+  const rnd = rngFor(`order:${seedBasis}:${recipe.mode}`);
+  const head: SectionKey[] = baseSections[0]?.startsWith("hero-") ? [baseSections[0]] : [];
+  const lastIdx = baseSections.length - 1;
+  const tail: SectionKey[] = baseSections[lastIdx] === "footer" ? ["footer"] : [];
+  const middle = baseSections.slice(head.length, tail.length ? lastIdx : baseSections.length);
+  const sectionOrder: SectionKey[] = [...head, ...shuffle(middle, rnd), ...tail];
+  return {
+    archetype,
+    designMode: recipe.mode,
+    heroLayout: recipe.hero,
+    palette: recipe.palette,
+    typography: recipe.typography,
+    shapeLanguage: recipe.shape,
+    sectionOrder,
+  };
+}
+
+export function fingerprintToString(fp: VisualFingerprint): string {
+  return `mb-v1:${fp.archetype}:${fp.designMode}:${fp.heroLayout}:${fp.palette}:${fp.typography}:${fp.shapeLanguage}`;
+}
+
+/**
+ * Parse a visualFingerprint back from a previously-generated index.html (or
+ * any HTML carrying the meta tags we emit). Returns null if not present.
+ */
+export function parseVisualFingerprintFromHtml(html: string): VisualFingerprint | null {
+  if (!html) return null;
+  const get = (n: string) => {
+    const m = html.match(new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"));
+    return m ? m[1] : null;
+  };
+  const archetype = get("yawb-archetype") as Archetype | null;
+  const designMode = get("yawb-design-mode") as DesignMode | null;
+  const heroLayout = get("yawb-hero-layout") as HeroLayoutId | null;
+  const palette = get("yawb-palette") as PaletteId | null;
+  const typography = get("yawb-typography") as TypographyId | null;
+  const shape = get("yawb-shape-language") as ShapeLanguageId | null;
+  if (!archetype || !designMode || !heroLayout || !palette || !typography) return null;
+  return {
+    archetype,
+    designMode,
+    heroLayout,
+    palette,
+    typography,
+    shapeLanguage: shape ?? "soft",
+    sectionOrder: [],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -811,26 +998,38 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
 // CSS
 // ---------------------------------------------------------------------------
 
-function renderCss(theme: Theme & { _hue?: number }, archetype: Archetype, projectId: string): string {
+function renderCss(theme: Theme & { _hue?: number }, archetype: Archetype, projectId: string, fp?: VisualFingerprint | null): string {
   const hue = theme._hue ?? Math.abs(hash(projectId)) % 360;
+  const palette = fp ? PALETTES[fp.palette] : null;
+  const typo = fp ? TYPOGRAPHY[fp.typography] : null;
+  const bg = palette?.bg ?? theme.bg;
+  const surface = palette?.surface ?? theme.surface;
+  const surface2 = palette?.surface2 ?? theme.surface2;
+  const fg = palette?.fg ?? theme.fg;
+  const muted = palette?.muted ?? theme.muted;
+  const accent = palette?.accent ?? theme.accent;
+  const accent2 = palette?.accent2 ?? theme.accent2;
+  const ring = palette?.ring ?? theme.ring;
+  const display = typo?.display ?? theme.display;
+  const body = typo?.body ?? theme.body;
   return `:root{
-  --bg:${theme.bg};
-  --surface:${theme.surface};
-  --surface-2:${theme.surface2};
-  --fg:${theme.fg};
-  --muted:${theme.muted};
-  --accent:${theme.accent};
-  --accent-2:${theme.accent2};
-  --ring:${theme.ring};
+  --bg:${bg};
+  --surface:${surface};
+  --surface-2:${surface2};
+  --fg:${fg};
+  --muted:${muted};
+  --accent:${accent};
+  --accent-2:${accent2};
+  --ring:${ring};
   --hue:${hue};
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:${theme.body};-webkit-font-smoothing:antialiased;line-height:1.5}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:${body};-webkit-font-smoothing:antialiased;line-height:1.5}
 img{max-width:100%}
 a{color:inherit;text-decoration:none}
 .mb-shell{min-height:100vh;display:flex;flex-direction:column}
 .mb-nav{display:flex;align-items:center;gap:24px;padding:18px 32px;border-bottom:1px solid color-mix(in oklab,var(--fg) 7%,transparent);position:sticky;top:0;background:color-mix(in oklab,var(--bg) 88%,transparent);backdrop-filter:saturate(140%) blur(8px);z-index:5}
-.mb-brand{display:flex;align-items:center;gap:10px;font-family:${theme.display};font-weight:700;font-size:17px;letter-spacing:-.01em}
+.mb-brand{display:flex;align-items:center;gap:10px;font-family:${display};font-weight:700;font-size:17px;letter-spacing:-.01em}
 .mb-mark{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 0 24px var(--ring)}
 .mb-nav-links{display:flex;gap:22px;color:var(--muted);font-size:13px;flex:1}
 .mb-nav-links a:hover{color:var(--fg)}
@@ -838,10 +1037,10 @@ a{color:inherit;text-decoration:none}
 .mb-section{padding:72px 32px;max-width:1120px;margin:0 auto;width:100%}
 .mb-hero{padding:96px 32px 72px;max-width:1120px;margin:0 auto;width:100%;position:relative;overflow:hidden}
 .mb-eyebrow{display:inline-block;letter-spacing:.28em;text-transform:uppercase;font-size:11px;color:var(--accent);background:color-mix(in oklab,var(--accent) 14%,transparent);padding:6px 12px;border-radius:999px;margin-bottom:22px}
-.mb-eyebrow.serif{font-family:${theme.display};letter-spacing:.18em;text-transform:none}
+.mb-eyebrow.serif{font-family:${display};letter-spacing:.18em;text-transform:none}
 .mb-eyebrow.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}
 .mb-eyebrow.neon{box-shadow:0 0 20px var(--ring)}
-.mb-title{font-family:${theme.display};font-size:clamp(40px,6vw,72px);line-height:1.04;letter-spacing:-.025em;margin:0 0 18px;background:linear-gradient(180deg,var(--fg),color-mix(in oklab,var(--fg) 60%,var(--accent)));-webkit-background-clip:text;background-clip:text;color:transparent}
+.mb-title{font-family:${display};font-size:clamp(40px,6vw,72px);line-height:1.04;letter-spacing:-.025em;margin:0 0 18px;background:linear-gradient(180deg,var(--fg),color-mix(in oklab,var(--fg) 60%,var(--accent)));-webkit-background-clip:text;background-clip:text;color:transparent}
 .mb-title.serif{font-style:italic;font-weight:500}
 .mb-title.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:clamp(34px,5vw,60px)}
 .mb-title.neon{text-shadow:0 0 24px var(--ring)}
@@ -852,7 +1051,7 @@ a{color:inherit;text-decoration:none}
 .mb-cta.sm{padding:8px 12px;font-size:12.5px;border-radius:10px}
 .mb-cta.ghost{background:transparent;color:var(--fg);border:1px solid color-mix(in oklab,var(--fg) 18%,transparent);box-shadow:none}
 .mb-cta.neon{box-shadow:0 0 0 1px var(--accent),0 0 32px var(--ring)}
-.mb-h2{font-family:${theme.display};font-size:clamp(24px,3vw,34px);letter-spacing:-.018em;margin:0 0 10px}
+.mb-h2{font-family:${display};font-size:clamp(24px,3vw,34px);letter-spacing:-.018em;margin:0 0 10px}
 .mb-h2.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0}
 .mb-h2.neon{text-shadow:0 0 18px var(--ring)}
 .mb-sub{color:var(--muted);max-width:680px;margin:0 0 28px}
@@ -861,9 +1060,9 @@ a{color:inherit;text-decoration:none}
 .mb-grid-3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .mb-card{background:var(--surface);border:1px solid color-mix(in oklab,var(--fg) 8%,transparent);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:8px;transition:transform .2s ease,border-color .2s ease}
 .mb-card:hover{transform:translateY(-2px);border-color:color-mix(in oklab,var(--accent) 35%,transparent)}
-.mb-card h3{font-family:${theme.display};font-size:17px;margin:6px 0 0;letter-spacing:-.005em}
+.mb-card h3{font-family:${display};font-size:17px;margin:6px 0 0;letter-spacing:-.005em}
 .mb-card p{color:var(--muted);font-size:13.5px;margin:0}
-.mb-card-num{font-family:${theme.display};color:var(--accent);font-size:24px;font-weight:700}
+.mb-card-num{font-family:${display};color:var(--accent);font-size:24px;font-weight:700}
 .mb-link{color:var(--accent);font-size:13px;font-weight:600}
 .mb-card-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 0 30px var(--ring);margin-bottom:6px}
 .mb-tag{display:inline-block;font-size:10.5px;color:var(--muted);padding:3px 9px;border:1px solid color-mix(in oklab,var(--fg) 14%,transparent);border-radius:999px;margin-left:6px}
@@ -909,7 +1108,7 @@ a{color:inherit;text-decoration:none}
 /* Metrics */
 .mb-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;background:var(--surface);border:1px solid color-mix(in oklab,var(--fg) 8%,transparent);border-radius:20px;padding:24px}
 .mb-metric{display:flex;flex-direction:column;gap:4px}
-.mb-metric-value{font-family:${theme.display};font-size:28px;color:var(--fg);letter-spacing:-.01em}
+.mb-metric-value{font-family:${display};font-size:28px;color:var(--fg);letter-spacing:-.01em}
 .mb-metric-label{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.16em}
 
 /* Trust */
@@ -932,7 +1131,7 @@ a{color:inherit;text-decoration:none}
 
 /* Roles */
 .mb-card-role .mb-role-head{display:flex;justify-content:space-between;align-items:center}
-.mb-co{font-family:${theme.display};font-weight:700}
+.mb-co{font-family:${display};font-weight:700}
 .mb-role-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12.5px;margin:6px 0 12px}
 
 /* Split */
@@ -967,7 +1166,7 @@ a{color:inherit;text-decoration:none}
 .mb-leaderboard{list-style:none;padding:0;margin:0;display:grid;gap:6px}
 .mb-leaderboard li{display:grid;grid-template-columns:60px 1fr 120px;gap:8px;padding:14px 18px;background:var(--surface);border:1px solid color-mix(in oklab,var(--fg) 8%,transparent);border-radius:12px}
 .mb-rank{color:var(--accent);font-weight:700}
-.mb-handle{font-family:${theme.display}}
+.mb-handle{font-family:${display}}
 .mb-score{text-align:right;color:var(--muted);font-family:ui-monospace,monospace}
 
 /* CTA band */
@@ -978,7 +1177,7 @@ a{color:inherit;text-decoration:none}
 /* Pricing */
 .mb-card-tier{gap:12px}
 .mb-card-tier.featured{border-color:color-mix(in oklab,var(--accent) 60%,transparent);box-shadow:0 24px 60px -28px var(--ring)}
-.mb-tier-price{font-family:${theme.display};font-size:38px;color:var(--fg);letter-spacing:-.02em}
+.mb-tier-price{font-family:${display};font-size:38px;color:var(--fg);letter-spacing:-.02em}
 .mb-tier-price span{font-size:13px;color:var(--muted);margin-left:4px}
 
 /* FAQ */
@@ -990,20 +1189,20 @@ a{color:inherit;text-decoration:none}
 .mb-faq-row p{color:var(--muted);font-size:13.5px;margin:8px 0 0}
 
 /* Testimonial wall */
-.mb-card-quote blockquote{margin:0 0 12px;font-family:${theme.display};font-size:17px;line-height:1.4;color:var(--fg)}
+.mb-card-quote blockquote{margin:0 0 12px;font-family:${display};font-size:17px;line-height:1.4;color:var(--fg)}
 .mb-card-quote figcaption{display:flex;flex-direction:column;color:var(--muted);font-size:12.5px}
 .mb-card-quote figcaption strong{color:var(--fg);font-weight:600;font-size:13px}
 
 /* Logos */
 .mb-logos{text-align:center;padding-top:24px;padding-bottom:24px}
 .mb-logos-eyebrow{color:var(--muted);text-transform:uppercase;letter-spacing:.22em;font-size:11px;margin:0 0 18px}
-.mb-logos-row{display:flex;flex-wrap:wrap;justify-content:center;gap:32px;color:var(--muted);font-family:${theme.display};font-size:18px;letter-spacing:.04em;opacity:.7}
+.mb-logos-row{display:flex;flex-wrap:wrap;justify-content:center;gap:32px;color:var(--muted);font-family:${display};font-size:18px;letter-spacing:.04em;opacity:.7}
 .mb-logo{padding:6px 0;text-transform:lowercase}
 
 /* Process */
 .mb-process{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .mb-process li{display:flex;gap:14px;background:var(--surface);border:1px solid color-mix(in oklab,var(--fg) 8%,transparent);border-radius:14px;padding:18px}
-.mb-process-num{font-family:${theme.display};color:var(--accent);font-size:22px;font-weight:700}
+.mb-process-num{font-family:${display};color:var(--accent);font-size:22px;font-weight:700}
 .mb-process h3{margin:0 0 4px;font-size:15px}
 .mb-process p{color:var(--muted);font-size:13px;margin:0}
 
@@ -1018,6 +1217,7 @@ a{color:inherit;text-decoration:none}
   .mb-nav-links{display:none}
 }
 ${archetypeFlair(archetype)}
+${fp ? modeCss(fp) : ""}
 `;
 }
 
@@ -1044,6 +1244,121 @@ function archetypeFlair(archetype: Archetype): string {
 
 // Used inside template literal in archetypeFlair
 const THEMES_DISPLAY_INTER = `"Inter", system-ui, sans-serif`;
+
+/**
+ * Mode-specific CSS — visibly changes the first viewport. Each mode overrides
+ * background, hero composition, button shape and accent placement so swapping
+ * regenerationSeed produces a clearly different look.
+ */
+function modeCss(fp: VisualFingerprint): string {
+  const shape = fp.shapeLanguage;
+  const radius = shape === "blocky" ? "0px" : shape === "sharp" ? "4px" : shape === "pill" ? "999px" : "14px";
+  const btnRadius = shape === "blocky" ? "0px" : shape === "sharp" ? "4px" : shape === "pill" ? "999px" : "12px";
+  const base = `
+.mb-mode .mb-cta{border-radius:${btnRadius}}
+.mb-mode .mb-card{border-radius:${radius}}
+.mb-mode .mb-mode-hero{padding:88px 32px 56px;max-width:1180px;margin:0 auto;width:100%;position:relative;overflow:hidden}
+`;
+  switch (fp.designMode) {
+    case "editorial-luxury":
+      return base + `
+.mb-mode-editorial-luxury .mb-nav{background:transparent;border-bottom:1px solid rgba(0,0,0,.08)}
+.mb-mode-editorial-luxury .mb-nav-cta{background:var(--accent);color:#fff}
+.mb-hero-editorial{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:start;padding-top:120px}
+.mb-hero-editorial .mb-edl-eyebrow{font-style:italic;letter-spacing:.04em;color:var(--accent);font-size:14px;display:block;margin-bottom:24px}
+.mb-hero-editorial .mb-edl-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(56px,8vw,108px);line-height:.95;letter-spacing:-.03em;color:var(--fg);margin:0 0 28px;background:none;-webkit-text-fill-color:initial}
+.mb-hero-editorial .mb-edl-lede{font-size:20px;color:var(--muted);max-width:520px;margin:0 0 32px}
+.mb-hero-editorial .mb-edl-right{border-left:1px solid rgba(0,0,0,.12);padding-left:32px}
+.mb-hero-editorial .mb-edl-chip{font-family:${TYPOGRAPHY[fp.typography].body};font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:24px}
+.mb-hero-editorial .mb-edl-pull{font-family:${TYPOGRAPHY[fp.typography].display};font-style:italic;font-size:24px;line-height:1.3;color:var(--fg)}
+@media(max-width:760px){.mb-hero-editorial{grid-template-columns:1fr}}
+`;
+    case "glass-dashboard":
+      return base + `
+.mb-mode-glass-dashboard .mb-nav{background:rgba(14,19,22,.72);backdrop-filter:blur(14px) saturate(160%)}
+.mb-hero-dashboard{display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center}
+.mb-hero-dashboard::before{content:"";position:absolute;inset:-30% -10% auto auto;width:60%;height:120%;background:radial-gradient(closest-side,color-mix(in oklab,var(--accent) 22%,transparent),transparent 70%);pointer-events:none;filter:blur(40px)}
+.mb-dash-eyebrow{display:inline-block;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.mb-dash-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(40px,5.5vw,64px);line-height:1.05;letter-spacing:-.02em;margin:0 0 16px;color:var(--fg);background:none;-webkit-text-fill-color:initial}
+.mb-dash-lede{color:var(--muted);font-size:17px;margin:0 0 24px;max-width:520px}
+.mb-dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.mb-dash-card{background:color-mix(in oklab,var(--surface) 80%,transparent);border:1px solid color-mix(in oklab,var(--accent) 22%,transparent);border-radius:18px;padding:22px;backdrop-filter:blur(8px);box-shadow:0 24px 48px -28px var(--ring)}
+.mb-dash-val{font-family:${TYPOGRAPHY[fp.typography].display};font-size:32px;color:var(--fg);letter-spacing:-.02em}
+.mb-dash-lab{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.18em;margin-top:6px}
+@media(max-width:760px){.mb-hero-dashboard{grid-template-columns:1fr}}
+`;
+    case "civic-map":
+      return base + `
+.mb-mode-civic-map .mb-nav{background:rgba(10,26,46,.85)}
+.mb-hero-map{min-height:560px;padding:120px 32px}
+.mb-map-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,color-mix(in oklab,var(--accent) 14%,transparent),transparent 60%),linear-gradient(180deg,#0a1a2e 0%,#173052 100%);pointer-events:none}
+.mb-map-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:48px 48px}
+.mb-map-pin{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px color-mix(in oklab,var(--accent) 30%,transparent),0 0 24px var(--ring);animation:mb-pulse 2.4s infinite}
+.mb-map-pin.p1{background:var(--accent-2)}
+.mb-map-pin.p2{width:6px;height:6px}
+.mb-map-pin.p3{background:#fff;opacity:.7}
+@keyframes mb-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
+.mb-map-card{position:relative;max-width:560px;background:rgba(10,26,46,.78);backdrop-filter:blur(12px);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);border-radius:24px;padding:32px}
+.mb-map-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(32px,4.4vw,48px);line-height:1.08;margin:14px 0 14px;color:var(--fg);background:none;-webkit-text-fill-color:initial}
+.mb-map-lede{color:var(--muted);font-size:16px;margin:0 0 22px}
+`;
+    case "neon-command":
+      return base + `
+.mb-mode-neon-command{background:radial-gradient(ellipse at top,color-mix(in oklab,var(--accent) 12%,transparent),transparent 60%),var(--bg)}
+.mb-mode-neon-command .mb-nav{background:rgba(6,5,13,.86);border-bottom:1px solid color-mix(in oklab,var(--accent) 30%,transparent)}
+.mb-hero-terminal{max-width:980px;background:#0a0817;border:1px solid color-mix(in oklab,var(--accent) 40%,transparent);border-radius:14px;padding:0;overflow:hidden;box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 20%,transparent),0 40px 100px -40px var(--ring)}
+.mb-term-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:#15102c;border-bottom:1px solid color-mix(in oklab,var(--accent) 30%,transparent);font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.mb-term-bar span{width:10px;height:10px;border-radius:50%;background:#3a2e5e}
+.mb-term-bar .mb-term-name{margin-left:auto;width:auto;height:auto;background:transparent;border-radius:0}
+.mb-term-body{padding:32px 28px 36px;font-family:ui-monospace,monospace}
+.mb-term-line{margin:0 0 6px;color:var(--accent);font-size:13.5px}
+.mb-term-line.dim{color:var(--muted)}
+.mb-term-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(34px,4.6vw,52px);color:var(--fg);margin:18px 0 14px;letter-spacing:-.01em;line-height:1.1;text-shadow:0 0 32px color-mix(in oklab,var(--accent) 60%,transparent);background:none;-webkit-text-fill-color:initial}
+.mb-term-lede{color:var(--muted);font-family:${TYPOGRAPHY[fp.typography].body};font-size:15px;margin:0 0 22px;max-width:560px}
+`;
+    case "magazine-cards":
+      return base + `
+.mb-mode-magazine-cards .mb-nav{background:transparent;border-bottom:1px solid rgba(43,26,20,.12)}
+.mb-hero-magazine{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:center;padding-top:96px}
+.mb-mag-portrait{aspect-ratio:3/4;background:linear-gradient(160deg,var(--accent) 0%,var(--accent-2) 100%);border-radius:24px;display:grid;place-items:center;box-shadow:0 40px 80px -40px var(--ring)}
+.mb-mag-mono{font-family:${TYPOGRAPHY[fp.typography].display};font-size:180px;color:rgba(255,255,255,.92);line-height:1;font-weight:700;letter-spacing:-.05em}
+.mb-mag-issue{font-family:${TYPOGRAPHY[fp.typography].body};font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:18px}
+.mb-mag-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(48px,7vw,88px);line-height:.96;letter-spacing:-.03em;color:var(--fg);margin:0 0 22px;background:none;-webkit-text-fill-color:initial}
+.mb-mag-lede{color:var(--muted);font-size:18px;max-width:520px;margin:0 0 28px;column-count:1}
+@media(max-width:760px){.mb-hero-magazine{grid-template-columns:1fr}.mb-mag-mono{font-size:120px}}
+`;
+    case "minimal-light":
+      return base + `
+.mb-mode-minimal-light .mb-nav{background:rgba(250,250,250,.84);border-bottom:1px solid rgba(10,10,10,.06)}
+.mb-mode-minimal-light .mb-nav-cta{background:#0a0a0a;color:#fff}
+.mb-hero-minimal{max-width:780px;padding:160px 32px 80px}
+.mb-min-eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#6a6a6a;display:block;margin-bottom:32px}
+.mb-min-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(48px,6vw,80px);line-height:1.02;letter-spacing:-.025em;color:#0a0a0a;margin:0 0 24px;background:none;-webkit-text-fill-color:initial;font-weight:500}
+.mb-min-lede{color:#444;font-size:19px;line-height:1.5;margin:0 0 36px;max-width:560px}
+.mb-min-rule{margin:64px 0 0;border:0;height:1px;background:rgba(10,10,10,.1)}
+.mb-mode-minimal-light .mb-cta{background:#0a0a0a;color:#fff;box-shadow:none}
+.mb-mode-minimal-light .mb-cta.ghost{background:transparent;color:#0a0a0a;border:1px solid rgba(10,10,10,.18)}
+`;
+    case "brutalist-data":
+      return base + `
+.mb-mode-brutalist-data{background:var(--bg)}
+.mb-mode-brutalist-data .mb-nav{background:#1c1c1c;border-bottom:2px solid var(--accent);font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;font-size:11px}
+.mb-hero-brutalist{padding:96px 32px}
+.mb-brut-tag{font-family:ui-monospace,monospace;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.18em;margin-bottom:24px}
+.mb-brut-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(56px,9vw,128px);line-height:.92;letter-spacing:-.04em;color:var(--fg);text-transform:uppercase;margin:0 0 28px;background:none;-webkit-text-fill-color:initial;font-weight:700}
+.mb-brut-lede{color:var(--muted);font-family:ui-monospace,monospace;font-size:14px;line-height:1.6;max-width:620px;margin:0 0 32px;text-transform:uppercase;letter-spacing:.04em}
+.mb-brut-cta-row{display:flex;gap:0;margin-bottom:48px}
+.mb-brut-cta{background:var(--accent);color:#1c1c1c;border:0;padding:20px 28px;font-family:ui-monospace,monospace;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;cursor:pointer;border-radius:0}
+.mb-brut-cta.alt{background:transparent;color:var(--fg);border:2px solid var(--fg);margin-left:-2px}
+.mb-brut-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:2px solid var(--fg)}
+.mb-brut-cell{padding:32px 18px;border-right:2px solid var(--fg);text-align:center;font-family:ui-monospace,monospace;font-size:13px;letter-spacing:.18em;color:var(--accent);background:var(--surface)}
+.mb-brut-cell:last-child{border-right:0}
+@media(max-width:760px){.mb-brut-grid{grid-template-columns:repeat(2,1fr)}}
+`;
+    default:
+      return "";
+  }
+}
 
 // ---------------------------------------------------------------------------
 // JS (tiny, progressive enhancement only — sandbox blocks scripts in Local
@@ -1078,11 +1393,19 @@ function renderJs(name: string, archetype: Archetype): string {
 function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: string): string {
   const name = (project.name ?? "Untitled").trim() || "Untitled";
   const safeName = esc(name, 200);
+  const fp = blueprint.fingerprint;
   const safeArchetype = esc(blueprint.archetype, 40);
-  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, seedBasis);
+  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, seedBasis, fp);
+  const heroOverride = renderModeHero(fp, name, blueprint.copy);
   const sectionsHtml = blueprint.sections
-    .map((k) => k.startsWith("hero-") ? renderHero(k, name, blueprint.copy) : renderSection(k, name, blueprint.copy, blueprint.archetype, seedBasis))
+    .map((k, i) => {
+      if (i === 0 && k.startsWith("hero-") && heroOverride) return heroOverride;
+      return k.startsWith("hero-")
+        ? renderHero(k, name, blueprint.copy)
+        : renderSection(k, name, blueprint.copy, blueprint.archetype, seedBasis);
+    })
     .join("\n      ");
+  const fpString = fingerprintToString(fp);
 
   return `<!doctype html>
 <html lang="en">
@@ -1092,16 +1415,117 @@ function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: strin
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" />
     <meta name="referrer" content="no-referrer" />
     <meta name="generator" content="yawb monster-brain v1 (${safeArchetype})" />
+    <meta name="yawb-generator" content="monster-brain-v1" />
+    <meta name="yawb-archetype" content="${esc(fp.archetype, 40)}" />
+    <meta name="yawb-design-mode" content="${esc(fp.designMode, 40)}" />
+    <meta name="yawb-hero-layout" content="${esc(fp.heroLayout, 40)}" />
+    <meta name="yawb-palette" content="${esc(fp.palette, 40)}" />
+    <meta name="yawb-typography" content="${esc(fp.typography, 40)}" />
+    <meta name="yawb-shape-language" content="${esc(fp.shapeLanguage, 40)}" />
+    <meta name="yawb-visual-fingerprint" content="${esc(fpString, 200)}" />
     <title>${safeName}</title>
     <style>${css}</style>
   </head>
-  <body>
+  <body class="mb-mode mb-mode-${esc(fp.designMode, 40)} mb-shape-${esc(fp.shapeLanguage, 20)}">
     <div class="mb-shell">
       ${renderNav(name, blueprint.copy)}
       ${sectionsHtml}
     </div>
   </body>
 </html>`;
+}
+
+/** Render a mode-distinct hero. Returns null when no override applies. */
+function renderModeHero(fp: VisualFingerprint, name: string, copy: Copy): string | null {
+  const eyebrow = esc(copy.eyebrow, 80);
+  const title   = esc(copy.title, 240);
+  const lede    = esc(copy.lede, 600);
+  const primary = esc(copy.primaryCta, 40);
+  const secondary = esc(copy.secondaryCta, 40);
+  const safeName = esc(name, 80);
+  switch (fp.heroLayout) {
+    case "editorial-split":
+      return `<section class="mb-mode-hero mb-hero-editorial">
+        <div class="mb-edl-left">
+          <span class="mb-edl-eyebrow">${eyebrow}</span>
+          <h1 class="mb-edl-title">${title}</h1>
+          <p class="mb-edl-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+        <aside class="mb-edl-right" aria-hidden="true">
+          <div class="mb-edl-chip">№ 01 · ${safeName}</div>
+          <div class="mb-edl-pull">“${esc(copy.lede, 140)}”</div>
+        </aside>
+      </section>`;
+    case "dashboard-grid":
+      return `<section class="mb-mode-hero mb-hero-dashboard">
+        <header class="mb-dash-head">
+          <span class="mb-dash-eyebrow">${eyebrow}</span>
+          <h1 class="mb-dash-title">${title}</h1>
+          <p class="mb-dash-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </header>
+        <div class="mb-dash-grid" aria-hidden="true">
+          ${copy.metricLabels.slice(0, 4).map((l, i) => `<div class="mb-dash-card"><div class="mb-dash-val">${esc(copy.metricValues[i] ?? "—", 24)}</div><div class="mb-dash-lab">${esc(l, 40)}</div></div>`).join("")}
+        </div>
+      </section>`;
+    case "map-impact":
+      return `<section class="mb-mode-hero mb-hero-map">
+        <div class="mb-map-bg" aria-hidden="true">
+          ${Array.from({ length: 14 }, (_, i) => `<span class="mb-map-pin p${i % 5}" style="left:${5 + ((i * 37) % 90)}%;top:${10 + ((i * 53) % 70)}%"></span>`).join("")}
+        </div>
+        <div class="mb-map-card">
+          <span class="mb-eyebrow">${eyebrow}</span>
+          <h1 class="mb-map-title">${title}</h1>
+          <p class="mb-map-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+      </section>`;
+    case "command-terminal":
+      return `<section class="mb-mode-hero mb-hero-terminal">
+        <div class="mb-term-bar"><span></span><span></span><span></span><span class="mb-term-name">${safeName}://command</span></div>
+        <div class="mb-term-body">
+          <pre class="mb-term-line">$ scan --target=${safeName.toLowerCase()}</pre>
+          <pre class="mb-term-line dim">→ initialising neon command grid…</pre>
+          <h1 class="mb-term-title">${title}</h1>
+          <p class="mb-term-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta neon">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+      </section>`;
+    case "magazine-portrait":
+      return `<section class="mb-mode-hero mb-hero-magazine">
+        <div class="mb-mag-portrait" aria-hidden="true"><span class="mb-mag-mono">${safeName.charAt(0)}</span></div>
+        <div class="mb-mag-body">
+          <span class="mb-mag-issue">Vol. 01 · ${eyebrow}</span>
+          <h1 class="mb-mag-title">${title}</h1>
+          <p class="mb-mag-lede">${lede}</p>
+          <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        </div>
+      </section>`;
+    case "minimal-stack":
+      return `<section class="mb-mode-hero mb-hero-minimal">
+        <span class="mb-min-eyebrow">${eyebrow}</span>
+        <h1 class="mb-min-title">${title}</h1>
+        <p class="mb-min-lede">${lede}</p>
+        <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
+        <hr class="mb-min-rule" />
+      </section>`;
+    case "brutalist-blocks":
+      return `<section class="mb-mode-hero mb-hero-brutalist">
+        <div class="mb-brut-tag">[ ${eyebrow} ]</div>
+        <h1 class="mb-brut-title">${title}</h1>
+        <p class="mb-brut-lede">${lede}</p>
+        <div class="mb-brut-cta-row">
+          <button type="button" class="mb-brut-cta">${primary} →</button>
+          <button type="button" class="mb-brut-cta alt">${secondary}</button>
+        </div>
+        <div class="mb-brut-grid" aria-hidden="true">
+          ${["DATA", "FLOW", "OPS", "GRID"].map((l) => `<div class="mb-brut-cell">${l}</div>`).join("")}
+        </div>
+      </section>`;
+    default:
+      return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1148,13 +1572,24 @@ export function designSignature(
   context?: MonsterBrainContext | null,
 ): string {
   const seedBasis = buildSeedBasis(project, context);
-  const hue = Math.abs(hash(seedBasis)) % 360;
-  const variant = variantIndex(seedBasis);
+  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  const fp = chooseVisualFingerprint(archetype, seedBasis, previous);
   const seedTag = context?.regenerationSeed
     ? `:seed${Math.abs(hash(context.regenerationSeed)).toString(36).slice(0, 6)}`
     : "";
   const slug = (project.name ?? "").trim().toLowerCase().replace(/\s+/g, "-");
-  return `mb-v1:${archetype}:hue${hue}:variant-${variant}${seedTag}:${slug}`;
+  return `${fingerprintToString(fp)}${seedTag}:${slug}`;
+}
+
+/** Return the visual fingerprint that generateProjectFiles will use for this project+ctx. */
+export function computeVisualFingerprint(
+  project: ProjectLike,
+  context?: MonsterBrainContext | null,
+): VisualFingerprint {
+  const archetype = inferProjectArchetype(project, context ?? null);
+  const seedBasis = buildSeedBasis(project, context);
+  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  return chooseVisualFingerprint(archetype, seedBasis, previous);
 }
 
 export function generateProjectFiles(
@@ -1168,11 +1603,15 @@ export function generateProjectFiles(
   const copy = copyFor(archetype, project);
   const baseSections = sectionsFor(archetype);
   const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant);
-  const sections = applyVariance(baseSections, archetype, seedBasis, variance);
-  const blueprint: Blueprint = { archetype, theme, copy, sections };
+  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous);
+  const sections = variance
+    ? fingerprint.sectionOrder
+    : applyVariance(baseSections, archetype, seedBasis, false);
+  const blueprint: Blueprint = { archetype, theme, copy, sections, fingerprint };
 
   const html = renderHtml(blueprint, project, seedBasis);
-  const css = renderCss(theme as Theme & { _hue?: number }, archetype, seedBasis);
+  const css = renderCss(theme as Theme & { _hue?: number }, archetype, seedBasis, fingerprint);
   const js = renderJs(project.name ?? "Untitled", archetype);
 
   return [
