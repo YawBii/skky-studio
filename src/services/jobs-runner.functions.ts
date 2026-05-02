@@ -1,8 +1,3 @@
-// Client-callable server function. Runs server-side; verifies the caller's
-// auth via the bearer token they send. Browser never executes provider work.
-//
-// Keep this wrapper outside `src/server/` so client-reachable service modules
-// can import the RPC stub without tripping TanStack import protection.
 import { createServerFn } from "@tanstack/react-start";
 
 export interface TickResult {
@@ -24,15 +19,15 @@ export const runNextJobStep = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<TickResult> => {
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const auth = getRequestHeader("authorization") ?? getRequestHeader("Authorization");
-    const token = auth?.toLowerCase().startsWith("bearer ")
+    const accessToken = auth?.toLowerCase().startsWith("bearer ")
       ? auth.slice(7).trim()
       : null;
-    if (!token) {
-      return { advanced: false, error: "Not authenticated (no bearer token)." };
+    if (!accessToken) {
+      return { advanced: false, error: "Not authenticated." };
     }
     try {
-      const { runNextJobStepServer } = await import("../server/jobs-runner.server");
-      return await runNextJobStepServer({ accessToken: token, projectId: data.projectId });
+      const { runNextJobStepServer } = await import("../server/monster-jobs-runner.server");
+      return await runNextJobStepServer({ accessToken, projectId: data.projectId });
     } catch (e) {
       return { advanced: false, error: e instanceof Error ? e.message : String(e) };
     }
