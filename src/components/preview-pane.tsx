@@ -28,6 +28,9 @@ export interface PreviewPaneProps {
   connections?: ProjectConnection[] | null;
   /** Optional generated-files blob for in-browser local preview via srcDoc. */
   generated?: GeneratedFiles | null;
+  /** Optional handler for the "Regenerate design" toolbar action. */
+  onRegenerateDesign?: () => void;
+  regenerating?: boolean;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
