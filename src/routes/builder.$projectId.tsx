@@ -345,7 +345,7 @@ function Builder() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden relative">
+      <div className="flex-1 min-h-0 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom)+56px)] md:pb-0">
         {tab === "preview"  && (
           <PreviewPane
             device={device}
