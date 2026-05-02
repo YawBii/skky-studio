@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/services/projects";
 import type { ProjectConnection } from "@/services/project-connections";
+import type { Job, JobStep } from "@/services/jobs";
+import { PreviewSummaryStrip } from "@/components/preview-summary-strip";
 import {
   resolvePreviewSource,
   hasLocalPreview,
