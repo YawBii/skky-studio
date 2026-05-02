@@ -27,11 +27,23 @@ interface ProjectLite {
   description: string | null;
 }
 
+interface ProjectLite {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+interface GithubLink {
+  repoFullName: string | null;
+  repoUrl: string | null;
+}
+
 function LocalPreview() {
   const { projectId } = Route.useParams();
   const [project, setProject] = useState<ProjectLite | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasFiles, setHasFiles] = useState(false);
+  const [github, setGithub] = useState<GithubLink | null>(null);
 
   // Make this route truly chrome-less and full-viewport. Strip any inherited
   // app background so the embedded iframe shows the preview document only.
@@ -90,6 +102,27 @@ function LocalPreview() {
       } catch {
         setHasFiles(false);
       }
+      // Detect a GitHub link so we can show a "linked to repo" state instead
+      // of the generic "no preview yet" placeholder when the project came
+      // from a GitHub import.
+      try {
+        const { data: conn } = await supabase
+          .from("project_connections")
+          .select("repo_full_name, repo_url, status")
+          .eq("project_id", projectId)
+          .eq("provider", "github")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled && conn) {
+          setGithub({
+            repoFullName: (conn.repo_full_name as string | null) ?? null,
+            repoUrl: (conn.repo_url as string | null) ?? null,
+          });
+        }
+      } catch {
+        /* table may not exist — fall through to default empty state */
+      }
       setLoading(false);
       console.info("[yawb] preview.local.rendered", { projectId, hasFiles: !!indexHtml });
     })();
@@ -140,7 +173,7 @@ function LocalPreview() {
 
   return (
     <div data-testid="preview-embed-root" style={wrapperStyle}>
-      <div style={{ maxWidth: 480, textAlign: "center" }}>
+      <div style={{ maxWidth: 520, textAlign: "center" }}>
         <div
           style={{
             fontSize: 10.5,
@@ -149,7 +182,7 @@ function LocalPreview() {
             opacity: 0.55,
           }}
         >
-          Local preview
+          {github ? "Linked to GitHub" : "Local preview"}
         </div>
         <h1
           style={{
@@ -159,9 +192,34 @@ function LocalPreview() {
             letterSpacing: "-0.01em",
           }}
         >
-          {projectName} local preview
+          {projectName}
         </h1>
-        {hasFiles ? (
+        {github ? (
+          <>
+            <p style={{ marginTop: 10, fontSize: 14, opacity: 0.75, lineHeight: 1.5 }}>
+              This project is linked to{" "}
+              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+                {github.repoFullName ?? "a GitHub repository"}
+              </span>
+              . yawB will not regenerate it from scratch — your existing code is the source of truth.
+            </p>
+            {github.repoUrl && (
+              <a
+                href={github.repoUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  marginTop: 18, padding: "10px 16px", borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.15)", color: "#e6edf3",
+                  textDecoration: "none", fontSize: 13,
+                }}
+              >
+                Open repository ↗
+              </a>
+            )}
+          </>
+        ) : hasFiles ? (
           <p style={{ marginTop: 10, fontSize: 14, opacity: 0.7 }}>
             Rendering generated files…
           </p>

@@ -236,6 +236,15 @@ export function PreviewPane({
   const localAvailable = !!project; // route always works; srcDoc is bonus
   const generatedHasContent = hasLocalPreview(generated ?? null);
 
+  // GitHub-linked projects already have a real codebase — yawB should NOT
+  // offer to regenerate them from scratch. We hide regenerate + start-build
+  // CTAs and surface a "Linked to repo" hint instead.
+  const githubConnection = useMemo(
+    () => effectiveConnections.find((c) => c.provider === "github"),
+    [effectiveConnections],
+  );
+  const isGithubLinked = !!githubConnection;
+
   // Persisted toggle. If live is unavailable, default to local. If local is
   // unavailable, default to live.
   const [mode, setMode] = useState<PreviewMode>(() => {
@@ -478,7 +487,7 @@ export function PreviewPane({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        {onRegenerateDesign && (
+        {onRegenerateDesign && !isGithubLinked && (
           <>
             <select
               data-testid="preview-design-angle"
@@ -784,42 +793,70 @@ export function PreviewPane({
             >
               <div className="h-full flex flex-col items-center justify-center text-center p-10">
                 <div className="text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
-                  {resolved.kind === "local" ? "Local preview" : "Preview"}
+                  {isGithubLinked ? "GitHub-linked project" : resolved.kind === "local" ? "Local preview" : "Preview"}
                 </div>
                 <h2 className="mt-3 text-2xl md:text-3xl font-display font-bold tracking-tight text-balance">
-                  {resolved.kind === "local"
-                    ? "No local preview yet"
-                    : project.name}
+                  {isGithubLinked
+                    ? project.name
+                    : resolved.kind === "local"
+                      ? "No local preview yet"
+                      : project.name}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground max-w-md text-pretty">
-                  {resolved.kind === "local"
-                    ? "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
-                    : "Tell yawB in the chat what to build. The first build will appear here."}
+                  {isGithubLinked
+                    ? <>This project is linked to <span className="font-mono text-foreground">{githubConnection?.repoFullName ?? "a GitHub repository"}</span>. yawB will not regenerate it from scratch — open the live preview or your repo to see the existing app.</>
+                    : resolved.kind === "local"
+                      ? "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
+                      : "Tell yawB in the chat what to build. The first build will appear here."}
                 </p>
                 <div className="mt-5 flex items-center gap-2 flex-wrap justify-center">
-                  <Button
-                    type="button"
-                    variant="hero"
-                    className="touch-manipulation"
-                    onClick={onStartBuild}
-                    disabled={starting}
-                  >
-                    {starting ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Play className="h-3.5 w-3.5" />
-                    )}
-                    {starting ? "Queuing…" : "Start a build"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={onCreatePreviewDeploy}
-                    data-testid="preview-create-deploy-cta"
-                  >
-                    Create preview deploy
-                  </Button>
+                  {isGithubLinked ? (
+                    <>
+                      {githubConnection?.repoUrl && (
+                        <Button asChild variant="hero" className="touch-manipulation">
+                          <a href={githubConnection.repoUrl} target="_blank" rel="noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Open repository
+                          </a>
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCreatePreviewDeploy}
+                        data-testid="preview-create-deploy-cta"
+                      >
+                        Create preview deploy
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="hero"
+                        className="touch-manipulation"
+                        onClick={onStartBuild}
+                        disabled={starting}
+                      >
+                        {starting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Play className="h-3.5 w-3.5" />
+                        )}
+                        {starting ? "Queuing…" : "Start a build"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCreatePreviewDeploy}
+                        data-testid="preview-create-deploy-cta"
+                      >
+                        Create preview deploy
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

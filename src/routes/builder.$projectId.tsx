@@ -477,10 +477,9 @@ function useUnreadSummaries(): { count: number; clear: () => void } {
   return { count, clear: () => setCount(0) };
 }
 
-const MOBILE_PRIMARY_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "preview", label: "Preview", icon: Eye },
-  { id: "jobs",    label: "Jobs",    icon: Activity },
-];
+// Primary tabs (Preview/Jobs) live as dedicated buttons in the bottom bar.
+// MOBILE_OVERFLOW_TABS only appear inside the "More" popover so we don't
+// duplicate the visible tabs.
 const MOBILE_OVERFLOW_TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "code",     label: "Code",     icon: Code2 },
   { id: "database", label: "Database", icon: Database },
@@ -560,7 +559,7 @@ function MobileBottomNav({
               className="w-56 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50 mb-2"
             >
               <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">More</div>
-              {MOBILE_PRIMARY_TABS.concat(MOBILE_OVERFLOW_TABS).map((t) => (
+              {MOBILE_OVERFLOW_TABS.map((t) => (
                 <button
                   key={t.id}
                   type="button"
