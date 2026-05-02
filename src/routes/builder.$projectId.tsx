@@ -22,6 +22,7 @@ import {
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
