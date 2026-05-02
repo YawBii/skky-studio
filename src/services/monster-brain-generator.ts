@@ -955,6 +955,38 @@ a{color:inherit;text-decoration:none}
 .mb-cta-band.neon{box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--accent) 40%,transparent)}
 .mb-cta-band .mb-cta-row{justify-content:center}
 
+/* Pricing */
+.mb-card-tier{gap:12px}
+.mb-card-tier.featured{border-color:color-mix(in oklab,var(--accent) 60%,transparent);box-shadow:0 24px 60px -28px var(--ring)}
+.mb-tier-price{font-family:${theme.display};font-size:38px;color:var(--fg);letter-spacing:-.02em}
+.mb-tier-price span{font-size:13px;color:var(--muted);margin-left:4px}
+
+/* FAQ */
+.mb-faq{display:grid;gap:8px}
+.mb-faq-row{background:var(--surface);border:1px solid color-mix(in oklab,var(--fg) 8%,transparent);border-radius:12px;padding:14px 18px}
+.mb-faq-row summary{cursor:pointer;font-weight:600;list-style:none}
+.mb-faq-row summary::-webkit-details-marker{display:none}
+.mb-faq-row[open] summary{color:var(--accent)}
+.mb-faq-row p{color:var(--muted);font-size:13.5px;margin:8px 0 0}
+
+/* Testimonial wall */
+.mb-card-quote blockquote{margin:0 0 12px;font-family:${theme.display};font-size:17px;line-height:1.4;color:var(--fg)}
+.mb-card-quote figcaption{display:flex;flex-direction:column;color:var(--muted);font-size:12.5px}
+.mb-card-quote figcaption strong{color:var(--fg);font-weight:600;font-size:13px}
+
+/* Logos */
+.mb-logos{text-align:center;padding-top:24px;padding-bottom:24px}
+.mb-logos-eyebrow{color:var(--muted);text-transform:uppercase;letter-spacing:.22em;font-size:11px;margin:0 0 18px}
+.mb-logos-row{display:flex;flex-wrap:wrap;justify-content:center;gap:32px;color:var(--muted);font-family:${theme.display};font-size:18px;letter-spacing:.04em;opacity:.7}
+.mb-logo{padding:6px 0;text-transform:lowercase}
+
+/* Process */
+.mb-process{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.mb-process li{display:flex;gap:14px;background:var(--surface);border:1px solid color-mix(in oklab,var(--fg) 8%,transparent);border-radius:14px;padding:18px}
+.mb-process-num{font-family:${theme.display};color:var(--accent);font-size:22px;font-weight:700}
+.mb-process h3{margin:0 0 4px;font-size:15px}
+.mb-process p{color:var(--muted);font-size:13px;margin:0}
+
 /* Footer */
 .mb-footer{margin-top:auto;padding:24px 32px;color:var(--muted);font-size:12px;border-top:1px solid color-mix(in oklab,var(--fg) 8%,transparent);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 
