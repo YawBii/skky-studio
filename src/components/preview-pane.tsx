@@ -85,6 +85,14 @@ function sanitizeText(value: unknown, maxLen = 500): string {
 const escapeHtml = (v: string) => sanitizeText(v);
 void escapeHtml;
 
+// Stable, content-based 32-bit hash for iframe keying. Same content => same
+// key => no remount. Different content => exactly one remount.
+function stableHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
 export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "description">): string {
   const name = sanitizeText(project.name, 200) || "Untitled project";
   const description = sanitizeText(project.description || "No description yet.", 500);
