@@ -31,6 +31,8 @@ export interface PreviewPaneProps {
   /** Optional handler for the "Regenerate design" toolbar action. */
   onRegenerateDesign?: () => void;
   regenerating?: boolean;
+  /** Optional handler for the "Refresh local preview" toolbar action. */
+  onRefreshLocalPreview?: () => void;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
@@ -144,6 +146,7 @@ export function PreviewPane({
   generated,
   onRegenerateDesign,
   regenerating,
+  onRefreshLocalPreview,
 }: PreviewPaneProps) {
   const viewport = DEVICE_VIEWPORTS[device];
 
@@ -418,6 +421,22 @@ export function PreviewPane({
           >
             {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
             Regenerate design
+          </Button>
+        )}
+        {onRefreshLocalPreview && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
+            data-testid="preview-refresh-local"
+            onClick={() => {
+              console.info("[yawb] preview.refreshLocal.clicked", { projectId: project.id });
+              onRefreshLocalPreview();
+            }}
+            title="Reload project_files into the local preview"
+          >
+            Refresh local preview
           </Button>
         )}
 

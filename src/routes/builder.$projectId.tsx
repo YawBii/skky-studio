@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, Code2, Database, Rocket, History as HistoryIcon, Plus, Activity, ChevronDown, FileText, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
 import { resolveDeployUrl } from "@/lib/deploy-url";
-import { regenerateOutcome } from "@/lib/regenerate-watcher";
+
 
 const FALLBACK_PAGES: { path: string; label: string }[] = [
   { path: "/",          label: "Home" },
@@ -70,7 +70,7 @@ function Builder() {
   const [device, setDevice] = useState<Device>("desktop");
   const [focusJobId, setFocusJobId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
-  const [regeneratingJobId, setRegeneratingJobId] = useState<string | null>(null);
+  
   const [selectedPage, setSelectedPage] = useState<string>("/");
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
@@ -159,39 +159,16 @@ function Builder() {
         setTab("preview");
         toast.success("Preview deploy ready");
       }
-      // After build.production or ai.generate_changes succeeds, refresh
-      // the project_files cache and tell the user the local preview updated.
-      if (j.type === "build.production" || j.type === "ai.generate_changes") {
+      // After a build.production succeeds, refresh project_files once so the
+      // local preview reflects the new build. ai.generate_changes does NOT
+      // auto-refresh — the user must press "Refresh local preview" to pull.
+      if (j.type === "build.production") {
         void filesApi.refresh().then(() => {
           toast.success("Local preview updated");
         });
       }
     },
   });
-
-  // Watch the regenerate-design job until it reaches a terminal state.
-  // Guard with a handled-jobs ref so a succeeded job lingering in ccJobs.jobs
-  // cannot trigger refresh() more than once.
-  const handledRegenerateJobs = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!regeneratingJobId) return;
-    if (handledRegenerateJobs.current.has(regeneratingJobId)) return;
-    const outcome = regenerateOutcome(ccJobs.jobs, regeneratingJobId);
-    if (outcome.kind === "succeeded") {
-      handledRegenerateJobs.current.add(regeneratingJobId);
-      console.info("[yawb] regenerate.succeeded", { jobId: regeneratingJobId });
-      console.info("[yawb] project_files.refresh.once", { jobId: regeneratingJobId });
-      void filesApi.refresh().then(() => {
-        toast.success("Design regenerated");
-      });
-      setRegeneratingJobId(null);
-    } else if (outcome.kind === "failed") {
-      handledRegenerateJobs.current.add(regeneratingJobId);
-      console.info("[yawb] regenerate.failed", { jobId: regeneratingJobId, error: outcome.message });
-      toast.error(outcome.message);
-      setRegeneratingJobId(null);
-    }
-  }, [ccJobs.jobs, regeneratingJobId, filesApi]);
 
 
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
@@ -378,9 +355,14 @@ function Builder() {
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
             generated={filesApi.generated}
-            regenerating={Boolean(regeneratingJobId)}
+            regenerating={false}
+            onRefreshLocalPreview={() => {
+              console.info("[yawb] preview.localRefresh.clicked", { projectId: project.id });
+              void filesApi.refresh().then(() => {
+                toast.success("Local preview refreshed");
+              });
+            }}
             onRegenerateDesign={async () => {
-              if (regeneratingJobId) return;
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
@@ -393,10 +375,9 @@ function Builder() {
                 return;
               }
               console.info("[yawb] regenerate.enqueued", { jobId: r.job.id });
-              toast.success("Regenerating design…");
-              setRegeneratingJobId(r.job.id);
+              toast.success("Regenerate job queued");
               setFocusJobId(r.job.id);
-              // Refresh jobs immediately so the watcher sees the new job.
+              // Refresh jobs list once so the new job appears in the panel.
               void ccJobs.refresh();
             }}
           />
