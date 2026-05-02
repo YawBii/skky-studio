@@ -168,6 +168,26 @@ function Builder() {
     },
   });
 
+  // Watch the regenerate-design job until it reaches a terminal state.
+  // On success: refresh project_files (bumps filesApi.version → iframe remount)
+  // and toast. On failure/cancel: surface the real error.
+  useEffect(() => {
+    if (!regeneratingJobId) return;
+    const job = ccJobs.jobs.find((j) => j.id === regeneratingJobId);
+    if (!job) return;
+    if (job.status === "succeeded") {
+      console.info("[yawb] regenerate.succeeded", { jobId: job.id });
+      void filesApi.refresh().then(() => {
+        toast.success("Design regenerated");
+      });
+      setRegeneratingJobId(null);
+    } else if (job.status === "failed" || job.status === "cancelled") {
+      console.info("[yawb] regenerate.failed", { jobId: job.id, error: job.error });
+      toast.error(job.error || "Regenerate design failed");
+      setRegeneratingJobId(null);
+    }
+  }, [ccJobs.jobs, regeneratingJobId, filesApi]);
+
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
     throw notFound();
