@@ -232,7 +232,7 @@ function WorkspaceShell() {
       workspaceId: currentWorkspace?.id ?? null,
       projectId: currentProject?.id ?? null,
     });
-    // eslint-disable-next-line no-console
+
     console.info("[yawb] selection:", {
       selectedWorkspaceId: currentWorkspace?.id ?? null,
       selectedProjectId: currentProject?.id ?? null,

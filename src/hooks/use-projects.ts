@@ -29,7 +29,6 @@ export function useProjects(workspaceId: string | null | undefined) {
       projectsSource: next.source,
     });
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line no-console
       console.info(
         "[yawb] projects source:",
         next.source,

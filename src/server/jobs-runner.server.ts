@@ -818,18 +818,16 @@ export async function generateAndPersistProjectFiles(
   });
   const written: string[] = [];
   for (const f of files) {
-    const { error } = await sb
-      .from("project_files")
-      .upsert(
-        {
-          project_id: job.project_id,
-          path: f.path,
-          content: f.content,
-          language: f.language,
-          kind: f.kind,
-        },
-        { onConflict: "project_id,path" },
-      );
+    const { error } = await sb.from("project_files").upsert(
+      {
+        project_id: job.project_id,
+        path: f.path,
+        content: f.content,
+        language: f.language,
+        kind: f.kind,
+      },
+      { onConflict: "project_id,path" },
+    );
     if (error) {
       console.error("[yawb] project_files.upsert.error", {
         projectId: job.project_id,

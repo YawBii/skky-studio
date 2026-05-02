@@ -62,7 +62,6 @@ export async function listProjects(
     return { projects: [], source: "no-workspace" };
   }
   if (!UUID_RE.test(workspaceId)) {
-    // eslint-disable-next-line no-console
     console.info("[yawb] projects.list skipped — non-UUID workspaceId", { workspaceId });
     setDiag({
       workspaceId,
@@ -83,7 +82,6 @@ export async function listProjects(
       .order("created_at", { ascending: false });
 
     if (error) {
-      // eslint-disable-next-line no-console
       console.warn("[yawb] projects.list error", error);
       setDiag({
         workspaceId,
@@ -199,7 +197,6 @@ export async function createProject(input: {
   description?: string;
 }): Promise<CreateProjectResult> {
   const log = (label: string, payload: unknown) => {
-    // eslint-disable-next-line no-console
     console.info(`[yawb] ${label}`, payload);
     pushDiag(label, payload);
   };

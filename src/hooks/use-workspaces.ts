@@ -26,7 +26,6 @@ export function useWorkspaces() {
       workspaceSource: r.source,
     });
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line no-console
       console.info(
         "[yawb] workspaces source:",
         r.source,

@@ -19,7 +19,6 @@ export function useProjectConnections(projectId: string | null | undefined) {
     setResult(r);
     setLoading(false);
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line no-console
       console.info(
         "[yawb] project_connections source:",
         r.source,

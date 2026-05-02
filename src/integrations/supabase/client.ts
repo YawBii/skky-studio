@@ -49,7 +49,6 @@ export function getSupabaseDiagnostics(): SupabaseDiagnostics {
 
 // Temporary diagnostic — booleans + host only, never the key itself.
 if (typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
   console.info("[yawb] supabase env", {
     hasUrl: urlOk,
     hasKey: keyOk,
