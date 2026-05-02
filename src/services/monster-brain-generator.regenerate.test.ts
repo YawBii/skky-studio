@@ -29,15 +29,15 @@ describe("Monster Brain v1 — regenerationSeed variance", () => {
     const sigA = designSignature(project, arch, { regenerationSeed: "seed-A" });
     const sigB = designSignature(project, arch, { regenerationSeed: "seed-B" });
     expect(sigA).not.toEqual(sigB);
-    expect(sigA).toContain("variant-");
-    expect(sigA).toContain("seed");
+    expect(sigA).toContain("mb-v1:");
+    expect(sigA).toContain(":seed");
   });
 
   it("designSignature without seed has no seed tag", () => {
     const arch = inferProjectArchetype(project);
     const sig = designSignature(project, arch);
     expect(sig).not.toContain(":seed");
-    expect(sig).toContain("variant-");
+    expect(sig).toContain("mb-v1:");
   });
 
   it("forceVariant alone changes section order vs deterministic baseline", () => {
