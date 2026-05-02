@@ -722,6 +722,12 @@ const aiAdapter: ProviderAdapter = {
         archetype: r.archetype,
         designSignature: r.designSignature,
         regenerationSeed: r.regenerationSeed ?? null,
+        visualFingerprint: r.visualFingerprint,
+        designMode: r.designMode,
+        heroLayout: r.heroLayout,
+        palette: r.palette,
+        typography: r.typography,
+        shapeLanguage: r.shapeLanguage,
         previewReady: r.previewReady,
       };
       try {
