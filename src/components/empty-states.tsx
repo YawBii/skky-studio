@@ -80,6 +80,7 @@ export function CreateWorkspaceEmpty({
           Create workspace
         </Button>
       </div>
+      <MobileBootstrapPanel lastError={errorMessage ?? null} />
     </Shell>
   );
 }
