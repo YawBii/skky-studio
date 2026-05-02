@@ -149,6 +149,24 @@ export function AssistantPanel() {
         ...m,
         { role: "assistant", content: headline, summaryJobId: j.id },
       ]);
+      // Notify the rest of the app (mobile nav, bottom-sheet, toasts) that a
+      // new task summary is available — so phone users actually see it.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("yawb:summary-appended", {
+          detail: { jobId: j.id, type: j.type, status: j.status, title: j.title ?? j.type },
+        }));
+        const tone =
+          j.status === "succeeded" ? toast.success :
+          j.status === "failed" ? toast.error :
+          toast;
+        tone(`Task summary ready · ${j.title ?? j.type}`, {
+          description: "Tap to view the proof and what changed.",
+          action: {
+            label: "View",
+            onClick: () => window.dispatchEvent(new CustomEvent("yawb:open-chat")),
+          },
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobsState.jobs, project?.id]);
