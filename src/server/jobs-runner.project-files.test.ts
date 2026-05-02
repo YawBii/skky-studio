@@ -70,4 +70,23 @@ describe("jobs-runner project_files persistence", () => {
     expect(result.written).toEqual(["app.css", "app.js", "index.html"]);
     expect(sb.upserts).toHaveLength(3);
   });
+
+  it("ai.generate_changes with regenerationSeed produces a different signature & content than without", async () => {
+    const sbBase = fakeSupabase();
+    const baseline = await generateAndPersistProjectFiles(sbBase, job("ai.generate_changes"));
+    const baselineHtml = String(sbBase.upserts.find((r) => r.path === "index.html")?.content);
+
+    const sbSeeded = fakeSupabase();
+    const seededJob: JobRow = {
+      ...job("ai.generate_changes"),
+      input: { chatRequest: project.description, regenerationSeed: "regen-XYZ", forceVariant: true },
+    };
+    const seeded = await generateAndPersistProjectFiles(sbSeeded, seededJob);
+    const seededHtml = String(sbSeeded.upserts.find((r) => r.path === "index.html")?.content);
+
+    expect(seeded.regenerationSeed).toBe("regen-XYZ");
+    expect(seeded.designSignature).not.toEqual(baseline.designSignature);
+    expect(seeded.designSignature).toMatch(/seed/);
+    expect(seededHtml).not.toEqual(baselineHtml);
+  });
 });
