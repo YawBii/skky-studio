@@ -506,7 +506,7 @@ export function AssistantPanel() {
                 : [])
             : [];
           return (
-            <div key={i}>
+            <div key={i} data-summary-job-id={m.summaryJobId ?? undefined}>
               <Message msg={m} />
               {job && <TaskSummaryCard job={job} steps={steps} nextActions={nextActions} />}
             </div>
