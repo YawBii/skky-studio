@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Check, FolderKanban, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/services/projects";
+import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 interface Props {
   open: boolean;
@@ -92,7 +93,12 @@ export function MobileProjectPicker({ open, onOpenChange, projects, currentProje
       <div className="flex-1 overflow-y-auto scrollbar-thin pb-[env(safe-area-inset-bottom)]">
         {filtered.length === 0 ? (
           <div className="px-4 py-12 text-center text-[13px] text-muted-foreground">
-            {projects.length === 0 ? "No projects yet." : "No matches."}
+            <div>{projects.length === 0 ? "No projects returned." : "No matches."}</div>
+            {projects.length === 0 && (
+              <div className="mt-4 text-left">
+                <MobileBootstrapPanel projectsCount={0} />
+              </div>
+            )}
           </div>
         ) : (
           <ul>
