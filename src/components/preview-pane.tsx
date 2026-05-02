@@ -157,6 +157,10 @@ export function PreviewPane({
   onRegenerateDesign,
   regenerating,
   onRefreshLocalPreview,
+  jobs,
+  stepsByJob,
+  onJumpToJob,
+  onOpenSummaryInChat,
 }: PreviewPaneProps) {
   const viewport = DEVICE_VIEWPORTS[device];
 
