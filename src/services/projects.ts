@@ -19,8 +19,21 @@ export type ProjectsResult = {
   error?: string;
 };
 
+// Match the canonical 8-4-4-4-12 hex form. Anything else (e.g. the synthetic
+// "demo-workspace" id used when signed-out) would cause Postgres to throw
+// 22P02 "invalid input syntax for type uuid" — surfacing as a 400 in the
+// console and breaking project loading on mobile, where the user has no
+// other obvious way to recover. Treat non-UUID workspace ids as "no-workspace"
+// so the empty state renders cleanly instead.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function listProjects(workspaceId: string | null | undefined): Promise<ProjectsResult> {
   if (!workspaceId) return { projects: [], source: "no-workspace" };
+  if (!UUID_RE.test(workspaceId)) {
+    // eslint-disable-next-line no-console
+    console.info("[yawb] projects.list skipped — non-UUID workspaceId", { workspaceId });
+    return { projects: [], source: "no-workspace" };
+  }
 
   try {
     const { data, error } = await supabase

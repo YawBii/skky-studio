@@ -371,6 +371,18 @@ function Builder() {
             connections={connectionsApi.connections}
             generated={filesApi.generated}
             regenerating={false}
+            jobs={ccJobs.jobs}
+            stepsByJob={ccJobs.stepsByJob}
+            onJumpToJob={(jobId) => {
+              console.info("[yawb] preview.summary.jumpToJob", { jobId });
+              setFocusJobId(jobId);
+              setTab("jobs");
+            }}
+            onOpenSummaryInChat={(jobId) => {
+              console.info("[yawb] preview.summary.openInChat", { jobId });
+              window.dispatchEvent(new CustomEvent("yawb:open-chat"));
+              window.dispatchEvent(new CustomEvent("yawb:focus-summary", { detail: { jobId } }));
+            }}
             onRefreshLocalPreview={() => {
               console.info("[yawb] preview.localRefresh.clicked", { projectId: project.id });
               void filesApi.refresh().then(() => {

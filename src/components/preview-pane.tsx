@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/services/projects";
 import type { ProjectConnection } from "@/services/project-connections";
+import type { Job, JobStep } from "@/services/jobs";
+import { PreviewSummaryStrip } from "@/components/preview-summary-strip";
 import {
   resolvePreviewSource,
   hasLocalPreview,
@@ -33,6 +35,14 @@ export interface PreviewPaneProps {
   regenerating?: boolean;
   /** Optional handler for the "Refresh local preview" toolbar action. */
   onRefreshLocalPreview?: () => void;
+  /** Recent jobs for the proof/timeline summary strip. */
+  jobs?: Job[];
+  /** Steps keyed by job id for the proof/timeline summary strip. */
+  stepsByJob?: Record<string, JobStep[]>;
+  /** Deep-link to the Jobs tab focused on a specific job. */
+  onJumpToJob?: (jobId: string) => void;
+  /** Open the chat sheet and reveal the full TaskSummaryCard. */
+  onOpenSummaryInChat?: (jobId: string) => void;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
@@ -147,6 +157,10 @@ export function PreviewPane({
   onRegenerateDesign,
   regenerating,
   onRefreshLocalPreview,
+  jobs,
+  stepsByJob,
+  onJumpToJob,
+  onOpenSummaryInChat,
 }: PreviewPaneProps) {
   const viewport = DEVICE_VIEWPORTS[device];
 
@@ -392,6 +406,14 @@ export function PreviewPane({
 
   return (
     <div className="h-full flex flex-col">
+      {jobs && jobs.length > 0 && onJumpToJob && onOpenSummaryInChat && (
+        <PreviewSummaryStrip
+          jobs={jobs}
+          stepsByJob={stepsByJob ?? {}}
+          onJumpToJob={onJumpToJob}
+          onOpenInChat={onOpenSummaryInChat}
+        />
+      )}
       <div className="h-11 border-b border-white/5 px-2 sm:px-4 flex items-center gap-2 overflow-x-auto scrollbar-thin flex-nowrap min-w-0">
         <Button
           type="button"
