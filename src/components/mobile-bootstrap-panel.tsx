@@ -4,7 +4,6 @@
 // the floating Diagnostics panel.
 import { useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { getSupabaseDiagnostics } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -137,13 +136,13 @@ export function MobileBootstrapPanel(props: MobileBootstrapPanelProps) {
             {stateMessage.detail}
           </div>
           {stateMessage.signIn && (
-            <Link
-              to="/login"
+            <a
+              href="/login"
               className="mt-2 inline-flex min-h-9 items-center rounded-md border border-white/10 px-3 text-[12px] text-foreground hover:bg-white/[0.05]"
               data-testid="mobile-bootstrap-sign-in"
             >
               Sign in
-            </Link>
+            </a>
           )}
         </div>
       )}
