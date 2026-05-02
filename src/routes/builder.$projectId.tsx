@@ -369,7 +369,6 @@ function Builder() {
       <div className="flex-1 min-h-0 overflow-hidden relative">
         {tab === "preview"  && (
           <PreviewPane
-            key={`preview-${filesApi.version}`}
             device={device}
             setDevice={setDevice}
             project={project}
