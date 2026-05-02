@@ -52,6 +52,12 @@ export interface MonsterBrainContext {
   regenerationSeed?: string | null;
   /** Forces a non-default variant pick even when no chat request changed. */
   forceVariant?: boolean;
+  /**
+   * User-selected Design Angle — when provided, the generator MUST honor
+   * this exact mode. The regenerationSeed only affects internal section
+   * order/details inside that selected mode.
+   */
+  designMode?: DesignMode | null;
 }
 
 /** Build the seed basis used for theme/copy/section variance. */
