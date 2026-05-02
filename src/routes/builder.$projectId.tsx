@@ -170,23 +170,29 @@ function Builder() {
   });
 
   // Watch the regenerate-design job until it reaches a terminal state.
-  // On success: refresh project_files (bumps filesApi.version → iframe remount)
-  // and toast. On failure/cancel: surface the real error.
+  // Guard with a handled-jobs ref so a succeeded job lingering in ccJobs.jobs
+  // cannot trigger refresh() more than once.
+  const handledRegenerateJobs = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!regeneratingJobId) return;
+    if (handledRegenerateJobs.current.has(regeneratingJobId)) return;
     const outcome = regenerateOutcome(ccJobs.jobs, regeneratingJobId);
     if (outcome.kind === "succeeded") {
+      handledRegenerateJobs.current.add(regeneratingJobId);
       console.info("[yawb] regenerate.succeeded", { jobId: regeneratingJobId });
+      console.info("[yawb] project_files.refresh.once", { jobId: regeneratingJobId });
       void filesApi.refresh().then(() => {
         toast.success("Design regenerated");
       });
       setRegeneratingJobId(null);
     } else if (outcome.kind === "failed") {
+      handledRegenerateJobs.current.add(regeneratingJobId);
       console.info("[yawb] regenerate.failed", { jobId: regeneratingJobId, error: outcome.message });
       toast.error(outcome.message);
       setRegeneratingJobId(null);
     }
   }, [ccJobs.jobs, regeneratingJobId, filesApi]);
+
 
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Loading project…</div>;
   if (missing || !project) {
