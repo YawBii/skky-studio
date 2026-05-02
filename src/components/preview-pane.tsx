@@ -35,6 +35,14 @@ export interface PreviewPaneProps {
   regenerating?: boolean;
   /** Optional handler for the "Refresh local preview" toolbar action. */
   onRefreshLocalPreview?: () => void;
+  /** Recent jobs for the proof/timeline summary strip. */
+  jobs?: Job[];
+  /** Steps keyed by job id for the proof/timeline summary strip. */
+  stepsByJob?: Record<string, JobStep[]>;
+  /** Deep-link to the Jobs tab focused on a specific job. */
+  onJumpToJob?: (jobId: string) => void;
+  /** Open the chat sheet and reveal the full TaskSummaryCard. */
+  onOpenSummaryInChat?: (jobId: string) => void;
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
