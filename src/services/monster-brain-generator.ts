@@ -1217,6 +1217,7 @@ a{color:inherit;text-decoration:none}
   .mb-nav-links{display:none}
 }
 ${archetypeFlair(archetype)}
+${fp ? modeCss(fp) : ""}
 `;
 }
 
