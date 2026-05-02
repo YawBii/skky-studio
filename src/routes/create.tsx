@@ -9,7 +9,10 @@ export const Route = createFileRoute("/create")({
   head: () => ({
     meta: [
       { title: "Create New App — yawB" },
-      { name: "description", content: "Describe an idea. yawB will build it for the selected project." },
+      {
+        name: "description",
+        content: "Describe an idea. yawB will build it for the selected project.",
+      },
     ],
   }),
   component: CreateApp,
@@ -21,7 +24,9 @@ function CreateApp() {
   const { project, projectIsReal, workspaceIsReal } = useSelectedProject();
 
   if (!workspaceIsReal || !projectIsReal || !project) {
-    return <NoProjectSelected hint="Create a workspace and project first, then start describing an app." />;
+    return (
+      <NoProjectSelected hint="Create a workspace and project first, then start describing an app." />
+    );
   }
 
   const submit = () => {
@@ -53,9 +58,15 @@ function CreateApp() {
         />
         <div className="flex items-center justify-between border-t border-white/5 px-3 py-2.5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"><Database className="h-3.5 w-3.5" /> Cloud</span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"><Lock className="h-3.5 w-3.5" /> Auth</span>
-            <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"><Globe className="h-3.5 w-3.5" /> Deploy</span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5">
+              <Database className="h-3.5 w-3.5" /> Cloud
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5">
+              <Lock className="h-3.5 w-3.5" /> Auth
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5">
+              <Globe className="h-3.5 w-3.5" /> Deploy
+            </span>
           </div>
           <Button variant="hero" size="lg" onClick={submit} disabled={!prompt.trim()}>
             Send to chat <ArrowUp className="h-4 w-4 rotate-45" />
@@ -65,7 +76,8 @@ function CreateApp() {
 
       <p className="mt-6 text-[12px] text-muted-foreground text-center">
         <Sparkles className="h-3 w-3 inline mr-1" />
-        The yawB chat on the right runs the real generation. This page just frames the prompt for the selected project.
+        The yawB chat on the right runs the real generation. This page just frames the prompt for
+        the selected project.
       </p>
     </div>
   );

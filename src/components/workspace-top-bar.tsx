@@ -1,20 +1,33 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Github, Database, Triangle, Rocket, ChevronDown, Play, UserPlus, Crown, Eye, Globe, BarChart3, Check, FolderKanban } from "lucide-react";
+import {
+  Github,
+  Database,
+  Triangle,
+  Rocket,
+  ChevronDown,
+  Play,
+  UserPlus,
+  Crown,
+  Eye,
+  Globe,
+  BarChart3,
+  Check,
+  FolderKanban,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { MobileProjectPicker } from "@/components/mobile-project-picker";
-import type { ConnectionProvider, ConnectionStatus, ProjectConnection } from "@/services/project-connections";
+import type {
+  ConnectionProvider,
+  ConnectionStatus,
+  ProjectConnection,
+} from "@/services/project-connections";
 
 export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
 export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
@@ -40,7 +53,9 @@ interface WorkspaceTopBarProps {
   onShare?: () => void;
 }
 
-const PROVIDER_ICONS: Partial<Record<ConnectionProvider, React.ComponentType<{ className?: string }>>> = {
+const PROVIDER_ICONS: Partial<
+  Record<ConnectionProvider, React.ComponentType<{ className?: string }>>
+> = {
   github: Github,
   vercel: Triangle,
   netlify: Triangle,
@@ -82,14 +97,20 @@ export function WorkspaceTopBar({
     >
       {workspaceName && (
         <>
-          <span className="hidden sm:inline text-[11.5px] text-muted-foreground truncate max-w-[120px]">{workspaceName}</span>
+          <span className="hidden sm:inline text-[11.5px] text-muted-foreground truncate max-w-[120px]">
+            {workspaceName}
+          </span>
           <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
         </>
       )}
       <FolderKanban className="h-3.5 w-3.5 text-muted-foreground sm:hidden shrink-0" />
-      <span className="text-[13px] font-medium tracking-tight max-w-[150px] sm:max-w-[220px] truncate">{projectName}</span>
+      <span className="text-[13px] font-medium tracking-tight max-w-[150px] sm:max-w-[220px] truncate">
+        {projectName}
+      </span>
       <span className="hidden sm:inline text-muted-foreground/50 text-xs">/</span>
-      <span className="hidden sm:inline text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{environment}</span>
+      <span className="hidden sm:inline text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+        {environment}
+      </span>
       <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
     </button>
   );
@@ -103,8 +124,13 @@ export function WorkspaceTopBar({
         ) : (
           <Popover>
             <PopoverTrigger asChild>{SwitcherButton}</PopoverTrigger>
-            <PopoverContent align="start" className="w-72 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50">
-              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Switch project</div>
+            <PopoverContent
+              align="start"
+              className="w-72 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50"
+            >
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Switch project
+              </div>
               {projects.length === 0 ? (
                 <div className="px-2 py-2 text-[12px] text-muted-foreground">No projects yet.</div>
               ) : (
@@ -178,10 +204,13 @@ export function WorkspaceTopBar({
                       <span
                         className={cn(
                           "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-background",
-                          c.status === "editing" ? "bg-success animate-pulse" :
-                          c.status === "viewing" ? "bg-[oklch(0.72_0.18_240)]" :
-                          c.status === "online"  ? "bg-success" :
-                          "bg-muted-foreground/40",
+                          c.status === "editing"
+                            ? "bg-success animate-pulse"
+                            : c.status === "viewing"
+                              ? "bg-[oklch(0.72_0.18_240)]"
+                              : c.status === "online"
+                                ? "bg-success"
+                                : "bg-muted-foreground/40",
                         )}
                       />
                     </span>
@@ -228,24 +257,51 @@ export function WorkspaceTopBar({
           >
             {connections.map((c) => {
               const Icon = PROVIDER_ICONS[c.provider] ?? Database;
-              return <ConnDot key={c.id} icon={Icon} status={c.status} title={`${c.provider}: ${c.status}`} />;
+              return (
+                <ConnDot
+                  key={c.id}
+                  icon={Icon}
+                  status={c.status}
+                  title={`${c.provider}: ${c.status}`}
+                />
+              );
             })}
           </Link>
         )}
 
-        <Button variant="ghost" size="sm" onClick={() => toast("Opening analytics…")} className="hidden lg:inline-flex">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toast("Opening analytics…")}
+          className="hidden lg:inline-flex"
+        >
           <BarChart3 className="h-3.5 w-3.5" /> Analytics
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={() => toast("Coming next: connect a custom domain")} className="hidden md:inline-flex">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toast("Coming next: connect a custom domain")}
+          className="hidden md:inline-flex"
+        >
           <Globe className="h-3.5 w-3.5" /> Domain
         </Button>
 
-        <Button variant="ghost" size="sm" onClick={() => toast("Opening preview…")} className="hidden md:inline-flex">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => toast("Opening preview…")}
+          className="hidden md:inline-flex"
+        >
           <Play className="h-3.5 w-3.5" /> Preview
         </Button>
 
-        <Button variant="hero" size="sm" onClick={onDeploy ?? (() => toast.success("Deploy queued"))} className="shrink-0">
+        <Button
+          variant="hero"
+          size="sm"
+          onClick={onDeploy ?? (() => toast.success("Deploy queued"))}
+          className="shrink-0"
+        >
           <Rocket className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Publish</span>
         </Button>
       </div>
@@ -265,24 +321,45 @@ function RoleBadge({ role }: { role: CollaboratorRole }) {
 
 function BuildDot({ status }: { status: "passing" | "failing" | "building" }) {
   const cls =
-    status === "passing" ? "bg-success" :
-    status === "failing" ? "bg-destructive" :
-    "bg-warning animate-pulse";
+    status === "passing"
+      ? "bg-success"
+      : status === "failing"
+        ? "bg-destructive"
+        : "bg-warning animate-pulse";
   return <span className={cn("h-1.5 w-1.5 rounded-full", cls)} />;
 }
 
 function ConnDot({
-  icon: Icon, status, title,
-}: { icon: React.ComponentType<{ className?: string }>; status: ConnectionStatus; title?: string }) {
+  icon: Icon,
+  status,
+  title,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  status: ConnectionStatus;
+  title?: string;
+}) {
   const dot =
-    status === "connected" ? "bg-success" :
-    status === "pending" ? "bg-warning animate-pulse" :
-    status === "error" ? "bg-destructive" :
-    "bg-muted-foreground/40";
+    status === "connected"
+      ? "bg-success"
+      : status === "pending"
+        ? "bg-warning animate-pulse"
+        : status === "error"
+          ? "bg-destructive"
+          : "bg-muted-foreground/40";
   return (
     <span className="relative inline-flex" title={title}>
-      <Icon className={cn("h-3.5 w-3.5", status === "connected" ? "text-foreground/80" : "text-muted-foreground/60")} />
-      <span className={cn("absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-background", dot)} />
+      <Icon
+        className={cn(
+          "h-3.5 w-3.5",
+          status === "connected" ? "text-foreground/80" : "text-muted-foreground/60",
+        )}
+      />
+      <span
+        className={cn(
+          "absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-background",
+          dot,
+        )}
+      />
     </span>
   );
 }

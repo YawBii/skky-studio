@@ -38,9 +38,9 @@ export const getServerSetup = createServerFn({ method: "GET" }).handler(
         ),
         hasSupabasePublishableKey: Boolean(
           env.SUPABASE_PUBLISHABLE_KEY ||
-            env.EXTERNAL_SUPABASE_PUBLISHABLE_KEY ||
-            env.SUPABASE_ANON_KEY ||
-            env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          env.EXTERNAL_SUPABASE_PUBLISHABLE_KEY ||
+          env.SUPABASE_ANON_KEY ||
+          env.VITE_SUPABASE_PUBLISHABLE_KEY,
         ),
         hasSupabaseServiceRoleKey: Boolean(env.SUPABASE_SERVICE_ROLE_KEY),
       },

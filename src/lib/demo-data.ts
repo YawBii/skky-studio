@@ -89,28 +89,80 @@ export const projects: Project[] = [
 ];
 
 export const promptSuggestions = [
-  { icon: "Rocket", title: "SaaS dashboard", prompt: "A multi-tenant SaaS dashboard with auth, billing and team workspaces." },
-  { icon: "ShoppingBag", title: "E-commerce store", prompt: "A modern e-commerce storefront with cart, checkout and Stripe payments." },
-  { icon: "BarChart3", title: "Analytics tool", prompt: "A real-time analytics dashboard with charts, filters and CSV export." },
-  { icon: "Users", title: "Community app", prompt: "A community forum with profiles, threads, reactions and moderation." },
-  { icon: "Briefcase", title: "Internal portal", prompt: "An internal employee portal with directory, time-off and announcements." },
-  { icon: "Sparkles", title: "AI product", prompt: "An AI writing assistant with prompt library and team sharing." },
+  {
+    icon: "Rocket",
+    title: "SaaS dashboard",
+    prompt: "A multi-tenant SaaS dashboard with auth, billing and team workspaces.",
+  },
+  {
+    icon: "ShoppingBag",
+    title: "E-commerce store",
+    prompt: "A modern e-commerce storefront with cart, checkout and Stripe payments.",
+  },
+  {
+    icon: "BarChart3",
+    title: "Analytics tool",
+    prompt: "A real-time analytics dashboard with charts, filters and CSV export.",
+  },
+  {
+    icon: "Users",
+    title: "Community app",
+    prompt: "A community forum with profiles, threads, reactions and moderation.",
+  },
+  {
+    icon: "Briefcase",
+    title: "Internal portal",
+    prompt: "An internal employee portal with directory, time-off and announcements.",
+  },
+  {
+    icon: "Sparkles",
+    title: "AI product",
+    prompt: "An AI writing assistant with prompt library and team sharing.",
+  },
 ];
 
 export const healthChecks = [
   { id: "build", label: "Build pipeline", status: "pass", detail: "Last build succeeded in 42s" },
-  { id: "deps", label: "Dependencies", status: "warn", detail: "3 outdated packages, 0 critical CVEs" },
-  { id: "db", label: "Supabase database", status: "fail", detail: "2 tables referenced in code are missing" },
+  {
+    id: "deps",
+    label: "Dependencies",
+    status: "warn",
+    detail: "3 outdated packages, 0 critical CVEs",
+  },
+  {
+    id: "db",
+    label: "Supabase database",
+    status: "fail",
+    detail: "2 tables referenced in code are missing",
+  },
   { id: "rls", label: "Row level security", status: "warn", detail: "1 table has RLS disabled" },
-  { id: "env", label: "Environment variables", status: "pass", detail: "All required secrets present" },
-  { id: "deploy", label: "Vercel deployment", status: "pass", detail: "Production reachable, p95 230ms" },
+  {
+    id: "env",
+    label: "Environment variables",
+    status: "pass",
+    detail: "All required secrets present",
+  },
+  {
+    id: "deploy",
+    label: "Vercel deployment",
+    status: "pass",
+    detail: "Production reachable, p95 230ms",
+  },
   { id: "seo", label: "SEO & meta", status: "warn", detail: "2 pages missing og:image" },
   { id: "a11y", label: "Accessibility", status: "pass", detail: "No critical issues detected" },
 ] as const;
 
 export const chatHistory = [
   { role: "user", content: "Add a settings page with profile and billing tabs." },
-  { role: "assistant", content: "I'll create `/settings` with two tabs. Profile will use the existing `users` table and Billing will read from Stripe.\n\n**Plan**\n1. Create `src/routes/settings.tsx` with tab nav\n2. Add `ProfileForm` and `BillingPanel` components\n3. Wire to existing auth context\n\nProceeding now." },
+  {
+    role: "assistant",
+    content:
+      "I'll create `/settings` with two tabs. Profile will use the existing `users` table and Billing will read from Stripe.\n\n**Plan**\n1. Create `src/routes/settings.tsx` with tab nav\n2. Add `ProfileForm` and `BillingPanel` components\n3. Wire to existing auth context\n\nProceeding now.",
+  },
   { role: "user", content: "Looks great, ship it." },
-  { role: "assistant", content: "Deployed to preview. ✅ Build passed in 38s. ✅ Lighthouse 98. Ready to promote to production?" },
+  {
+    role: "assistant",
+    content:
+      "Deployed to preview. ✅ Build passed in 38s. ✅ Lighthouse 98. Ready to promote to production?",
+  },
 ];

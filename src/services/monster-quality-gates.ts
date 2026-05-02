@@ -23,10 +23,27 @@ export function defaultMonsterQualityGates(): MonsterQualityGate[] {
   return [
     { id: "blueprint", label: "Monster Blueprint produced", required: true, status: "pending" },
     { id: "design", label: "Beautiful first design generated", required: true, status: "pending" },
-    { id: "backend", label: "Backend/schema/RLS plan generated", required: true, status: "pending" },
-    { id: "typecheck", label: "TypeScript check", command: "npm run typecheck", required: true, status: "pending" },
+    {
+      id: "backend",
+      label: "Backend/schema/RLS plan generated",
+      required: true,
+      status: "pending",
+    },
+    {
+      id: "typecheck",
+      label: "TypeScript check",
+      command: "npm run typecheck",
+      required: true,
+      status: "pending",
+    },
     { id: "lint", label: "Lint", command: "npm run lint", required: true, status: "pending" },
-    { id: "build", label: "Production build", command: "npm run build", required: true, status: "pending" },
+    {
+      id: "build",
+      label: "Production build",
+      command: "npm run build",
+      required: true,
+      status: "pending",
+    },
     { id: "test", label: "Tests", command: "npm run test", required: false, status: "pending" },
   ];
 }

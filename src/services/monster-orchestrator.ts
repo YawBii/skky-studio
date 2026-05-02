@@ -1,8 +1,18 @@
 import type { Project } from "@/services/projects";
-import { generateProjectFiles as generateMonsterFrontendFiles, type DesignMode } from "./monster-brain-generator";
+import {
+  generateProjectFiles as generateMonsterFrontendFiles,
+  type DesignMode,
+} from "./monster-brain-generator";
 import { createMonsterBlueprint } from "./monster-director";
-import { generateMonsterBackendFiles, type MonsterBackendGenerationResult } from "./monster-backend-generator";
-import { createMonsterProofReport, type MonsterProofReport, type MonsterQualityGate } from "./monster-quality-gates";
+import {
+  generateMonsterBackendFiles,
+  type MonsterBackendGenerationResult,
+} from "./monster-backend-generator";
+import {
+  createMonsterProofReport,
+  type MonsterProofReport,
+  type MonsterQualityGate,
+} from "./monster-quality-gates";
 import { summarizeMonsterBlueprint, type MonsterBlueprint } from "./monster-blueprint";
 
 export interface MonsterOrchestratorInput {
@@ -79,8 +89,16 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
     blueprintSummary,
     gates: [
       passed("blueprint", "Monster Blueprint produced", blueprintSummary),
-      passed("design", "Beautiful first design generated", `${blueprint.design.mode}: ${blueprint.design.reason}`),
-      passed("backend", "Backend/schema/RLS plan generated", `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`),
+      passed(
+        "design",
+        "Beautiful first design generated",
+        `${blueprint.design.mode}: ${blueprint.design.reason}`,
+      ),
+      passed(
+        "backend",
+        "Backend/schema/RLS plan generated",
+        `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`,
+      ),
       pending("typecheck", "TypeScript check", "npm run typecheck"),
       pending("lint", "Lint", "npm run lint"),
       pending("build", "Production build", "npm run build"),

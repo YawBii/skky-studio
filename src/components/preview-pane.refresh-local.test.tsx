@@ -17,10 +17,20 @@ const project: Project = {
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
-beforeEach(() => { try { window.localStorage.clear(); } catch { /* ignore */ } });
+beforeEach(() => {
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* ignore */
+  }
+});
 afterEach(() => {
-  if (root) { act(() => root!.unmount()); root = null; }
-  host?.remove(); host = null;
+  if (root) {
+    act(() => root!.unmount());
+    root = null;
+  }
+  host?.remove();
+  host = null;
   vi.restoreAllMocks();
 });
 
@@ -51,7 +61,9 @@ describe("PreviewPane — Regenerate design is one-shot, Refresh local is manual
       />,
     );
     const btn = c.querySelector('[data-testid="preview-regenerate-design"]') as HTMLButtonElement;
-    act(() => { btn.click(); });
+    act(() => {
+      btn.click();
+    });
     expect(onRegenerate).toHaveBeenCalledTimes(1);
     expect(onRefresh).not.toHaveBeenCalled();
   });
@@ -74,7 +86,9 @@ describe("PreviewPane — Regenerate design is one-shot, Refresh local is manual
     );
     const btn = c.querySelector('[data-testid="preview-refresh-local"]') as HTMLButtonElement;
     expect(btn).toBeTruthy();
-    act(() => { btn.click(); });
+    act(() => {
+      btn.click();
+    });
     expect(onRefresh).toHaveBeenCalledTimes(1);
     expect(onRegenerate).not.toHaveBeenCalled();
   });

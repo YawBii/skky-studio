@@ -2,8 +2,19 @@ import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-r
 import { useEffect, useState, useCallback } from "react";
 import { z } from "zod";
 import {
-  Plus, FolderKanban, AlertCircle, Check, Github, Triangle, RefreshCw,
-  ExternalLink, Download, Loader2, Link as LinkIcon, X, Copy,
+  Plus,
+  FolderKanban,
+  AlertCircle,
+  Check,
+  Github,
+  Triangle,
+  RefreshCw,
+  ExternalLink,
+  Download,
+  Loader2,
+  Link as LinkIcon,
+  X,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,10 +24,7 @@ import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useProjects } from "@/hooks/use-projects";
 import { ProjectScopedEmpty, ProjectSurfaceError } from "@/components/project-empty";
 import { CreateProjectEmpty } from "@/components/empty-states";
-import {
-  listGithubReposFn,
-  listVercelProjectsFn,
-} from "@/services/providers.functions";
+import { listGithubReposFn, listVercelProjectsFn } from "@/services/providers.functions";
 import { createProject } from "@/services/projects";
 import {
   upsertConnection,
@@ -26,15 +34,20 @@ import {
 import { cn } from "@/lib/utils";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
-const TabSchema = z.object({
-  tab: z.enum(["projects", "github", "vercel", "import"]).optional(),
-}).optional();
+const TabSchema = z
+  .object({
+    tab: z.enum(["projects", "github", "vercel", "import"]).optional(),
+  })
+  .optional();
 
 export const Route = createFileRoute("/projects")({
   head: () => ({
     meta: [
       { title: "Projects — yawB" },
-      { name: "description", content: "All projects in your workspace, with browse and import from GitHub and Vercel." },
+      {
+        name: "description",
+        content: "All projects in your workspace, with browse and import from GitHub and Vercel.",
+      },
     ],
   }),
   validateSearch: TabSchema,
@@ -47,7 +60,9 @@ type TabKey = "projects" | "github" | "vercel" | "import";
 
 function ProjectsPage() {
   const { current: workspace, isReal: workspaceIsReal } = useWorkspaces();
-  const { projects, current, loading, isError, error, select, refresh } = useProjects(workspace?.id);
+  const { projects, current, loading, isError, error, select, refresh } = useProjects(
+    workspace?.id,
+  );
   const navigate = useNavigate();
   const search = useSearch({ from: "/projects" }) as { tab?: TabKey } | undefined;
   const tab: TabKey = search?.tab ?? "projects";
@@ -76,7 +91,8 @@ function ProjectsPage() {
       />
     );
   }
-  if (isError) return <ProjectSurfaceError message={error} sqlFile="docs/sql/2026-04-30-collaboration.sql" />;
+  if (isError)
+    return <ProjectSurfaceError message={error} sqlFile="docs/sql/2026-04-30-collaboration.sql" />;
 
   return (
     <div className="px-6 md:px-10 py-10 max-w-[1400px] mx-auto">
@@ -85,10 +101,18 @@ function ProjectsPage() {
           <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground mt-1">
             {projects.length} project{projects.length === 1 ? "" : "s"} in {workspace?.name}.{" "}
-            <Link to="/integrations" className="text-primary">Integrations</Link> for provider setup.
+            <Link to="/integrations" className="text-primary">
+              Integrations
+            </Link>{" "}
+            for provider setup.
           </p>
         </div>
-        <Button type="button" variant="hero" onClick={() => setCreateOpen(true)} className="touch-manipulation">
+        <Button
+          type="button"
+          variant="hero"
+          onClick={() => setCreateOpen(true)}
+          className="touch-manipulation"
+        >
           <Plus className="h-3.5 w-3.5" /> New project
         </Button>
       </div>
@@ -96,8 +120,12 @@ function ProjectsPage() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="w-full">
         <TabsList className="bg-white/[0.03] border border-white/5">
           <TabsTrigger value="projects">My Projects</TabsTrigger>
-          <TabsTrigger value="github"><Github className="h-3.5 w-3.5 mr-1.5" /> GitHub Repos</TabsTrigger>
-          <TabsTrigger value="vercel"><Triangle className="h-3.5 w-3.5 mr-1.5" /> Vercel Projects</TabsTrigger>
+          <TabsTrigger value="github">
+            <Github className="h-3.5 w-3.5 mr-1.5" /> GitHub Repos
+          </TabsTrigger>
+          <TabsTrigger value="vercel">
+            <Triangle className="h-3.5 w-3.5 mr-1.5" /> Vercel Projects
+          </TabsTrigger>
           <TabsTrigger value="import">Import Existing</TabsTrigger>
         </TabsList>
 
@@ -108,10 +136,16 @@ function ProjectsPage() {
             <div className="rounded-2xl border border-white/5 bg-gradient-card p-10 text-center">
               <FolderKanban className="h-8 w-8 mx-auto text-muted-foreground" />
               <h2 className="mt-3 font-display text-xl font-semibold">No projects yet</h2>
-              <p className="text-sm text-muted-foreground mt-1">Create your first project, or import from GitHub.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create your first project, or import from GitHub.
+              </p>
               <div className="flex justify-center gap-2 mt-5">
-                <Button type="button" variant="hero" onClick={() => setCreateOpen(true)}><Plus className="h-3.5 w-3.5" /> New project</Button>
-                <Button type="button" variant="soft" onClick={() => setTab("github")}><Github className="h-3.5 w-3.5" /> Browse GitHub</Button>
+                <Button type="button" variant="hero" onClick={() => setCreateOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" /> New project
+                </Button>
+                <Button type="button" variant="soft" onClick={() => setTab("github")}>
+                  <Github className="h-3.5 w-3.5" /> Browse GitHub
+                </Button>
               </div>
               <div className="mt-6 max-w-md mx-auto text-left">
                 <MobileBootstrapPanel
@@ -136,9 +170,20 @@ function ProjectsPage() {
                       i < projects.length - 1 && "border-b border-white/5",
                     )}
                   >
-                    <div className={cn("h-9 w-9 rounded-xl border grid place-items-center",
-                      isCurrent ? "bg-primary/20 border-primary/40" : "bg-white/5 border-white/10")}>
-                      <FolderKanban className={cn("h-4 w-4", isCurrent ? "text-primary" : "text-muted-foreground")} />
+                    <div
+                      className={cn(
+                        "h-9 w-9 rounded-xl border grid place-items-center",
+                        isCurrent
+                          ? "bg-primary/20 border-primary/40"
+                          : "bg-white/5 border-white/10",
+                      )}
+                    >
+                      <FolderKanban
+                        className={cn(
+                          "h-4 w-4",
+                          isCurrent ? "text-primary" : "text-muted-foreground",
+                        )}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-display font-semibold truncate flex items-center gap-2">
@@ -149,8 +194,12 @@ function ProjectsPage() {
                         {p.description ?? `${p.slug} · created ${formatDate(p.createdAt)}`}
                       </div>
                     </div>
-                    <span className={cn("text-[10px] uppercase tracking-[0.18em]",
-                      isCurrent ? "text-primary" : "text-muted-foreground")}>
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase tracking-[0.18em]",
+                        isCurrent ? "text-primary" : "text-muted-foreground",
+                      )}
+                    >
                       {isCurrent ? "Open" : "Select"}
                     </span>
                   </button>
@@ -162,7 +211,10 @@ function ProjectsPage() {
           <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-[11.5px] text-muted-foreground flex items-start gap-2">
             <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
-              Connect GitHub/Vercel/Supabase from <Link to="/integrations" className="text-primary">Integrations</Link>{" "}
+              Connect GitHub/Vercel/Supabase from{" "}
+              <Link to="/integrations" className="text-primary">
+                Integrations
+              </Link>{" "}
               to enable health, deploys, and history per project.
             </span>
           </div>
@@ -171,7 +223,10 @@ function ProjectsPage() {
         <TabsContent value="github" className="mt-5">
           <GithubReposTab
             workspaceId={workspace?.id ?? ""}
-            onImported={async (id, name) => { await refresh(); openProject(id, name); }}
+            onImported={async (id, name) => {
+              await refresh();
+              openProject(id, name);
+            }}
           />
         </TabsContent>
 
@@ -186,7 +241,10 @@ function ProjectsPage() {
         <TabsContent value="import" className="mt-5">
           <ImportExistingTab
             workspaceId={workspace?.id ?? ""}
-            onImported={async (id, name) => { await refresh(); openProject(id, name); }}
+            onImported={async (id, name) => {
+              await refresh();
+              openProject(id, name);
+            }}
           />
         </TabsContent>
       </Tabs>
@@ -221,9 +279,21 @@ function ProjectsPage() {
 
 type GhRepo = Awaited<ReturnType<typeof listGithubReposFn>>["repos"][number];
 
-function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onImported: (id: string, name: string) => void }) {
-  const [state, setState] = useState<{ loading: boolean; error?: string; missing?: string[]; repos: GhRepo[] }>({
-    loading: true, repos: [],
+function GithubReposTab({
+  workspaceId,
+  onImported,
+}: {
+  workspaceId: string;
+  onImported: (id: string, name: string) => void;
+}) {
+  const [state, setState] = useState<{
+    loading: boolean;
+    error?: string;
+    missing?: string[];
+    repos: GhRepo[];
+  }>({
+    loading: true,
+    repos: [],
   });
   const [importing, setImporting] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, ImportProof>>({});
@@ -242,10 +312,15 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function importRepo(r: GhRepo) {
-    if (!workspaceId) { toast.error("Select a workspace first"); return; }
+    if (!workspaceId) {
+      toast.error("Select a workspace first");
+      return;
+    }
     setImporting(r.fullName);
     const startedAt = new Date().toISOString();
     try {
@@ -278,7 +353,15 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
         description: r.description ?? `Imported from ${r.fullName}`,
       });
       if (!created.ok) {
-        setProofs((p) => ({ ...p, [r.fullName]: { kind: "err", error: created.error, startedAt, finishedAt: new Date().toISOString() } }));
+        setProofs((p) => ({
+          ...p,
+          [r.fullName]: {
+            kind: "err",
+            error: created.error,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+          },
+        }));
         toast.error(created.error);
         return;
       }
@@ -330,7 +413,15 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
       }
       onImported(created.project.id, created.project.name);
     } catch (e) {
-      setProofs((p) => ({ ...p, [r.fullName]: { kind: "err", error: e instanceof Error ? e.message : String(e), startedAt, finishedAt: new Date().toISOString() } }));
+      setProofs((p) => ({
+        ...p,
+        [r.fullName]: {
+          kind: "err",
+          error: e instanceof Error ? e.message : String(e),
+          startedAt,
+          finishedAt: new Date().toISOString(),
+        },
+      }));
     } finally {
       setImporting(null);
     }
@@ -356,11 +447,17 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm truncate">{r.fullName}</div>
                 <div className="text-[11.5px] text-muted-foreground truncate">
-                  {r.private ? "Private · " : "Public · "}{r.defaultBranch}
+                  {r.private ? "Private · " : "Public · "}
+                  {r.defaultBranch}
                   {r.description ? ` · ${r.description}` : ""}
                 </div>
               </div>
-              <a href={r.htmlUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1">
+              <a
+                href={r.htmlUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1"
+              >
                 View <ExternalLink className="h-3 w-3" />
               </a>
               <Button
@@ -369,7 +466,11 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
                 onClick={() => importRepo(r)}
                 disabled={importing === r.fullName}
               >
-                {importing === r.fullName ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {importing === r.fullName ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
                 Import
               </Button>
             </div>
@@ -386,14 +487,28 @@ function GithubReposTab({ workspaceId, onImported }: { workspaceId: string; onIm
 type VercelP = Awaited<ReturnType<typeof listVercelProjectsFn>>["projects"][number];
 
 function VercelProjectsTab({
-  workspaceId, currentProjectId, currentProjectName,
-}: { workspaceId: string; currentProjectId: string | null; currentProjectName: string | null }) {
-  const [state, setState] = useState<{ loading: boolean; error?: string; missing?: string[]; projects: VercelP[] }>({
-    loading: true, projects: [],
+  workspaceId,
+  currentProjectId,
+  currentProjectName,
+}: {
+  workspaceId: string;
+  currentProjectId: string | null;
+  currentProjectName: string | null;
+}) {
+  const [state, setState] = useState<{
+    loading: boolean;
+    error?: string;
+    missing?: string[];
+    projects: VercelP[];
+  }>({
+    loading: true,
+    projects: [],
   });
   const [linking, setLinking] = useState<string | null>(null);
   // Sync health per Vercel project id.
-  const [health, setHealth] = useState<Record<string, { connection?: ProjectConnection; error?: string; checkedAt: string }>>({});
+  const [health, setHealth] = useState<
+    Record<string, { connection?: ProjectConnection; error?: string; checkedAt: string }>
+  >({});
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: undefined }));
@@ -406,20 +521,28 @@ function VercelProjectsTab({
       setState({ loading: false, projects: res.projects });
       // Hydrate sync health for each visible project.
       const next: typeof health = {};
-      await Promise.all(res.projects.map(async (p) => {
-        const r = await findConnectionByExternalId("vercel", p.id);
-        if (r.ok && r.connection) next[p.id] = { connection: r.connection, checkedAt: new Date().toISOString() };
-      }));
+      await Promise.all(
+        res.projects.map(async (p) => {
+          const r = await findConnectionByExternalId("vercel", p.id);
+          if (r.ok && r.connection)
+            next[p.id] = { connection: r.connection, checkedAt: new Date().toISOString() };
+        }),
+      );
       setHealth(next);
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function linkToCurrent(p: VercelP) {
-    if (!workspaceId) { toast.error("Select a workspace first"); return; }
+    if (!workspaceId) {
+      toast.error("Select a workspace first");
+      return;
+    }
     if (!currentProjectId) {
       toast.error("Open a yawB project first (My Projects → click a project)");
       return;
@@ -444,11 +567,17 @@ function VercelProjectsTab({
         },
       });
       if (!res.ok) {
-        setHealth((h) => ({ ...h, [p.id]: { error: res.error, checkedAt: new Date().toISOString() } }));
+        setHealth((h) => ({
+          ...h,
+          [p.id]: { error: res.error, checkedAt: new Date().toISOString() },
+        }));
         toast.error(res.error);
         return;
       }
-      setHealth((h) => ({ ...h, [p.id]: { connection: res.connection, checkedAt: new Date().toISOString() } }));
+      setHealth((h) => ({
+        ...h,
+        [p.id]: { connection: res.connection, checkedAt: new Date().toISOString() },
+      }));
       toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
     } finally {
       setLinking(null);
@@ -471,7 +600,10 @@ function VercelProjectsTab({
           <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
           <span>
             Open a yawB project first to enable linking. Use{" "}
-            <Link to="/projects" search={{ tab: "projects" } as never} className="text-primary">My Projects</Link>.
+            <Link to="/projects" search={{ tab: "projects" } as never} className="text-primary">
+              My Projects
+            </Link>
+            .
           </span>
         </div>
       )}
@@ -485,11 +617,18 @@ function VercelProjectsTab({
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm truncate">{p.name}</div>
                 <div className="text-[11.5px] text-muted-foreground truncate">
-                  {p.framework ?? "—"}{p.link?.repo ? ` · ${p.link.repo}` : ""}{p.updatedAt ? ` · updated ${formatDate(p.updatedAt)}` : ""}
+                  {p.framework ?? "—"}
+                  {p.link?.repo ? ` · ${p.link.repo}` : ""}
+                  {p.updatedAt ? ` · updated ${formatDate(p.updatedAt)}` : ""}
                 </div>
               </div>
               {p.productionUrl && (
-                <a href={p.productionUrl} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1">
+                <a
+                  href={p.productionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1"
+                >
                   Live <ExternalLink className="h-3 w-3" />
                 </a>
               )}
@@ -498,20 +637,32 @@ function VercelProjectsTab({
                 size="sm"
                 onClick={() => linkToCurrent(p)}
                 disabled={linking === p.id || !currentProjectId}
-                title={currentProjectId ? `Link to ${currentProjectName}` : "Open a yawB project first"}
+                title={
+                  currentProjectId ? `Link to ${currentProjectName}` : "Open a yawB project first"
+                }
               >
-                {linking === p.id
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <LinkIcon className="h-3.5 w-3.5" />}
+                {linking === p.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <LinkIcon className="h-3.5 w-3.5" />
+                )}
                 {linked ? "Re-link" : "Link to current"}
               </Button>
             </div>
             {h && (
-              <div className={cn(
-                "px-5 pb-3 text-[11.5px] flex items-center gap-2",
-                h.error ? "text-destructive" : linked ? "text-success" : "text-muted-foreground",
-              )}>
-                {h.error ? <X className="h-3 w-3" /> : linked ? <Check className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+              <div
+                className={cn(
+                  "px-5 pb-3 text-[11.5px] flex items-center gap-2",
+                  h.error ? "text-destructive" : linked ? "text-success" : "text-muted-foreground",
+                )}
+              >
+                {h.error ? (
+                  <X className="h-3 w-3" />
+                ) : linked ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <AlertCircle className="h-3 w-3" />
+                )}
                 {h.error
                   ? `Failed: ${h.error}`
                   : linked
@@ -530,13 +681,22 @@ function VercelProjectsTab({
 
 /* ---------- Import Existing tab ---------- */
 
-function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; onImported: (id: string, name: string) => void }) {
+function ImportExistingTab({
+  workspaceId,
+  onImported,
+}: {
+  workspaceId: string;
+  onImported: (id: string, name: string) => void;
+}) {
   const [repoUrl, setRepoUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [proof, setProof] = useState<ImportProof | null>(null);
 
   async function submit() {
-    if (!workspaceId) { toast.error("Select a workspace first"); return; }
+    if (!workspaceId) {
+      toast.error("Select a workspace first");
+      return;
+    }
     const normalized = repoUrl
       .trim()
       .replace(/^https?:\/\//, "")
@@ -572,9 +732,19 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
         onImported(existing.connection.projectId, name);
         return;
       }
-      const created = await createProject({ workspaceId, name, slug: slugify(normalized), description: `Imported from ${normalized}` });
+      const created = await createProject({
+        workspaceId,
+        name,
+        slug: slugify(normalized),
+        description: `Imported from ${normalized}`,
+      });
       if (!created.ok) {
-        setProof({ kind: "err", error: created.error, startedAt, finishedAt: new Date().toISOString() });
+        setProof({
+          kind: "err",
+          error: created.error,
+          startedAt,
+          finishedAt: new Date().toISOString(),
+        });
         toast.error(created.error);
         return;
       }
@@ -592,24 +762,40 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
       });
       if (!conn.ok) {
         setProof({
-          kind: "warn", createdProject: true, projectId: created.project.id,
-          error: conn.error, provider: "github", externalId: normalized, url,
-          startedAt, finishedAt: new Date().toISOString(),
+          kind: "warn",
+          createdProject: true,
+          projectId: created.project.id,
+          error: conn.error,
+          provider: "github",
+          externalId: normalized,
+          url,
+          startedAt,
+          finishedAt: new Date().toISOString(),
         });
         toast.warning(`Project created, connection failed: ${conn.error}`);
       } else {
         setProof({
-          kind: "ok", createdProject: true, projectId: created.project.id,
-          connectionId: conn.connection.id, provider: "github",
-          externalId: normalized, url,
-          startedAt, finishedAt: new Date().toISOString(),
+          kind: "ok",
+          createdProject: true,
+          projectId: created.project.id,
+          connectionId: conn.connection.id,
+          provider: "github",
+          externalId: normalized,
+          url,
+          startedAt,
+          finishedAt: new Date().toISOString(),
         });
         toast.success(`Imported ${normalized}`);
       }
       setRepoUrl("");
       onImported(created.project.id, created.project.name);
     } catch (e) {
-      setProof({ kind: "err", error: e instanceof Error ? e.message : String(e), startedAt, finishedAt: new Date().toISOString() });
+      setProof({
+        kind: "err",
+        error: e instanceof Error ? e.message : String(e),
+        startedAt,
+        finishedAt: new Date().toISOString(),
+      });
     } finally {
       setBusy(false);
     }
@@ -619,7 +805,8 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
     <div className="rounded-2xl border border-white/5 bg-gradient-card p-6 max-w-2xl">
       <h2 className="font-display font-semibold text-lg">Import an existing repository</h2>
       <p className="text-sm text-muted-foreground mt-1">
-        Paste a GitHub URL or <code>owner/repo</code>. Creates a yawB project and links the repo (idempotent).
+        Paste a GitHub URL or <code>owner/repo</code>. Creates a yawB project and links the repo
+        (idempotent).
       </p>
       <div className="grid sm:grid-cols-[1fr_auto] gap-3 mt-4">
         <input
@@ -629,7 +816,12 @@ function ImportExistingTab({ workspaceId, onImported }: { workspaceId: string; o
           className="h-10 rounded-lg border border-white/10 bg-background/50 px-3 text-sm focus:outline-none"
         />
         <Button variant="hero" onClick={submit} disabled={busy || !repoUrl.trim()}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Import
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}{" "}
+          Import
         </Button>
       </div>
       {proof && (
@@ -677,7 +869,9 @@ function ProviderListCard(props: {
             <div className="mt-1 text-muted-foreground">
               Missing env: <span className="font-mono">{props.missing.join(", ")}</span>.{" "}
               {props.providerSetupHint}{" "}
-              <Link to="/integrations" className="text-primary">Open Integrations</Link>
+              <Link to="/integrations" className="text-primary">
+                Open Integrations
+              </Link>
             </div>
           )}
         </div>
@@ -730,14 +924,18 @@ type ImportProof =
 
 function ProofBlock({ proof }: { proof: ImportProof }) {
   const tone =
-    proof.kind === "ok"   ? "border-success/30 bg-success/5 text-success" :
-    proof.kind === "warn" ? "border-warning/30 bg-warning/5 text-warning" :
-                            "border-destructive/30 bg-destructive/5 text-destructive";
+    proof.kind === "ok"
+      ? "border-success/30 bg-success/5 text-success"
+      : proof.kind === "warn"
+        ? "border-warning/30 bg-warning/5 text-warning"
+        : "border-destructive/30 bg-destructive/5 text-destructive";
   const Icon = proof.kind === "ok" ? Check : proof.kind === "warn" ? AlertCircle : X;
   const summary =
-    proof.kind === "ok"   ? `Done in ${ms(proof.startedAt, proof.finishedAt)}` :
-    proof.kind === "warn" ? `Partial in ${ms(proof.startedAt, proof.finishedAt)}` :
-                            `Failed in ${ms(proof.startedAt, proof.finishedAt)}`;
+    proof.kind === "ok"
+      ? `Done in ${ms(proof.startedAt, proof.finishedAt)}`
+      : proof.kind === "warn"
+        ? `Partial in ${ms(proof.startedAt, proof.finishedAt)}`
+        : `Failed in ${ms(proof.startedAt, proof.finishedAt)}`;
 
   const text =
     proof.kind === "err"
@@ -747,7 +945,9 @@ function ProofBlock({ proof }: { proof: ImportProof }) {
           `external_id: ${proof.externalId}`,
           `url: ${proof.url ?? "—"}`,
           `project_id: ${proof.projectId} (${proof.createdProject ? "created" : "existing"})`,
-          proof.kind === "ok" ? `connection_id: ${proof.connectionId}` : `connection_error: ${proof.error}`,
+          proof.kind === "ok"
+            ? `connection_id: ${proof.connectionId}`
+            : `connection_error: ${proof.error}`,
           `sync: ${proof.kind === "ok" ? "linked" : "failed"}`,
         ].join("\n");
 
@@ -759,7 +959,10 @@ function ProofBlock({ proof }: { proof: ImportProof }) {
         </div>
         <button
           type="button"
-          onClick={() => { void navigator.clipboard.writeText(text); toast("Copied proof to clipboard"); }}
+          onClick={() => {
+            void navigator.clipboard.writeText(text);
+            toast("Copied proof to clipboard");
+          }}
           className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
         >
           <Copy className="h-3 w-3" /> Copy
@@ -776,13 +979,27 @@ function ProofBlock({ proof }: { proof: ImportProof }) {
 
 function formatDate(iso?: string | null) {
   if (!iso) return "—";
-  try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
+  try {
+    return new Date(iso).toLocaleDateString();
+  } catch {
+    return iso;
+  }
 }
 
 function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || `proj-${Date.now()}`;
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || `proj-${Date.now()}`
+  );
 }
 
 function ms(a: string, b: string): string {
-  try { return `${new Date(b).getTime() - new Date(a).getTime()}ms`; } catch { return "?"; }
+  try {
+    return `${new Date(b).getTime() - new Date(a).getTime()}ms`;
+  } catch {
+    return "?";
+  }
 }

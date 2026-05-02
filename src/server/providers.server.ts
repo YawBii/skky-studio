@@ -5,11 +5,11 @@ export type ProviderId = "github" | "vercel" | "supabase" | "build-runner";
 
 export interface ProviderStatus {
   provider: ProviderId;
-  configured: boolean;     // token / env present
+  configured: boolean; // token / env present
   reachable: boolean | null; // result of a real API ping (null when not configured)
   account: string | null;
   error: string | null;
-  missing: string[];       // env var names missing for this provider
+  missing: string[]; // env var names missing for this provider
   checkedAt: string;
 }
 
@@ -24,9 +24,9 @@ export interface ProviderDiagnostic {
   account: string | null;
   checkedAt: string;
   durationMs: number;
-  target: string | null;        // request URL (no secrets)
-  httpStatus: number | null;    // HTTP response code if a request was made
-  responseBody: string | null;  // truncated body for failures
+  target: string | null; // request URL (no secrets)
+  httpStatus: number | null; // HTTP response code if a request was made
+  responseBody: string | null; // truncated body for failures
   normalizedError: string | null;
   missing: string[];
 }
@@ -49,8 +49,12 @@ function classify(s: ProviderStatus): ProviderDiagnostic["status"] {
 async function readBodySafe(res: Response): Promise<string | null> {
   try {
     const txt = await res.text();
-    return txt.length > MAX_BODY ? txt.slice(0, MAX_BODY) + `…(+${txt.length - MAX_BODY} bytes)` : txt;
-  } catch { return null; }
+    return txt.length > MAX_BODY
+      ? txt.slice(0, MAX_BODY) + `…(+${txt.length - MAX_BODY} bytes)`
+      : txt;
+  } catch {
+    return null;
+  }
 }
 
 export interface GithubRepoSummary {
@@ -117,17 +121,22 @@ export async function getGithubStatus(): Promise<ProviderStatus> {
 }
 
 export async function listGithubRepos(opts: { perPage?: number } = {}): Promise<{
-  ok: boolean; repos: GithubRepoSummary[]; error?: string; missing?: string[];
+  ok: boolean;
+  repos: GithubRepoSummary[];
+  error?: string;
+  missing?: string[];
 }> {
   const token = process.env.GITHUB_TOKEN;
-  if (!token) return { ok: false, repos: [], error: "GITHUB_TOKEN missing", missing: ["GITHUB_TOKEN"] };
+  if (!token)
+    return { ok: false, repos: [], error: "GITHUB_TOKEN missing", missing: ["GITHUB_TOKEN"] };
   const per = Math.min(Math.max(opts.perPage ?? 50, 1), 100);
   try {
     const res = await fetch(
       `https://api.github.com/user/repos?per_page=${per}&sort=updated&affiliation=owner,collaborator,organization_member`,
       { headers: HEADERS_GITHUB(token) },
     );
-    if (!res.ok) return { ok: false, repos: [], error: `GitHub API ${res.status} ${res.statusText}` };
+    if (!res.ok)
+      return { ok: false, repos: [], error: `GitHub API ${res.status} ${res.statusText}` };
     const arr = (await res.json()) as Array<Record<string, unknown>>;
     const repos: GithubRepoSummary[] = arr.map((r) => ({
       id: Number(r.id),
@@ -177,10 +186,14 @@ export async function getVercelStatus(): Promise<ProviderStatus> {
 }
 
 export async function listVercelProjects(opts: { teamId?: string; limit?: number } = {}): Promise<{
-  ok: boolean; projects: VercelProjectSummary[]; error?: string; missing?: string[];
+  ok: boolean;
+  projects: VercelProjectSummary[];
+  error?: string;
+  missing?: string[];
 }> {
   const token = process.env.VERCEL_TOKEN;
-  if (!token) return { ok: false, projects: [], error: "VERCEL_TOKEN missing", missing: ["VERCEL_TOKEN"] };
+  if (!token)
+    return { ok: false, projects: [], error: "VERCEL_TOKEN missing", missing: ["VERCEL_TOKEN"] };
   const params = new URLSearchParams();
   params.set("limit", String(Math.min(Math.max(opts.limit ?? 50, 1), 100)));
   if (opts.teamId) params.set("teamId", opts.teamId);
@@ -188,7 +201,8 @@ export async function listVercelProjects(opts: { teamId?: string; limit?: number
     const res = await fetch(`https://api.vercel.com/v9/projects?${params.toString()}`, {
       headers: HEADERS_VERCEL(token),
     });
-    if (!res.ok) return { ok: false, projects: [], error: `Vercel API ${res.status} ${res.statusText}` };
+    if (!res.ok)
+      return { ok: false, projects: [], error: `Vercel API ${res.status} ${res.statusText}` };
     const json = (await res.json()) as { projects?: Array<Record<string, unknown>> };
     const projects: VercelProjectSummary[] = (json.projects ?? []).map((p) => {
       const targets = p.targets as Record<string, { url?: string }> | undefined;
@@ -209,12 +223,13 @@ export async function listVercelProjects(opts: { teamId?: string; limit?: number
   }
 }
 
-function readSupabaseEnv(): { url: string | undefined; anon: string | undefined; service: string | undefined } {
+function readSupabaseEnv(): {
+  url: string | undefined;
+  anon: string | undefined;
+  service: string | undefined;
+} {
   const env = process.env;
-  const url =
-    env.SUPABASE_URL ||
-    env.EXTERNAL_SUPABASE_URL ||
-    env.VITE_SUPABASE_URL;
+  const url = env.SUPABASE_URL || env.EXTERNAL_SUPABASE_URL || env.VITE_SUPABASE_URL;
   const anon =
     env.SUPABASE_PUBLISHABLE_KEY ||
     env.EXTERNAL_SUPABASE_PUBLISHABLE_KEY ||
@@ -250,7 +265,11 @@ export async function pingSupabase(): Promise<ProviderStatus> {
     const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/health`, {
       headers: { apikey: anon, Authorization: `Bearer ${anon}` },
     });
-    return { ...base, reachable: res.ok, error: res.ok ? base.error : `Supabase auth/health ${res.status}` };
+    return {
+      ...base,
+      reachable: res.ok,
+      error: res.ok ? base.error : `Supabase auth/health ${res.status}`,
+    };
   } catch (e) {
     return { ...base, reachable: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -285,7 +304,11 @@ export async function getBuildRunnerStatus(): Promise<ProviderStatus> {
 }
 
 function safeHost(u: string): string {
-  try { return new URL(u).host; } catch { return "(invalid URL)"; }
+  try {
+    return new URL(u).host;
+  } catch {
+    return "(invalid URL)";
+  }
 }
 
 // =============================================================================
@@ -297,10 +320,14 @@ function safeHost(u: string): string {
 export async function runDiagnostic(provider: ProviderId): Promise<ProviderDiagnostic> {
   const checkedAt = new Date().toISOString();
   switch (provider) {
-    case "github":   return runGithubDiagnostic(checkedAt);
-    case "vercel":   return runVercelDiagnostic(checkedAt);
-    case "supabase": return runSupabaseDiagnostic(checkedAt);
-    case "build-runner": return runBuildRunnerDiagnostic(checkedAt);
+    case "github":
+      return runGithubDiagnostic(checkedAt);
+    case "vercel":
+      return runVercelDiagnostic(checkedAt);
+    case "supabase":
+      return runSupabaseDiagnostic(checkedAt);
+    case "build-runner":
+      return runBuildRunnerDiagnostic(checkedAt);
   }
 }
 
@@ -309,9 +336,17 @@ async function runGithubDiagnostic(checkedAt: string): Promise<ProviderDiagnosti
   const target = "https://api.github.com/user";
   if (!token) {
     return {
-      provider: "github", status: "off", configured: false, reachable: null,
-      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
-      responseBody: null, normalizedError: "GITHUB_TOKEN not set",
+      provider: "github",
+      status: "off",
+      configured: false,
+      reachable: null,
+      account: null,
+      checkedAt,
+      durationMs: 0,
+      target,
+      httpStatus: null,
+      responseBody: null,
+      normalizedError: "GITHUB_TOKEN not set",
       missing: ["GITHUB_TOKEN"],
     };
   }
@@ -320,23 +355,48 @@ async function runGithubDiagnostic(checkedAt: string): Promise<ProviderDiagnosti
     if (!res.ok) {
       const body = await readBodySafe(res);
       return {
-        provider: "github", status: "err", configured: true, reachable: false,
-        account: null, checkedAt, durationMs: ms, target, httpStatus: res.status,
-        responseBody: body, normalizedError: `GitHub API ${res.status} ${res.statusText}`,
+        provider: "github",
+        status: "err",
+        configured: true,
+        reachable: false,
+        account: null,
+        checkedAt,
+        durationMs: ms,
+        target,
+        httpStatus: res.status,
+        responseBody: body,
+        normalizedError: `GitHub API ${res.status} ${res.statusText}`,
         missing: [],
       };
     }
     const json = (await res.json()) as { login?: string };
     return {
-      provider: "github", status: "ok", configured: true, reachable: true,
-      account: json.login ?? null, checkedAt, durationMs: ms, target,
-      httpStatus: res.status, responseBody: null, normalizedError: null, missing: [],
+      provider: "github",
+      status: "ok",
+      configured: true,
+      reachable: true,
+      account: json.login ?? null,
+      checkedAt,
+      durationMs: ms,
+      target,
+      httpStatus: res.status,
+      responseBody: null,
+      normalizedError: null,
+      missing: [],
     };
   } catch (e) {
     return {
-      provider: "github", status: "err", configured: true, reachable: false,
-      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
-      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      provider: "github",
+      status: "err",
+      configured: true,
+      reachable: false,
+      account: null,
+      checkedAt,
+      durationMs: 0,
+      target,
+      httpStatus: null,
+      responseBody: null,
+      normalizedError: e instanceof Error ? e.message : String(e),
       missing: [],
     };
   }
@@ -347,9 +407,17 @@ async function runVercelDiagnostic(checkedAt: string): Promise<ProviderDiagnosti
   const target = "https://api.vercel.com/v2/user";
   if (!token) {
     return {
-      provider: "vercel", status: "off", configured: false, reachable: null,
-      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
-      responseBody: null, normalizedError: "VERCEL_TOKEN not set",
+      provider: "vercel",
+      status: "off",
+      configured: false,
+      reachable: null,
+      account: null,
+      checkedAt,
+      durationMs: 0,
+      target,
+      httpStatus: null,
+      responseBody: null,
+      normalizedError: "VERCEL_TOKEN not set",
       missing: ["VERCEL_TOKEN"],
     };
   }
@@ -358,24 +426,48 @@ async function runVercelDiagnostic(checkedAt: string): Promise<ProviderDiagnosti
     if (!res.ok) {
       const body = await readBodySafe(res);
       return {
-        provider: "vercel", status: "err", configured: true, reachable: false,
-        account: null, checkedAt, durationMs: ms, target, httpStatus: res.status,
-        responseBody: body, normalizedError: `Vercel API ${res.status} ${res.statusText}`,
+        provider: "vercel",
+        status: "err",
+        configured: true,
+        reachable: false,
+        account: null,
+        checkedAt,
+        durationMs: ms,
+        target,
+        httpStatus: res.status,
+        responseBody: body,
+        normalizedError: `Vercel API ${res.status} ${res.statusText}`,
         missing: [],
       };
     }
     const json = (await res.json()) as { user?: { username?: string; email?: string } };
     return {
-      provider: "vercel", status: "ok", configured: true, reachable: true,
-      account: json.user?.username ?? json.user?.email ?? null, checkedAt,
-      durationMs: ms, target, httpStatus: res.status, responseBody: null,
-      normalizedError: null, missing: [],
+      provider: "vercel",
+      status: "ok",
+      configured: true,
+      reachable: true,
+      account: json.user?.username ?? json.user?.email ?? null,
+      checkedAt,
+      durationMs: ms,
+      target,
+      httpStatus: res.status,
+      responseBody: null,
+      normalizedError: null,
+      missing: [],
     };
   } catch (e) {
     return {
-      provider: "vercel", status: "err", configured: true, reachable: false,
-      account: null, checkedAt, durationMs: 0, target, httpStatus: null,
-      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      provider: "vercel",
+      status: "err",
+      configured: true,
+      reachable: false,
+      account: null,
+      checkedAt,
+      durationMs: 0,
+      target,
+      httpStatus: null,
+      responseBody: null,
+      normalizedError: e instanceof Error ? e.message : String(e),
       missing: [],
     };
   }
@@ -401,8 +493,15 @@ async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnos
   if (!anon) missing.push("SUPABASE_PUBLISHABLE_KEY");
   if (!url || !anon) {
     return {
-      provider: "supabase", status: "off", configured: false, reachable: null,
-      account: null, checkedAt, durationMs: 0, target: url ?? null, httpStatus: null,
+      provider: "supabase",
+      status: "off",
+      configured: false,
+      reachable: null,
+      account: null,
+      checkedAt,
+      durationMs: 0,
+      target: url ?? null,
+      httpStatus: null,
       responseBody: JSON.stringify({ presentEnvVars, missing }, null, 2),
       normalizedError: `Missing ${missing.join(", ")}`,
       missing,
@@ -410,21 +509,29 @@ async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnos
   }
   const target = `${url.replace(/\/$/, "")}/auth/v1/health`;
   try {
-    const { value: res, ms } = await timed(() => fetch(target, {
-      headers: { apikey: anon, Authorization: `Bearer ${anon}` },
-    }));
+    const { value: res, ms } = await timed(() =>
+      fetch(target, {
+        headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+      }),
+    );
     if (!res.ok) {
       const body = await readBodySafe(res);
       return {
-        provider: "supabase", status: "err", configured: true, reachable: false,
-        account: safeHost(url), checkedAt, durationMs: ms, target,
-        httpStatus: res.status, responseBody: body,
-        normalizedError: `Supabase auth/health ${res.status}`, missing: [],
+        provider: "supabase",
+        status: "err",
+        configured: true,
+        reachable: false,
+        account: safeHost(url),
+        checkedAt,
+        durationMs: ms,
+        target,
+        httpStatus: res.status,
+        responseBody: body,
+        normalizedError: `Supabase auth/health ${res.status}`,
+        missing: [],
       };
     }
-    const serviceWarn = service
-      ? null
-      : "SUPABASE_SERVICE_ROLE_KEY not set (admin jobs disabled)";
+    const serviceWarn = service ? null : "SUPABASE_SERVICE_ROLE_KEY not set (admin jobs disabled)";
 
     // Non-secret proof summary: which endpoints were reachable + which env
     // vars are present. Never includes any secret values.
@@ -437,16 +544,30 @@ async function runSupabaseDiagnostic(checkedAt: string): Promise<ProviderDiagnos
     };
 
     return {
-      provider: "supabase", status: serviceWarn ? "warn" : "ok",
-      configured: true, reachable: true, account: safeHost(url), checkedAt,
-      durationMs: ms, target, httpStatus: res.status,
+      provider: "supabase",
+      status: serviceWarn ? "warn" : "ok",
+      configured: true,
+      reachable: true,
+      account: safeHost(url),
+      checkedAt,
+      durationMs: ms,
+      target,
+      httpStatus: res.status,
       responseBody: JSON.stringify(proofSummary, null, 2),
-      normalizedError: serviceWarn, missing: [],
+      normalizedError: serviceWarn,
+      missing: [],
     };
   } catch (e) {
     return {
-      provider: "supabase", status: "err", configured: true, reachable: false,
-      account: safeHost(url), checkedAt, durationMs: 0, target, httpStatus: null,
+      provider: "supabase",
+      status: "err",
+      configured: true,
+      reachable: false,
+      account: safeHost(url),
+      checkedAt,
+      durationMs: 0,
+      target,
+      httpStatus: null,
       responseBody: JSON.stringify({ presentEnvVars }, null, 2),
       normalizedError: e instanceof Error ? e.message : String(e),
       missing: [],
@@ -459,37 +580,71 @@ async function runBuildRunnerDiagnostic(checkedAt: string): Promise<ProviderDiag
   const token = process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN;
   if (!url) {
     return {
-      provider: "build-runner", status: "off", configured: false, reachable: null,
-      account: null, checkedAt, durationMs: 0, target: null, httpStatus: null,
-      responseBody: null, normalizedError: "YAWB_BUILD_RUNNER_URL (or BUILD_RUNNER_URL) not set",
+      provider: "build-runner",
+      status: "off",
+      configured: false,
+      reachable: null,
+      account: null,
+      checkedAt,
+      durationMs: 0,
+      target: null,
+      httpStatus: null,
+      responseBody: null,
+      normalizedError: "YAWB_BUILD_RUNNER_URL (or BUILD_RUNNER_URL) not set",
       missing: ["YAWB_BUILD_RUNNER_URL"],
     };
   }
   const target = `${url.replace(/\/$/, "")}/health`;
   try {
-    const { value: res, ms } = await timed(() => fetch(target, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    }));
+    const { value: res, ms } = await timed(() =>
+      fetch(target, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }),
+    );
     if (!res.ok) {
       const body = await readBodySafe(res);
       return {
-        provider: "build-runner", status: "err", configured: true, reachable: false,
-        account: safeHost(url), checkedAt, durationMs: ms, target,
-        httpStatus: res.status, responseBody: body,
-        normalizedError: `Build runner ${res.status} ${res.statusText}`, missing: [],
+        provider: "build-runner",
+        status: "err",
+        configured: true,
+        reachable: false,
+        account: safeHost(url),
+        checkedAt,
+        durationMs: ms,
+        target,
+        httpStatus: res.status,
+        responseBody: body,
+        normalizedError: `Build runner ${res.status} ${res.statusText}`,
+        missing: [],
       };
     }
     return {
-      provider: "build-runner", status: "ok", configured: true, reachable: true,
-      account: safeHost(url), checkedAt, durationMs: ms, target,
-      httpStatus: res.status, responseBody: null, normalizedError: null,
+      provider: "build-runner",
+      status: "ok",
+      configured: true,
+      reachable: true,
+      account: safeHost(url),
+      checkedAt,
+      durationMs: ms,
+      target,
+      httpStatus: res.status,
+      responseBody: null,
+      normalizedError: null,
       missing: [],
     };
   } catch (e) {
     return {
-      provider: "build-runner", status: "err", configured: true, reachable: false,
-      account: safeHost(url), checkedAt, durationMs: 0, target, httpStatus: null,
-      responseBody: null, normalizedError: e instanceof Error ? e.message : String(e),
+      provider: "build-runner",
+      status: "err",
+      configured: true,
+      reachable: false,
+      account: safeHost(url),
+      checkedAt,
+      durationMs: 0,
+      target,
+      httpStatus: null,
+      responseBody: null,
+      normalizedError: e instanceof Error ? e.message : String(e),
       missing: [],
     };
   }

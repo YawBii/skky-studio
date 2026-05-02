@@ -46,7 +46,13 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
     // auth call failed -> treat as signed-out
   }
   if (!uid) {
-    setDiag({ hasSession: false, userId: null, workspacesCount: 0, workspaceSource: "demo-fallback", workspaceMembersError: null });
+    setDiag({
+      hasSession: false,
+      userId: null,
+      workspacesCount: 0,
+      workspaceSource: "demo-fallback",
+      workspaceMembersError: null,
+    });
     pushDiag("workspace_members.skipped", { reason: "no-session" });
     return { workspaces: [DEMO_WORKSPACE], source: "demo-fallback" };
   }
@@ -60,15 +66,36 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
 
     if (error) {
       // Signed-in but query failed. Do NOT pretend Skky Group exists.
-      setDiag({ hasSession: true, userId: uid, workspacesCount: 0, workspaceSource: "error", workspaceMembersError: error });
-      pushDiag("workspace_members.error", { userId: uid, email, message: error.message, code: error.code, details: error.details, hint: error.hint });
-      console.warn("[yawb] workspace_members.error", { userId: uid, email, message: error.message, code: error.code });
+      setDiag({
+        hasSession: true,
+        userId: uid,
+        workspacesCount: 0,
+        workspaceSource: "error",
+        workspaceMembersError: error,
+      });
+      pushDiag("workspace_members.error", {
+        userId: uid,
+        email,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      console.warn("[yawb] workspace_members.error", {
+        userId: uid,
+        email,
+        message: error.message,
+        code: error.code,
+      });
       return { workspaces: [], source: "error", error: error.message };
     }
 
     type Row = {
       role: Workspace["role"];
-      workspaces: { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[] | null;
+      workspaces:
+        | { id: string; name: string; slug: string }
+        | { id: string; name: string; slug: string }[]
+        | null;
     };
     const rows = ((data ?? []) as unknown as Row[])
       .map((r) => {
@@ -79,18 +106,41 @@ export async function listWorkspaces(): Promise<WorkspacesResult> {
       .filter((x): x is Workspace => !!x);
 
     if (rows.length === 0) {
-      setDiag({ hasSession: true, userId: uid, workspacesCount: 0, workspaceSource: "demo-empty", workspaceMembersError: null });
+      setDiag({
+        hasSession: true,
+        userId: uid,
+        workspacesCount: 0,
+        workspaceSource: "demo-empty",
+        workspaceMembersError: null,
+      });
       pushDiag("workspace_members.empty", { userId: uid, email, count: 0 });
       console.info("[yawb] workspace_members.empty", { userId: uid, email });
       return { workspaces: [], source: "demo-empty" };
     }
-    setDiag({ hasSession: true, userId: uid, workspacesCount: rows.length, workspaceSource: "supabase", workspaceMembersError: null });
-    pushDiag("workspace_members.loaded", { userId: uid, email, count: rows.length, workspaceIds: rows.map((w) => w.id) });
+    setDiag({
+      hasSession: true,
+      userId: uid,
+      workspacesCount: rows.length,
+      workspaceSource: "supabase",
+      workspaceMembersError: null,
+    });
+    pushDiag("workspace_members.loaded", {
+      userId: uid,
+      email,
+      count: rows.length,
+      workspaceIds: rows.map((w) => w.id),
+    });
     console.info("[yawb] projects.loaded", { source: "workspace_members", count: rows.length });
     return { workspaces: rows, source: "supabase" };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    setDiag({ hasSession: true, userId: uid, workspacesCount: 0, workspaceSource: "error", workspaceMembersError: message });
+    setDiag({
+      hasSession: true,
+      userId: uid,
+      workspacesCount: 0,
+      workspaceSource: "error",
+      workspaceMembersError: message,
+    });
     pushDiag("workspace_members.exception", { userId: uid, email, message });
     return { workspaces: [], source: "error", error: message };
   }
@@ -100,7 +150,10 @@ export type CreateWorkspaceResult =
   | { ok: true; workspace: Workspace }
   | { ok: false; error: string; code?: string; details?: string; hint?: string };
 
-export async function createWorkspace(input: { name: string; slug: string }): Promise<CreateWorkspaceResult> {
+export async function createWorkspace(input: {
+  name: string;
+  slug: string;
+}): Promise<CreateWorkspaceResult> {
   let uid: string | undefined;
   try {
     const { data: userData, error: userErr } = await supabase.auth.getUser();
@@ -118,9 +171,20 @@ export async function createWorkspace(input: { name: string; slug: string }): Pr
   }
 
   const payload = { name: input.name, slug: input.slug, created_by: uid };
-  setDiag({ hasSession: true, userId: uid, workspaceInsertPayload: payload, workspaceInsertError: null, workspaceSelectError: null });
+  setDiag({
+    hasSession: true,
+    userId: uid,
+    workspaceInsertPayload: payload,
+    workspaceInsertError: null,
+    workspaceSelectError: null,
+  });
   pushDiag("workspaceInsertPayload", payload);
-  console.info("[yawb] createWorkspace payload:", { hasSession: true, userId: uid, name: payload.name, slug: payload.slug });
+  console.info("[yawb] createWorkspace payload:", {
+    hasSession: true,
+    userId: uid,
+    name: payload.name,
+    slug: payload.slug,
+  });
 
   // Step 1: insert (do NOT chain .select() — RLS may block reading back before
   // the owner row is seeded by trg_workspace_seed_owner).
@@ -171,7 +235,10 @@ export async function createWorkspace(input: { name: string; slug: string }): Pr
   }
   const ws = rows?.[0];
   if (!ws) {
-    return { ok: false, error: "Workspace created but not visible — check RLS / trg_workspace_seed_owner trigger." };
+    return {
+      ok: false,
+      error: "Workspace created but not visible — check RLS / trg_workspace_seed_owner trigger.",
+    };
   }
   return { ok: true, workspace: { id: ws.id, name: ws.name, slug: ws.slug, role: "owner" } };
 }

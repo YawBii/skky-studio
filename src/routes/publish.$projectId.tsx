@@ -15,7 +15,12 @@ function PublishPage() {
   const { projectId } = Route.useParams();
   const [name, setName] = useState<string>("");
   useEffect(() => {
-    supabase.from("projects").select("name").eq("id", projectId).maybeSingle().then(({ data }) => setName(data?.name ?? projectId));
+    supabase
+      .from("projects")
+      .select("name")
+      .eq("id", projectId)
+      .maybeSingle()
+      .then(({ data }) => setName(data?.name ?? projectId));
   }, [projectId]);
   const { connections, loading } = useProjectConnections(projectId);
   const vercel = connections.find((c) => c.provider === "vercel" && c.status === "connected");
@@ -40,7 +45,11 @@ function PublishPage() {
       <p className="text-muted-foreground mt-1 mb-6">{name} · connected to Vercel</p>
       <div className="rounded-2xl border border-white/5 bg-gradient-card p-6 text-[13px] text-muted-foreground">
         Domain management connects in the next pass.
-        <div className="mt-4"><Button variant="ghost" size="sm" asChild><Link to="/connectors">Manage Vercel connection →</Link></Button></div>
+        <div className="mt-4">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/connectors">Manage Vercel connection →</Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export interface ParsedRepo {
   owner: string;
   repo: string;
   fullName: string; // owner/repo
-  url: string;      // https://github.com/owner/repo
+  url: string; // https://github.com/owner/repo
 }
 
 const SEG = /^[A-Za-z0-9._-]+$/;
@@ -72,7 +72,12 @@ export async function recordGitHubConnection(input: {
     if (error) {
       const msg = (error.message ?? "").toLowerCase();
       // Postgres "relation does not exist" / PostgREST "could not find the table"
-      if (msg.includes("does not exist") || msg.includes("could not find") || error.code === "42P01" || error.code === "PGRST205") {
+      if (
+        msg.includes("does not exist") ||
+        msg.includes("could not find") ||
+        error.code === "42P01" ||
+        error.code === "PGRST205"
+      ) {
         return { ok: false, reason: "table-missing", message: error.message };
       }
       return { ok: false, reason: "error", message: error.message };

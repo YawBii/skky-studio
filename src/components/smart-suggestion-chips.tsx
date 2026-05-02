@@ -3,7 +3,17 @@
 // owns side effects. Includes a small "x" affordance to dismiss a suggestion
 // (per-project, persisted for 24h via the engine).
 import { useEffect } from "react";
-import { Sparkles, X, AlertTriangle, HelpCircle, Wrench, Layers, Rocket, Search, Plug } from "lucide-react";
+import {
+  Sparkles,
+  X,
+  AlertTriangle,
+  HelpCircle,
+  Wrench,
+  Layers,
+  Rocket,
+  Search,
+  Plug,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SmartSuggestion, SuggestionCategory } from "@/services/suggestion-engine";
 
@@ -28,7 +38,10 @@ const CATEGORY_ICON: Record<SuggestionCategory, React.ComponentType<{ className?
 export function SmartSuggestionChips({ suggestions, onAction, onDismiss, className }: Props) {
   useEffect(() => {
     if (suggestions.length === 0) return;
-    console.info("[yawb] suggestions.rendered", suggestions.map((s) => ({ id: s.id, category: s.category, priority: s.priority })));
+    console.info(
+      "[yawb] suggestions.rendered",
+      suggestions.map((s) => ({ id: s.id, category: s.category, priority: s.priority })),
+    );
   }, [suggestions]);
 
   if (suggestions.length === 0) return null;
@@ -49,10 +62,10 @@ export function SmartSuggestionChips({ suggestions, onAction, onDismiss, classNa
               disabled
                 ? "border-white/5 text-muted-foreground/60"
                 : s.category === "blocking" || s.category === "fix_failure"
-                ? "border-destructive/30 bg-destructive/5 text-foreground hover:bg-destructive/10"
-                : s.category === "ask_clarifying"
-                ? "border-warning/30 bg-warning/5 text-foreground hover:bg-warning/10"
-                : "border-white/10 bg-white/[0.03] text-foreground hover:bg-white/[0.07] hover:border-white/20",
+                  ? "border-destructive/30 bg-destructive/5 text-foreground hover:bg-destructive/10"
+                  : s.category === "ask_clarifying"
+                    ? "border-warning/30 bg-warning/5 text-foreground hover:bg-warning/10"
+                    : "border-white/10 bg-white/[0.03] text-foreground hover:bg-white/[0.07] hover:border-white/20",
             )}
           >
             <button
@@ -60,7 +73,12 @@ export function SmartSuggestionChips({ suggestions, onAction, onDismiss, classNa
               disabled={disabled}
               title={s.disabledReason ?? s.explanation ?? s.reason}
               onClick={() => {
-                console.info("[yawb] suggestion.clicked", { id: s.id, label: s.label, action: s.action.kind, reason: s.reason });
+                console.info("[yawb] suggestion.clicked", {
+                  id: s.id,
+                  label: s.label,
+                  action: s.action.kind,
+                  reason: s.reason,
+                });
                 void onAction(s);
               }}
               className={cn(

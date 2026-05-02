@@ -1,19 +1,33 @@
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, Paperclip, Check, Loader2, X, Settings2, FileEdit, ArrowRight, ShieldCheck, Play } from "lucide-react";
+import {
+  Sparkles,
+  Send,
+  Paperclip,
+  Check,
+  Loader2,
+  X,
+  Settings2,
+  FileEdit,
+  ArrowRight,
+  ShieldCheck,
+  Play,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Popover, PopoverTrigger, PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useSelectedProject } from "@/hooks/use-selected-project";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useDiagnostics } from "@/lib/diagnostics";
 import { useMemo } from "react";
-import { buildSmartSuggestions, dismissSuggestion, type SmartSuggestion } from "@/services/suggestion-engine";
+import {
+  buildSmartSuggestions,
+  dismissSuggestion,
+  type SmartSuggestion,
+} from "@/services/suggestion-engine";
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
 import { TaskSummaryCard } from "@/components/task-summary-card";
@@ -62,26 +76,30 @@ function loadSummarized(projectId: string | null | undefined): Set<string> {
     if (!raw) return new Set();
     const arr = JSON.parse(raw) as string[];
     return new Set(arr);
-  } catch { return new Set(); }
+  } catch {
+    return new Set();
+  }
 }
 
 function persistSummarized(projectId: string, ids: Set<string>) {
   try {
     window.localStorage.setItem(SUMMARIZED_KEY(projectId), JSON.stringify([...ids]));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 const DEFAULT_CHECKLIST: { id: string; label: string; enabled: boolean }[] = [
-  { id: "typecheck",  label: "TypeScript check",      enabled: true  },
-  { id: "build",      label: "Production build",      enabled: true  },
-  { id: "tests",      label: "Smoke tests",           enabled: true  },
-  { id: "console",    label: "No console errors",     enabled: true  },
-  { id: "network",    label: "No 4xx/5xx responses",  enabled: true  },
-  { id: "migrations", label: "DB migrations applied", enabled: true  },
-  { id: "rls",        label: "RLS policies enforced", enabled: true  },
-  { id: "deploy",     label: "Deploy readiness",      enabled: true  },
-  { id: "lighthouse", label: "Lighthouse perf",       enabled: false },
-  { id: "a11y",       label: "Accessibility audit",   enabled: false },
+  { id: "typecheck", label: "TypeScript check", enabled: true },
+  { id: "build", label: "Production build", enabled: true },
+  { id: "tests", label: "Smoke tests", enabled: true },
+  { id: "console", label: "No console errors", enabled: true },
+  { id: "network", label: "No 4xx/5xx responses", enabled: true },
+  { id: "migrations", label: "DB migrations applied", enabled: true },
+  { id: "rls", label: "RLS policies enforced", enabled: true },
+  { id: "deploy", label: "Deploy readiness", enabled: true },
+  { id: "lighthouse", label: "Lighthouse perf", enabled: false },
+  { id: "a11y", label: "Accessibility audit", enabled: false },
 ];
 
 const STORE_KEY = "yawb:proof-checklist";
@@ -91,8 +109,13 @@ function loadChecklist() {
     const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORE_KEY) : null;
     if (!raw) return DEFAULT_CHECKLIST;
     const parsed = JSON.parse(raw) as { id: string; enabled: boolean }[];
-    return DEFAULT_CHECKLIST.map((d) => ({ ...d, enabled: parsed.find((p) => p.id === d.id)?.enabled ?? d.enabled }));
-  } catch { return DEFAULT_CHECKLIST; }
+    return DEFAULT_CHECKLIST.map((d) => ({
+      ...d,
+      enabled: parsed.find((p) => p.id === d.id)?.enabled ?? d.enabled,
+    }));
+  } catch {
+    return DEFAULT_CHECKLIST;
+  }
 }
 
 const INITIAL: Msg[] = [
@@ -146,20 +169,17 @@ export function AssistantPanel() {
       void jobsState.refreshSteps(j.id);
       const headline = formatSummaryHeadline(j);
       console.info("[yawb] chat.summary.appended", { jobId: j.id, type: j.type, status: j.status });
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: headline, summaryJobId: j.id },
-      ]);
+      setMessages((m) => [...m, { role: "assistant", content: headline, summaryJobId: j.id }]);
       // Notify the rest of the app (mobile nav, bottom-sheet, toasts) that a
       // new task summary is available — so phone users actually see it.
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("yawb:summary-appended", {
-          detail: { jobId: j.id, type: j.type, status: j.status, title: j.title ?? j.type },
-        }));
+        window.dispatchEvent(
+          new CustomEvent("yawb:summary-appended", {
+            detail: { jobId: j.id, type: j.type, status: j.status, title: j.title ?? j.type },
+          }),
+        );
         const tone =
-          j.status === "succeeded" ? toast.success :
-          j.status === "failed" ? toast.error :
-          toast;
+          j.status === "succeeded" ? toast.success : j.status === "failed" ? toast.error : toast;
         tone(`Task summary ready · ${j.title ?? j.type}`, {
           description: "Tap to view the proof and what changed.",
           action: {
@@ -176,9 +196,7 @@ export function AssistantPanel() {
   // when the user just opened the panel and wants to see what happened).
   const showRecentSummaries = () => {
     if (!project) return;
-    const terminal = jobsState.jobs
-      .filter((j) => TERMINAL_JOB_STATUSES.has(j.status))
-      .slice(0, 5);
+    const terminal = jobsState.jobs.filter((j) => TERMINAL_JOB_STATUSES.has(j.status)).slice(0, 5);
     if (terminal.length === 0) {
       toast("No recent jobs to summarize yet.");
       return;
@@ -192,26 +210,43 @@ export function AssistantPanel() {
         summaryJobId: j.id,
       })),
     ]);
-    console.info("[yawb] chat.summary.show-recent", { count: terminal.length, ids: terminal.map((j) => j.id) });
+    console.info("[yawb] chat.summary.show-recent", {
+      count: terminal.length,
+      ids: terminal.map((j) => j.id),
+    });
   };
-
 
   const ui = useBuilderUIState();
   const [, forceTick] = useState(0);
 
-  const suggestions = useMemo(() => buildSmartSuggestions({
-    workspace: workspace ?? null,
-    project: project ?? null,
-    jobs: jobsState.jobs,
-    connections: connState.connections,
-    connectionsSource: connState.source,
-    jobsSource: jobsState.source,
-    diagnostics: diag.state,
-    hasDeployUrl: false,
-    selectedPage: ui.selectedPage,
-    selectedEnvironment: ui.selectedEnvironment,
-    currentBuilderTab: ui.currentTab,
-  }), [workspace, project, jobsState.jobs, connState.connections, connState.source, jobsState.source, diag.state, ui.selectedPage, ui.selectedEnvironment, ui.currentTab]);
+  const suggestions = useMemo(
+    () =>
+      buildSmartSuggestions({
+        workspace: workspace ?? null,
+        project: project ?? null,
+        jobs: jobsState.jobs,
+        connections: connState.connections,
+        connectionsSource: connState.source,
+        jobsSource: jobsState.source,
+        diagnostics: diag.state,
+        hasDeployUrl: false,
+        selectedPage: ui.selectedPage,
+        selectedEnvironment: ui.selectedEnvironment,
+        currentBuilderTab: ui.currentTab,
+      }),
+    [
+      workspace,
+      project,
+      jobsState.jobs,
+      connState.connections,
+      connState.source,
+      jobsState.source,
+      diag.state,
+      ui.selectedPage,
+      ui.selectedEnvironment,
+      ui.currentTab,
+    ],
+  );
 
   const onDismissSuggestion = (s: SmartSuggestion) => {
     dismissSuggestion(project?.id ?? null, s.id);
@@ -226,13 +261,19 @@ export function AssistantPanel() {
           await navigate({ to: a.to as never });
           break;
         case "switch_tab":
-          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: a.tab, focusJobId: a.focusJobId } }));
+          window.dispatchEvent(
+            new CustomEvent("yawb:switch-tab", {
+              detail: { tab: a.tab, focusJobId: a.focusJobId },
+            }),
+          );
           break;
         case "open_page_picker":
           window.dispatchEvent(new CustomEvent("yawb:open-page-picker"));
           break;
         case "open_command_center":
-          window.dispatchEvent(new CustomEvent("yawb:open-command-center", { detail: { focusJobId: a.focusJobId } }));
+          window.dispatchEvent(
+            new CustomEvent("yawb:open-command-center", { detail: { focusJobId: a.focusJobId } }),
+          );
           break;
         case "open_server_setup":
           await navigate({ to: "/server-setup" as never });
@@ -241,17 +282,23 @@ export function AssistantPanel() {
           setPrompt(a.prompt);
           // Focus the textarea on next paint.
           setTimeout(() => {
-            const el = document.querySelector<HTMLTextAreaElement>("textarea[placeholder^='Ask yawB']");
+            const el = document.querySelector<HTMLTextAreaElement>(
+              "textarea[placeholder^='Ask yawB']",
+            );
             el?.focus();
             el?.setSelectionRange(a.prompt.length, a.prompt.length);
           }, 0);
           toast("Prefilled — review then send.");
           break;
         case "create_page":
-          setPrompt(`Create a new page at ${a.path} for ${project?.name ?? "this app"}. Include layout, empty state, and update the builder page picker list.`);
+          setPrompt(
+            `Create a new page at ${a.path} for ${project?.name ?? "this app"}. Include layout, empty state, and update the builder page picker list.`,
+          );
           break;
         case "create_schema_plan":
-          setPrompt(`Plan a Supabase schema for these tables: ${a.tables.join(", ")}. Include columns, FK relations, RLS policies (with a SECURITY DEFINER has_role() helper if roles are needed), and a migration SQL file under docs/sql/.`);
+          setPrompt(
+            `Plan a Supabase schema for these tables: ${a.tables.join(", ")}. Include columns, FK relations, RLS policies (with a SECURITY DEFINER has_role() helper if roles are needed), and a migration SQL file under docs/sql/.`,
+          );
           break;
         case "enqueue_job": {
           if (!project || !workspace) {
@@ -287,7 +334,9 @@ export function AssistantPanel() {
           break;
         }
         case "answer_question":
-          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "jobs", focusJobId: a.jobId } }));
+          window.dispatchEvent(
+            new CustomEvent("yawb:switch-tab", { detail: { tab: "jobs", focusJobId: a.jobId } }),
+          );
           toast("Open the Jobs tab and answer the highlighted question.");
           break;
         case "open_diagnostics":
@@ -304,7 +353,6 @@ export function AssistantPanel() {
       toast.error(`Suggestion failed: ${msg}`);
     }
   };
-
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -325,7 +373,10 @@ export function AssistantPanel() {
         summarizedRef.current.add(jobId);
         persistSummarized(project.id, summarizedRef.current);
         void jobsState.refreshSteps(jobId);
-        return [...m, { role: "assistant", content: formatSummaryHeadline(j), summaryJobId: jobId }];
+        return [
+          ...m,
+          { role: "assistant", content: formatSummaryHeadline(j), summaryJobId: jobId },
+        ];
       });
       // Scroll to the matching card on next frame.
       requestAnimationFrame(() => {
@@ -341,46 +392,63 @@ export function AssistantPanel() {
     return () => window.removeEventListener("yawb:focus-summary", handler as EventListener);
   }, [project, jobsState]);
 
-
   const persistChecklist = (next: typeof checklist) => {
     setChecklist(next);
-    try { window.localStorage.setItem(STORE_KEY, JSON.stringify(next.map((c) => ({ id: c.id, enabled: c.enabled })))); } catch {}
+    try {
+      window.localStorage.setItem(
+        STORE_KEY,
+        JSON.stringify(next.map((c) => ({ id: c.id, enabled: c.enabled }))),
+      );
+    } catch {}
   };
 
   const buildProof = (): ProofItem[] => {
-    return checklist.filter((c) => c.enabled).map((c) => ({
-      id: c.id,
-      label: c.label,
-      status: "ok" as ProofStatus,
-      detail: c.id === "build" ? "vite · 38s · gzip 142kb"
-            : c.id === "tests" ? "12 passed · 0 failed"
-            : c.id === "migrations" ? "0 pending"
-            : c.id === "deploy" ? "Ready to publish"
-            : undefined,
-    }));
+    return checklist
+      .filter((c) => c.enabled)
+      .map((c) => ({
+        id: c.id,
+        label: c.label,
+        status: "ok" as ProofStatus,
+        detail:
+          c.id === "build"
+            ? "vite · 38s · gzip 142kb"
+            : c.id === "tests"
+              ? "12 passed · 0 failed"
+              : c.id === "migrations"
+                ? "0 pending"
+                : c.id === "deploy"
+                  ? "Ready to publish"
+                  : undefined,
+      }));
   };
 
   const buildHandoff = (userText: string): Handoff => {
     const t = userText.toLowerCase();
-    const isFix     = /\b(fix|bug|broken|error|repair)\b/.test(t);
-    const isStyle   = /\b(style|design|color|theme|ui|layout)\b/.test(t);
-    const isDB      = /\b(table|schema|migration|rls|supabase|database)\b/.test(t);
-    const isDeploy  = /\b(deploy|publish|ship|release)\b/.test(t);
+    const isFix = /\b(fix|bug|broken|error|repair)\b/.test(t);
+    const isStyle = /\b(style|design|color|theme|ui|layout)\b/.test(t);
+    const isDB = /\b(table|schema|migration|rls|supabase|database)\b/.test(t);
+    const isDeploy = /\b(deploy|publish|ship|release)\b/.test(t);
     return {
-      summary: isFix    ? "Applied a targeted fix and re-ran verification."
-             : isStyle  ? "Updated the UI and confirmed the design tokens still match."
-             : isDB     ? "Adjusted the data layer and validated RLS access."
-             : isDeploy ? "Prepared the build for deployment."
-             : "Implemented the requested change end-to-end.",
+      summary: isFix
+        ? "Applied a targeted fix and re-ran verification."
+        : isStyle
+          ? "Updated the UI and confirmed the design tokens still match."
+          : isDB
+            ? "Adjusted the data layer and validated RLS access."
+            : isDeploy
+              ? "Prepared the build for deployment."
+              : "Implemented the requested change end-to-end.",
       changed: [
-        isStyle  ? "Updated component styling and tokens"  : "Edited the relevant components",
-        isDB     ? "Updated DB queries / migration draft"  : "Wired data + state for the new behavior",
+        isStyle ? "Updated component styling and tokens" : "Edited the relevant components",
+        isDB ? "Updated DB queries / migration draft" : "Wired data + state for the new behavior",
         "Kept TypeScript and lint clean",
       ],
       next: [
-        isDeploy ? "Click Publish to ship to production"   : "Open the preview tab to try the change",
+        isDeploy ? "Click Publish to ship to production" : "Open the preview tab to try the change",
         "Tell me what to adjust — copy, layout, or behavior",
-        isDB ? "Run the pending SQL in the DB pane if not yet applied" : "Wire any remaining backend bits when ready",
+        isDB
+          ? "Run the pending SQL in the DB pane if not yet applied"
+          : "Wire any remaining backend bits when ready",
       ],
       verify: [
         "Try the primary user flow in the preview",
@@ -398,7 +466,10 @@ export function AssistantPanel() {
     setPrompt("");
     if (!project || !workspace) {
       toast.error("Select a project first to send a request.");
-      setMessages((m) => [...m, { role: "assistant", content: "No project selected. Open a project, then try again." }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "No project selected. Open a project, then try again." },
+      ]);
       return;
     }
     const r = await enqueueJob({
@@ -414,7 +485,10 @@ export function AssistantPanel() {
         ? `Job tables missing — run ${r.sqlFile ?? "docs/sql/2026-04-30-project-jobs.sql"}`
         : r.error;
       toast.error(`Couldn't queue request: ${detail}`);
-      setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue request: ${detail}` }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: `Couldn't queue request: ${detail}` },
+      ]);
       return;
     }
     console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
@@ -422,7 +496,14 @@ export function AssistantPanel() {
     summarizedRef.current.add(r.job.id);
     persistSummarized(project.id, summarizedRef.current);
     setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
-    setMessages((m) => [...m, { role: "assistant", content: `Queued ai.plan job. I'll keep the live summary under this message.`, summaryJobId: r.job.id }]);
+    setMessages((m) => [
+      ...m,
+      {
+        role: "assistant",
+        content: `Queued ai.plan job. I'll keep the live summary under this message.`,
+        summaryJobId: r.job.id,
+      },
+    ]);
   };
 
   const runJob = async (type: JobType, title: string) => {
@@ -436,13 +517,23 @@ export function AssistantPanel() {
     setEnqueuingType(null);
     if (!r.ok) {
       toast.error(`Couldn't queue job: ${r.error}`);
-      setMessages((m) => [...m, { role: "assistant", content: `Couldn't queue ${type}: ${r.error}` }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: `Couldn't queue ${type}: ${r.error}` },
+      ]);
       return;
     }
     summarizedRef.current.add(r.job.id);
     persistSummarized(project.id, summarizedRef.current);
     setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
-    setMessages((m) => [...m, { role: "assistant", content: `Job queued · ${title} (${type}). I'll keep the live summary under this message.`, summaryJobId: r.job.id }]);
+    setMessages((m) => [
+      ...m,
+      {
+        role: "assistant",
+        content: `Job queued · ${title} (${type}). I'll keep the live summary under this message.`,
+        summaryJobId: r.job.id,
+      },
+    ]);
   };
 
   return (
@@ -465,16 +556,30 @@ export function AssistantPanel() {
               <Settings2 className="h-3.5 w-3.5" /> Proof
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-72 bg-background/95 backdrop-blur-xl border-white/10">
+          <PopoverContent
+            align="end"
+            className="w-72 bg-background/95 backdrop-blur-xl border-white/10"
+          >
             <div className="text-[12px] font-medium mb-1">Proof checklist</div>
-            <div className="text-[11px] text-muted-foreground mb-2">Items shown after each task before completion.</div>
+            <div className="text-[11px] text-muted-foreground mb-2">
+              Items shown after each task before completion.
+            </div>
             <div className="space-y-1 max-h-72 overflow-y-auto scrollbar-thin">
               {checklist.map((c) => (
-                <label key={c.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer">
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-white/5 cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={c.enabled}
-                    onChange={(e) => persistChecklist(checklist.map((x) => x.id === c.id ? { ...x, enabled: e.target.checked } : x))}
+                    onChange={(e) =>
+                      persistChecklist(
+                        checklist.map((x) =>
+                          x.id === c.id ? { ...x, enabled: e.target.checked } : x,
+                        ),
+                      )
+                    }
                     className="accent-primary"
                   />
                   <span>{c.label}</span>
@@ -492,25 +597,44 @@ export function AssistantPanel() {
         >
           <FileEdit className="h-3.5 w-3.5" /> Summaries
         </button>
-
       </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 py-5 space-y-4">
         {messages.map((m, i) => {
-          const job: Job | undefined = m.summaryJobId ? (jobsState.jobs.find((j) => j.id === m.summaryJobId) ?? queuedSummaryJobs[m.summaryJobId]) : undefined;
+          const job: Job | undefined = m.summaryJobId
+            ? (jobsState.jobs.find((j) => j.id === m.summaryJobId) ??
+              queuedSummaryJobs[m.summaryJobId])
+            : undefined;
           const steps = m.summaryJobId ? (jobsState.stepsByJob[m.summaryJobId] ?? []) : [];
           const nextActions = job
-            ? (job.status === "failed"
-                ? [{ id: "retry", label: "Retry job", onClick: async () => {
-                    const r = await retryJob(job.id);
-                    if (r.ok) toast.success("Job re-queued"); else toast.error(`Retry failed: ${r.error}`);
-                  } }]
-                : job.status === "waiting_for_input"
-                ? [{ id: "open-jobs", label: "Open Jobs tab", onClick: () => {
-                    window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "jobs", focusJobId: job.id } }));
-                  } }]
-                : [])
+            ? job.status === "failed"
+              ? [
+                  {
+                    id: "retry",
+                    label: "Retry job",
+                    onClick: async () => {
+                      const r = await retryJob(job.id);
+                      if (r.ok) toast.success("Job re-queued");
+                      else toast.error(`Retry failed: ${r.error}`);
+                    },
+                  },
+                ]
+              : job.status === "waiting_for_input"
+                ? [
+                    {
+                      id: "open-jobs",
+                      label: "Open Jobs tab",
+                      onClick: () => {
+                        window.dispatchEvent(
+                          new CustomEvent("yawb:switch-tab", {
+                            detail: { tab: "jobs", focusJobId: job.id },
+                          }),
+                        );
+                      },
+                    },
+                  ]
+                : []
             : [];
           return (
             <div key={i} data-summary-job-id={m.summaryJobId ?? undefined}>
@@ -524,10 +648,13 @@ export function AssistantPanel() {
       {/* Composer */}
       <div className="p-3 border-t border-white/5 space-y-2 pb-[calc(env(safe-area-inset-bottom)+12px)]">
         {suggestions.length > 0 && (
-          <SmartSuggestionChips suggestions={suggestions} onAction={dispatchSuggestion} onDismiss={onDismissSuggestion} />
+          <SmartSuggestionChips
+            suggestions={suggestions}
+            onAction={dispatchSuggestion}
+            onDismiss={onDismissSuggestion}
+          />
         )}
         <div className="rounded-2xl border border-white/10 bg-background/50 ring-hairline p-2">
-
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -562,7 +689,10 @@ export function AssistantPanel() {
                     <Play className="h-3.5 w-3.5" /> Run job
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-72 bg-background/95 backdrop-blur-xl border-white/10 p-2">
+                <PopoverContent
+                  align="start"
+                  className="w-72 bg-background/95 backdrop-blur-xl border-white/10 p-2"
+                >
                   <div className="text-[11px] text-muted-foreground px-2 py-1.5">
                     Enqueue against {project?.name ?? "—"}. Watch progress in the Jobs tab.
                   </div>
@@ -574,7 +704,11 @@ export function AssistantPanel() {
                         onClick={() => runJob(t, t)}
                         className="w-full flex items-center gap-2 text-left text-[12px] rounded-md px-2 py-1.5 hover:bg-white/5 disabled:opacity-50"
                       >
-                        {enqueuingType === t ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 text-primary" />}
+                        {enqueuingType === t ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Play className="h-3 w-3 text-primary" />
+                        )}
                         <span className="font-mono">{t}</span>
                       </button>
                     ))}
@@ -582,7 +716,14 @@ export function AssistantPanel() {
                 </PopoverContent>
               </Popover>
             </div>
-            <Button size="sm" variant="hero" disabled={!prompt.trim()} onClick={send} className="min-h-11 sm:min-h-9 px-4" data-testid="chat-send">
+            <Button
+              size="sm"
+              variant="hero"
+              disabled={!prompt.trim()}
+              onClick={send}
+              className="min-h-11 sm:min-h-9 px-4"
+              data-testid="chat-send"
+            >
               <Send className="h-3.5 w-3.5" /> Send
             </Button>
           </div>
@@ -634,8 +775,14 @@ function HandoffNote({ handoff }: { handoff: Handoff }) {
 }
 
 function HandoffSection({
-  icon: Icon, label, items,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; items: string[] }) {
+  icon: Icon,
+  label,
+  items,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  items: string[];
+}) {
   return (
     <div className="px-3 py-2">
       <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground mb-1">
@@ -658,20 +805,30 @@ function ProofReport({ items }: { items: ProofItem[] }) {
   const okAll = failed === 0;
   return (
     <div className="mt-3 rounded-xl border border-white/5 bg-black/20 overflow-hidden">
-      <div className={cn("px-3 py-2 text-[11px] font-medium flex items-center gap-1.5",
-        okAll ? "text-success bg-success/5" : "text-destructive bg-destructive/5")}>
+      <div
+        className={cn(
+          "px-3 py-2 text-[11px] font-medium flex items-center gap-1.5",
+          okAll ? "text-success bg-success/5" : "text-destructive bg-destructive/5",
+        )}
+      >
         {okAll ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
         Proof report · {okAll ? "all checks passed" : `${failed} check(s) failed`}
       </div>
       <ul className="divide-y divide-white/5">
         {items.map((i) => (
           <li key={i.id} className="px-3 py-1.5 text-[11.5px] flex items-center gap-2">
-            {i.status === "ok"   && <Check className="h-3 w-3 text-success" />}
+            {i.status === "ok" && <Check className="h-3 w-3 text-success" />}
             {i.status === "warn" && <Loader2 className="h-3 w-3 text-warning" />}
             {i.status === "fail" && <X className="h-3 w-3 text-destructive" />}
-            {i.status === "skip" && <span className="h-3 w-3 rounded-full bg-white/15 inline-block" />}
+            {i.status === "skip" && (
+              <span className="h-3 w-3 rounded-full bg-white/15 inline-block" />
+            )}
             <span className="text-foreground">{i.label}</span>
-            {i.detail && <span className="ml-auto text-muted-foreground font-mono text-[10.5px]">{i.detail}</span>}
+            {i.detail && (
+              <span className="ml-auto text-muted-foreground font-mono text-[10.5px]">
+                {i.detail}
+              </span>
+            )}
           </li>
         ))}
       </ul>

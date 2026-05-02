@@ -30,16 +30,24 @@ export function ProjectScopedEmpty({
           <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
         {eyebrow && (
-          <div className="mt-4 text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">{eyebrow}</div>
+          <div className="mt-4 text-[10.5px] uppercase tracking-[0.22em] text-muted-foreground">
+            {eyebrow}
+          </div>
         )}
         <h1 className="mt-2 text-[22px] font-display font-semibold tracking-tight">{title}</h1>
         <p className="mt-2 text-[13px] text-muted-foreground">{hint}</p>
         {cta && (
           <div className="mt-5">
             <Button variant="hero" asChild>
-              {cta.params
-                ? <Link to={cta.to as never} params={cta.params as never}><Plus className="h-3.5 w-3.5" /> {cta.label}</Link>
-                : <Link to={cta.to as never}><Plus className="h-3.5 w-3.5" /> {cta.label}</Link>}
+              {cta.params ? (
+                <Link to={cta.to as never} params={cta.params as never}>
+                  <Plus className="h-3.5 w-3.5" /> {cta.label}
+                </Link>
+              ) : (
+                <Link to={cta.to as never}>
+                  <Plus className="h-3.5 w-3.5" /> {cta.label}
+                </Link>
+              )}
             </Button>
           </div>
         )}
@@ -74,7 +82,8 @@ export function ProjectSurfaceError({ message, sqlFile }: { message?: string; sq
             {message && <div className="mt-1 text-muted-foreground break-words">{message}</div>}
             {sqlFile && (
               <div className="mt-2 text-muted-foreground">
-                Run <code className="font-mono text-foreground/80">{sqlFile}</code> in the Cloud SQL editor and reload.
+                Run <code className="font-mono text-foreground/80">{sqlFile}</code> in the Cloud SQL
+                editor and reload.
               </div>
             )}
           </div>

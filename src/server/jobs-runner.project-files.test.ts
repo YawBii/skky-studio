@@ -14,9 +14,15 @@ function fakeSupabase() {
     from(table: string) {
       if (table === "projects") {
         return {
-          select() { return this; },
-          eq() { return this; },
-          async maybeSingle() { return { data: project, error: null }; },
+          select() {
+            return this;
+          },
+          eq() {
+            return this;
+          },
+          async maybeSingle() {
+            return { data: project, error: null };
+          },
         };
       }
       if (table === "project_files") {
@@ -56,7 +62,9 @@ describe("jobs-runner project_files persistence", () => {
     expect(result.archetype).toBe("social-good");
     expect(result.written).toEqual(["app.css", "app.js", "index.html"]);
     expect(sb.upserts.map((r) => r.path).sort()).toEqual(["app.css", "app.js", "index.html"]);
-    expect(String(sb.upserts.find((r) => r.path === "index.html")?.content).toLowerCase()).toContain("scanner");
+    expect(
+      String(sb.upserts.find((r) => r.path === "index.html")?.content).toLowerCase(),
+    ).toContain("scanner");
   });
 
   it("ai.generate_changes writes index.html/app.css/app.js with Monster Brain proof", async () => {
@@ -79,7 +87,11 @@ describe("jobs-runner project_files persistence", () => {
     const sbSeeded = fakeSupabase();
     const seededJob: JobRow = {
       ...job("ai.generate_changes"),
-      input: { chatRequest: project.description, regenerationSeed: "regen-XYZ", forceVariant: true },
+      input: {
+        chatRequest: project.description,
+        regenerationSeed: "regen-XYZ",
+        forceVariant: true,
+      },
     };
     const seeded = await generateAndPersistProjectFiles(sbSeeded, seededJob);
     const seededHtml = String(sbSeeded.upserts.find((r) => r.path === "index.html")?.content);

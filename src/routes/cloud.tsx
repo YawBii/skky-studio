@@ -5,7 +5,10 @@ import { ProjectScopedEmpty, NoProjectSelected } from "@/components/project-empt
 
 export const Route = createFileRoute("/cloud")({
   head: () => ({
-    meta: [{ title: "Cloud — yawB" }, { name: "description", content: "Database, auth, storage, secrets, functions and logs." }],
+    meta: [
+      { title: "Cloud — yawB" },
+      { name: "description", content: "Database, auth, storage, secrets, functions and logs." },
+    ],
   }),
   component: CloudPage,
 });
@@ -13,7 +16,9 @@ export const Route = createFileRoute("/cloud")({
 function CloudPage() {
   const { project, projectIsReal, workspaceIsReal } = useSelectedProject();
   if (!workspaceIsReal || !projectIsReal || !project) {
-    return <NoProjectSelected hint="Cloud database, auth and storage are scoped to the selected project." />;
+    return (
+      <NoProjectSelected hint="Cloud database, auth and storage are scoped to the selected project." />
+    );
   }
   return (
     <ProjectScopedEmpty

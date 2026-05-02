@@ -12,24 +12,44 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // ---------- Types ----------
 
 export type JobStatus =
-  | "queued" | "running" | "waiting_for_input"
-  | "succeeded" | "failed" | "cancelled";
+  | "queued"
+  | "running"
+  | "waiting_for_input"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
 export type StepStatus =
-  | "queued" | "running" | "waiting_for_input"
-  | "succeeded" | "failed" | "skipped" | "cancelled";
+  | "queued"
+  | "running"
+  | "waiting_for_input"
+  | "succeeded"
+  | "failed"
+  | "skipped"
+  | "cancelled";
 export type QuestionKind = "single_choice" | "multi_choice" | "text" | "confirm";
 
 export interface JobRow {
-  id: string; project_id: string; workspace_id: string; type: string;
-  status: JobStatus; title: string; input: Record<string, unknown>;
+  id: string;
+  project_id: string;
+  workspace_id: string;
+  type: string;
+  status: JobStatus;
+  title: string;
+  input: Record<string, unknown>;
 }
 export interface ProjectFilesSupabaseLike {
   from: (table: string) => any;
 }
 interface StepRow {
-  id: string; job_id: string; step_key: string; title: string;
-  status: StepStatus; position: number; input: Record<string, unknown>;
-  output: Record<string, unknown>; logs: Array<{ ts: string; msg: string }>;
+  id: string;
+  job_id: string;
+  step_key: string;
+  title: string;
+  status: StepStatus;
+  position: number;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
+  logs: Array<{ ts: string; msg: string }>;
   error?: string | null;
   attempt_number?: number;
 }
@@ -74,7 +94,6 @@ function buildUserScopedClient(accessToken: string): SupabaseClient {
   });
 }
 
-
 // ---------- Server-side secret resolution ----------
 
 async function resolveSecret(
@@ -96,17 +115,24 @@ async function resolveSecret(
   }
   const env = process.env[data.value_ref];
   if (!env) {
-    return { ok: false, error: `${provider}.${key} env var "${data.value_ref}" is not set on the server.` };
+    return {
+      ok: false,
+      error: `${provider}.${key} env var "${data.value_ref}" is not set on the server.`,
+    };
   }
   return { ok: true, value: env };
 }
 
 function missingSecretLabel(provider: string): string {
   switch (provider) {
-    case "github": return "GitHub token is not configured.";
-    case "vercel": return "Vercel token is not configured.";
-    case "supabase": return "Supabase admin access is not configured.";
-    default: return `${provider} secret is not configured.`;
+    case "github":
+      return "GitHub token is not configured.";
+    case "vercel":
+      return "Vercel token is not configured.";
+    case "supabase":
+      return "Supabase admin access is not configured.";
+    default:
+      return `${provider} secret is not configured.`;
   }
 }
 
@@ -127,7 +153,10 @@ async function checkConnection(
   const labels = { github: "GitHub", vercel: "Vercel", supabase: "Supabase" } as const;
   if (!data) return { ok: false, error: `${labels[provider]} is not connected for this project.` };
   if (data.status !== "connected") {
-    return { ok: false, error: `${labels[provider]} connection is "${data.status}", expected "connected".` };
+    return {
+      ok: false,
+      error: `${labels[provider]} connection is "${data.status}", expected "connected".`,
+    };
   }
   return { ok: true };
 }
@@ -147,7 +176,10 @@ async function checkConnection(
 export interface ProviderAdapter {
   name: string;
   isConfigured(sb: SupabaseClient, projectId: string): Promise<boolean>;
-  verifyConnection(sb: SupabaseClient, projectId: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  verifyConnection(
+    sb: SupabaseClient,
+    projectId: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }>;
   runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<StepResult>;
   missingConfigReason(): string;
 }
@@ -174,7 +206,9 @@ const githubAdapter: ProviderAdapter = {
 async function resolveVercelToken(
   sb: SupabaseClient,
   projectId: string,
-): Promise<{ ok: true; value: string; source: "env" | "project_secret" } | { ok: false; error: string }> {
+): Promise<
+  { ok: true; value: string; source: "env" | "project_secret" } | { ok: false; error: string }
+> {
   const envTok = process.env.VERCEL_TOKEN;
   if (envTok) return { ok: true, value: envTok, source: "env" };
   const r = await resolveSecret(sb, projectId, "vercel", "token");
@@ -199,14 +233,22 @@ async function vercelCreatePreviewDeploy(
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (connErr) return { status: "failed", error: `vercel connection lookup failed: ${connErr.message}` };
-  if (!connRow) return { status: "failed", error: "Vercel project is not linked. Connect a Vercel project first." };
+  if (connErr)
+    return { status: "failed", error: `vercel connection lookup failed: ${connErr.message}` };
+  if (!connRow)
+    return {
+      status: "failed",
+      error: "Vercel project is not linked. Connect a Vercel project first.",
+    };
 
   const vercelProjectId = String(connRow.external_id ?? "");
   const meta = (connRow.metadata as Record<string, unknown>) ?? {};
   const teamId = typeof meta.teamId === "string" ? (meta.teamId as string) : null;
   if (!vercelProjectId) {
-    return { status: "failed", error: "Vercel connection is missing external_id (Vercel project id)." };
+    return {
+      status: "failed",
+      error: "Vercel connection is missing external_id (Vercel project id).",
+    };
   }
 
   // Try to fetch the latest deployment for this project (preview or any), then
@@ -259,11 +301,15 @@ async function vercelCreatePreviewDeploy(
         startedAt,
         finishedAt: new Date().toISOString(),
       };
-      return { status: "failed", output: proof, error: "Vercel returned no deployments for this project yet." };
+      return {
+        status: "failed",
+        output: proof,
+        error: "Vercel returned no deployments for this project yet.",
+      };
     }
     const deploymentId = String(dep.uid ?? dep.id ?? "");
     const rawUrl = String(dep.url ?? "");
-    const deployUrl = rawUrl.startsWith("http") ? rawUrl : (rawUrl ? `https://${rawUrl}` : "");
+    const deployUrl = rawUrl.startsWith("http") ? rawUrl : rawUrl ? `https://${rawUrl}` : "";
 
     // Persist deploy URL into the connection metadata + url column.
     const nextMeta = {
@@ -274,7 +320,8 @@ async function vercelCreatePreviewDeploy(
         at: new Date().toISOString(),
       },
     };
-    await sb.from("project_connections")
+    await sb
+      .from("project_connections")
       .update({ metadata: nextMeta, url: deployUrl || (connRow.url as string | null) })
       .eq("id", connRow.id);
 
@@ -351,7 +398,10 @@ const supabaseAdminAdapter: ProviderAdapter = {
     if (!conn.ok) return { status: "failed", error: conn.error };
     const tok = await resolveSecret(sb, job.project_id, "supabase", "service_role");
     if (!tok.ok) return { status: "failed", error: "Supabase admin access is not configured." };
-    return { status: "failed", error: `supabase.${step.step_key}: provider call is not wired yet.` };
+    return {
+      status: "failed",
+      error: `supabase.${step.step_key}: provider call is not wired yet.`,
+    };
   },
   missingConfigReason: () => "Supabase admin access is not configured.",
 };
@@ -392,7 +442,10 @@ function buildRunnerMode(): "external" | "local" | "none" {
   return "none";
 }
 
-function commandFor(stepKey: string, answerEnv?: string): { kind: "typecheck" | "build"; command: string } {
+function commandFor(
+  stepKey: string,
+  answerEnv?: string,
+): { kind: "typecheck" | "build"; command: string } {
   if (stepKey === "typecheck") {
     return { kind: "typecheck", command: process.env.TYPECHECK_COMMAND || "npm run typecheck" };
   }
@@ -426,7 +479,11 @@ async function execExternalBuild(payload: {
     });
     const text = await res.text();
     let parsed: Partial<BuildRunnerExecResult> = {};
-    try { parsed = text ? JSON.parse(text) : {}; } catch { /* non-JSON body */ }
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch {
+      /* non-JSON body */
+    }
     if (!res.ok) {
       return {
         ok: false,
@@ -438,16 +495,19 @@ async function execExternalBuild(payload: {
       };
     }
     return {
-      ok: parsed.ok ?? (parsed.exitCode === 0),
+      ok: parsed.ok ?? parsed.exitCode === 0,
       exitCode: parsed.exitCode ?? null,
       stdout: parsed.stdout ?? "",
       stderr: parsed.stderr ?? "",
-      durationMs: parsed.durationMs ?? (Date.now() - startedAt),
+      durationMs: parsed.durationMs ?? Date.now() - startedAt,
       error: parsed.error,
     };
   } catch (e) {
     return {
-      ok: false, exitCode: null, stdout: "", stderr: "",
+      ok: false,
+      exitCode: null,
+      stdout: "",
+      stderr: "",
       durationMs: Date.now() - startedAt,
       error: e instanceof Error ? e.message : String(e),
     };
@@ -462,12 +522,20 @@ async function execLocalBuild(command: string): Promise<BuildRunnerExecResult> {
     return await new Promise<BuildRunnerExecResult>((resolve) => {
       try {
         const child = cp.spawn(command, { shell: true });
-        let stdout = ""; let stderr = "";
-        child.stdout?.on("data", (d) => { stdout += d.toString(); });
-        child.stderr?.on("data", (d) => { stderr += d.toString(); });
+        let stdout = "";
+        let stderr = "";
+        child.stdout?.on("data", (d) => {
+          stdout += d.toString();
+        });
+        child.stderr?.on("data", (d) => {
+          stderr += d.toString();
+        });
         child.on("error", (err) => {
           resolve({
-            ok: false, exitCode: null, stdout, stderr,
+            ok: false,
+            exitCode: null,
+            stdout,
+            stderr,
             durationMs: Date.now() - startedAt,
             error: err instanceof Error ? err.message : String(err),
           });
@@ -483,7 +551,10 @@ async function execLocalBuild(command: string): Promise<BuildRunnerExecResult> {
         });
       } catch (e) {
         resolve({
-          ok: false, exitCode: null, stdout: "", stderr: "",
+          ok: false,
+          exitCode: null,
+          stdout: "",
+          stderr: "",
           durationMs: Date.now() - startedAt,
           error: e instanceof Error ? e.message : String(e),
         });
@@ -492,7 +563,10 @@ async function execLocalBuild(command: string): Promise<BuildRunnerExecResult> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return {
-      ok: false, exitCode: null, stdout: "", stderr: "",
+      ok: false,
+      exitCode: null,
+      stdout: "",
+      stderr: "",
       durationMs: Date.now() - startedAt,
       error: /not implemented|unenv/i.test(msg)
         ? "Build runner requires an external worker. Configure YAWB_BUILD_RUNNER_URL (or BUILD_RUNNER_URL)."
@@ -537,7 +611,11 @@ const buildAdapter: ProviderAdapter = {
     let exec: BuildRunnerExecResult;
     if (mode === "external") {
       exec = await execExternalBuild({
-        command, kind, jobId: job.id, stepId: step.id, projectId: job.project_id,
+        command,
+        kind,
+        jobId: job.id,
+        stepId: step.id,
+        projectId: job.project_id,
       });
     } else {
       exec = await execLocalBuild(command);
@@ -592,13 +670,17 @@ export function getBuildRunnerConfigServer(): {
 } {
   const mode = buildRunnerMode();
   const reason =
-    mode === "external" ? "External build worker configured (YAWB_BUILD_RUNNER_URL or BUILD_RUNNER_URL set)."
-      : mode === "local" ? "Local mode set (BUILD_RUNNER_MODE=local). Requires a Node host that supports child_process; will fail on Worker runtimes."
+    mode === "external"
+      ? "External build worker configured (YAWB_BUILD_RUNNER_URL or BUILD_RUNNER_URL set)."
+      : mode === "local"
+        ? "Local mode set (BUILD_RUNNER_MODE=local). Requires a Node host that supports child_process; will fail on Worker runtimes."
         : "Build runner is not configured. Set YAWB_BUILD_RUNNER_URL (recommended) or BUILD_RUNNER_MODE=local.";
   return {
     mode,
     hasBuildRunnerUrl: Boolean(process.env.YAWB_BUILD_RUNNER_URL || process.env.BUILD_RUNNER_URL),
-    hasBuildRunnerToken: Boolean(process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN),
+    hasBuildRunnerToken: Boolean(
+      process.env.YAWB_BUILD_RUNNER_TOKEN || process.env.BUILD_RUNNER_TOKEN,
+    ),
     hasBuildRunnerMode: Boolean(process.env.BUILD_RUNNER_MODE),
     hasBuildCommand: Boolean(process.env.BUILD_COMMAND),
     hasTypecheckCommand: Boolean(process.env.TYPECHECK_COMMAND),
@@ -607,7 +689,12 @@ export function getBuildRunnerConfigServer(): {
   };
 }
 
-import { runAiPlan, gatherPlanContext, isAiPlannerConfigured, AI_PLANNER_NOT_CONFIGURED_ERROR } from "./ai-planner.server";
+import {
+  runAiPlan,
+  gatherPlanContext,
+  isAiPlannerConfigured,
+  AI_PLANNER_NOT_CONFIGURED_ERROR,
+} from "./ai-planner.server";
 import {
   generateProjectFiles as monsterGenerate,
   inferProjectArchetype,
@@ -629,7 +716,22 @@ import {
 export async function generateAndPersistProjectFiles(
   sb: ProjectFilesSupabaseLike,
   job: JobRow,
-): Promise<{ ok: boolean; written: string[]; error?: string; archetype?: Archetype; designSignature?: string; generator: "monster-brain-v1"; previewReady: boolean; regenerationSeed?: string | null; visualFingerprint?: string; designMode?: string; heroLayout?: string; palette?: string; typography?: string; shapeLanguage?: string }> {
+): Promise<{
+  ok: boolean;
+  written: string[];
+  error?: string;
+  archetype?: Archetype;
+  designSignature?: string;
+  generator: "monster-brain-v1";
+  previewReady: boolean;
+  regenerationSeed?: string | null;
+  visualFingerprint?: string;
+  designMode?: string;
+  heroLayout?: string;
+  palette?: string;
+  typography?: string;
+  shapeLanguage?: string;
+}> {
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
@@ -641,21 +743,42 @@ export async function generateAndPersistProjectFiles(
     return { ok: false, written: [], error, generator: "monster-brain-v1", previewReady: false };
   }
   const input = (job.input ?? {}) as Record<string, unknown>;
-  const chatRequest = typeof input.chatRequest === "string"
-    ? input.chatRequest
-    : typeof input.prompt === "string" ? input.prompt : null;
-  const regenerationSeed = typeof input.regenerationSeed === "string" && input.regenerationSeed.length
-    ? input.regenerationSeed
-    : null;
+  const chatRequest =
+    typeof input.chatRequest === "string"
+      ? input.chatRequest
+      : typeof input.prompt === "string"
+        ? input.prompt
+        : null;
+  const regenerationSeed =
+    typeof input.regenerationSeed === "string" && input.regenerationSeed.length
+      ? input.regenerationSeed
+      : null;
   const forceVariant = input.forceVariant === true || regenerationSeed !== null;
   const VALID_DESIGN_MODES = new Set([
-    "editorial-luxury", "glass-dashboard", "civic-map", "neon-command",
-    "magazine-cards", "minimal-light", "brutalist-data",
+    "editorial-luxury",
+    "glass-dashboard",
+    "civic-map",
+    "neon-command",
+    "magazine-cards",
+    "minimal-light",
+    "brutalist-data",
   ]);
-  const designMode = typeof input.designMode === "string" && VALID_DESIGN_MODES.has(input.designMode)
-    ? (input.designMode as "editorial-luxury" | "glass-dashboard" | "civic-map" | "neon-command" | "magazine-cards" | "minimal-light" | "brutalist-data")
-    : null;
-  const projectInput = { id: proj.id, name: proj.name ?? "", description: proj.description ?? null };
+  const designMode =
+    typeof input.designMode === "string" && VALID_DESIGN_MODES.has(input.designMode)
+      ? (input.designMode as
+          | "editorial-luxury"
+          | "glass-dashboard"
+          | "civic-map"
+          | "neon-command"
+          | "magazine-cards"
+          | "minimal-light"
+          | "brutalist-data")
+      : null;
+  const projectInput = {
+    id: proj.id,
+    name: proj.name ?? "",
+    description: proj.description ?? null,
+  };
 
   // Read previous index.html so the new fingerprint can avoid matching it.
   let previousIndexHtml: string | null = null;
@@ -667,33 +790,73 @@ export async function generateAndPersistProjectFiles(
       .eq("path", "index.html")
       .maybeSingle();
     if (prevRow && typeof prevRow.content === "string") previousIndexHtml = prevRow.content;
-  } catch { /* table may not exist yet */ }
+  } catch {
+    /* table may not exist yet */
+  }
 
-  console.log("[yawb] monster.generate.start", { projectId: job.project_id, name: projectInput.name, regenerationSeed, forceVariant, designMode, hasPrevious: Boolean(previousIndexHtml) });
+  console.log("[yawb] monster.generate.start", {
+    projectId: job.project_id,
+    name: projectInput.name,
+    regenerationSeed,
+    forceVariant,
+    designMode,
+    hasPrevious: Boolean(previousIndexHtml),
+  });
   const ctx = { chatRequest, regenerationSeed, forceVariant, designMode, previousIndexHtml };
   const archetype = inferProjectArchetype(projectInput, ctx);
   const fp: VisualFingerprint = computeVisualFingerprint(projectInput, ctx);
   const files = monsterGenerate(projectInput, ctx);
   const sig = monsterSignature(projectInput, archetype, ctx);
-  console.log("[yawb] monster.generate.done", { archetype, designSignature: sig, regenerationSeed, designMode: fp.designMode, heroLayout: fp.heroLayout, palette: fp.palette, paths: files.map((f) => f.path) });
+  console.log("[yawb] monster.generate.done", {
+    archetype,
+    designSignature: sig,
+    regenerationSeed,
+    designMode: fp.designMode,
+    heroLayout: fp.heroLayout,
+    palette: fp.palette,
+    paths: files.map((f) => f.path),
+  });
   const written: string[] = [];
   for (const f of files) {
     const { error } = await sb
       .from("project_files")
       .upsert(
-        { project_id: job.project_id, path: f.path, content: f.content, language: f.language, kind: f.kind },
+        {
+          project_id: job.project_id,
+          path: f.path,
+          content: f.content,
+          language: f.language,
+          kind: f.kind,
+        },
         { onConflict: "project_id,path" },
       );
     if (error) {
-      console.error("[yawb] project_files.upsert.error", { projectId: job.project_id, path: f.path, error: error.message });
-      return { ok: false, written, error: `project_files upsert failed for ${f.path}: ${error.message}`, archetype, designSignature: sig, generator: "monster-brain-v1", previewReady: false, regenerationSeed };
+      console.error("[yawb] project_files.upsert.error", {
+        projectId: job.project_id,
+        path: f.path,
+        error: error.message,
+      });
+      return {
+        ok: false,
+        written,
+        error: `project_files upsert failed for ${f.path}: ${error.message}`,
+        archetype,
+        designSignature: sig,
+        generator: "monster-brain-v1",
+        previewReady: false,
+        regenerationSeed,
+      };
     }
     written.push(f.path);
   }
   const sortedWritten = [...written].sort();
   return {
-    ok: true, written: sortedWritten, archetype, designSignature: sig,
-    generator: "monster-brain-v1", previewReady: sortedWritten.includes("index.html"),
+    ok: true,
+    written: sortedWritten,
+    archetype,
+    designSignature: sig,
+    generator: "monster-brain-v1",
+    previewReady: sortedWritten.includes("index.html"),
     regenerationSeed,
     visualFingerprint: fingerprintToString(fp),
     designMode: fp.designMode,
@@ -721,7 +884,17 @@ const aiAdapter: ProviderAdapter = {
     if (job.type === "ai.generate_changes") {
       const r = await generateAndPersistProjectFiles(sb, job);
       if (!r.ok) {
-        return { status: "failed", error: r.error ?? "generate failed", output: { generator: r.generator, filesWritten: r.written, archetype: r.archetype, designSignature: r.designSignature, previewReady: false } };
+        return {
+          status: "failed",
+          error: r.error ?? "generate failed",
+          output: {
+            generator: r.generator,
+            filesWritten: r.written,
+            archetype: r.archetype,
+            designSignature: r.designSignature,
+            previewReady: false,
+          },
+        };
       }
       const output = {
         generator: r.generator,
@@ -739,7 +912,9 @@ const aiAdapter: ProviderAdapter = {
       };
       try {
         await sb.from("project_jobs").update({ output }).eq("id", job.id);
-      } catch { /* best-effort */ }
+      } catch {
+        /* best-effort */
+      }
       return {
         status: "succeeded",
         output,
@@ -755,9 +930,14 @@ const aiAdapter: ProviderAdapter = {
         projectId: job.project_id,
         workspaceId: job.workspace_id,
         selectedPage: typeof input.selectedPage === "string" ? input.selectedPage : null,
-        selectedEnvironment: typeof input.selectedEnvironment === "string" ? input.selectedEnvironment : null,
-        chatRequest: typeof input.chatRequest === "string" ? input.chatRequest
-          : typeof input.prompt === "string" ? input.prompt : null,
+        selectedEnvironment:
+          typeof input.selectedEnvironment === "string" ? input.selectedEnvironment : null,
+        chatRequest:
+          typeof input.chatRequest === "string"
+            ? input.chatRequest
+            : typeof input.prompt === "string"
+              ? input.prompt
+              : null,
       });
       const r = await runAiPlan({ context, contextSources: sources, baseMissing: missing });
       if (!r.ok) {
@@ -770,8 +950,13 @@ const aiAdapter: ProviderAdapter = {
       }
       // Mirror plan into job output so the browser sees it on the Job row.
       try {
-        await sb.from("project_jobs").update({ output: { plan: r.plan } }).eq("id", job.id);
-      } catch { /* best-effort mirror */ }
+        await sb
+          .from("project_jobs")
+          .update({ output: { plan: r.plan } })
+          .eq("id", job.id);
+      } catch {
+        /* best-effort mirror */
+      }
       return {
         status: "succeeded",
         output: { plan: r.plan },
@@ -822,7 +1007,7 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
           kind: "single_choice",
           required: true,
           options: [
-            { value: "preview",    label: "Preview",    description: "Run a preview build only." },
+            { value: "preview", label: "Preview", description: "Run a preview build only." },
             { value: "production", label: "Production", description: "Run a production build." },
           ],
         },
@@ -846,7 +1031,10 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
       try {
         await sb.from("project_jobs").update({ output: mergedOutput }).eq("id", job.id);
       } catch (e) {
-        console.error("[yawb] project_jobs.output.mirror.error", { jobId: job.id, error: e instanceof Error ? e.message : String(e) });
+        console.error("[yawb] project_jobs.output.mirror.error", {
+          jobId: job.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
       if (!gen.ok) {
         // Do NOT swallow — fail the build step with proof so the user sees it.
@@ -898,13 +1086,17 @@ export async function runNextJobStepServer(input: {
 
   // Cancellation guard BEFORE we start any step.
   const { data: liveStatus } = await sb
-    .from("project_jobs").select("status").eq("id", jobRow.id).maybeSingle();
+    .from("project_jobs")
+    .select("status")
+    .eq("id", jobRow.id)
+    .maybeSingle();
   if (liveStatus?.status === "cancelled") {
     return { advanced: false, jobId: jobRow.id, cancelled: true };
   }
 
   if (jobRow.status === "queued") {
-    await sb.from("project_jobs")
+    await sb
+      .from("project_jobs")
       .update({ status: "running", started_at: new Date().toISOString() })
       .eq("id", jobRow.id);
     jobRow.status = "running";
@@ -923,26 +1115,38 @@ export async function runNextJobStepServer(input: {
   if (!next) {
     const anyFailed = steps.some((s) => s.status === "failed");
     const anyWaiting = steps.some((s) => s.status === "waiting_for_input");
-    const allTerminal = !anyWaiting && steps.every((s) =>
-      s.status === "succeeded" || s.status === "skipped" || s.status === "failed" || s.status === "cancelled"
-    );
+    const allTerminal =
+      !anyWaiting &&
+      steps.every(
+        (s) =>
+          s.status === "succeeded" ||
+          s.status === "skipped" ||
+          s.status === "failed" ||
+          s.status === "cancelled",
+      );
     if (allTerminal) {
       const finalStatus: JobStatus = anyFailed ? "failed" : "succeeded";
       const errorMsg = anyFailed
         ? (steps.find((s) => s.status === "failed")?.error ?? "step failed")
         : null;
-      await sb.from("project_jobs").update({
-        status: finalStatus,
-        finished_at: new Date().toISOString(),
-        error: errorMsg,
-      }).eq("id", jobRow.id);
+      await sb
+        .from("project_jobs")
+        .update({
+          status: finalStatus,
+          finished_at: new Date().toISOString(),
+          error: errorMsg,
+        })
+        .eq("id", jobRow.id);
     }
     return { advanced: false, jobId: jobRow.id };
   }
 
   // Re-check cancellation right before claiming the step.
   const { data: liveStatus2 } = await sb
-    .from("project_jobs").select("status").eq("id", jobRow.id).maybeSingle();
+    .from("project_jobs")
+    .select("status")
+    .eq("id", jobRow.id)
+    .maybeSingle();
   if (liveStatus2?.status === "cancelled") {
     return { advanced: false, jobId: jobRow.id, cancelled: true };
   }
@@ -950,12 +1154,14 @@ export async function runNextJobStepServer(input: {
   const attemptNumber = Math.max(1, Number(next.attempt_number ?? 1));
   const startedAt = new Date().toISOString();
 
-  await sb.from("project_job_steps")
+  await sb
+    .from("project_job_steps")
     .update({ status: "running", started_at: startedAt })
     .eq("id", next.id);
 
   // Open an attempt row (best-effort; table may not exist on older deployments).
-  const { data: attemptRow } = await sb.from("project_job_step_attempts")
+  const { data: attemptRow } = await sb
+    .from("project_job_step_attempts")
     .insert({
       step_id: next.id,
       job_id: jobRow.id,
@@ -974,10 +1180,14 @@ export async function runNextJobStepServer(input: {
     result = { status: "failed", error: e instanceof Error ? e.message : String(e) };
   }
 
-  const logEntry = { ts: new Date().toISOString(), msg: result.log ?? result.error ?? `step ${result.status}` };
+  const logEntry = {
+    ts: new Date().toISOString(),
+    msg: result.log ?? result.error ?? `step ${result.status}`,
+  };
 
   if (result.status === "waiting_for_input" && result.ask) {
-    const { data: qRow, error: qErr } = await sb.from("project_job_questions")
+    const { data: qRow, error: qErr } = await sb
+      .from("project_job_questions")
       .insert({
         job_id: jobRow.id,
         step_id: next.id,
@@ -989,54 +1199,88 @@ export async function runNextJobStepServer(input: {
       .select("id")
       .maybeSingle();
     if (qErr) {
-      await sb.from("project_job_steps").update({
-        status: "failed",
-        error: `question insert failed: ${qErr.message}`,
-        finished_at: new Date().toISOString(),
-        logs: [...(next.logs ?? []), { ts: new Date().toISOString(), msg: `question insert failed: ${qErr.message}` }],
-      }).eq("id", next.id);
-      if (attemptRow?.id) {
-        await sb.from("project_job_step_attempts").update({
-          status: "failed", error: qErr.message,
+      await sb
+        .from("project_job_steps")
+        .update({
+          status: "failed",
+          error: `question insert failed: ${qErr.message}`,
           finished_at: new Date().toISOString(),
-        }).eq("id", attemptRow.id);
+          logs: [
+            ...(next.logs ?? []),
+            { ts: new Date().toISOString(), msg: `question insert failed: ${qErr.message}` },
+          ],
+        })
+        .eq("id", next.id);
+      if (attemptRow?.id) {
+        await sb
+          .from("project_job_step_attempts")
+          .update({
+            status: "failed",
+            error: qErr.message,
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", attemptRow.id);
       }
-      return { advanced: true, jobId: jobRow.id, stepKey: next.step_key, status: "failed", error: qErr.message };
+      return {
+        advanced: true,
+        jobId: jobRow.id,
+        stepKey: next.step_key,
+        status: "failed",
+        error: qErr.message,
+      };
     }
-    await sb.from("project_job_steps").update({
-      status: "waiting_for_input",
-      logs: [...(next.logs ?? []), { ts: new Date().toISOString(), msg: `awaiting answer: ${result.ask.question}` }],
-    }).eq("id", next.id);
+    await sb
+      .from("project_job_steps")
+      .update({
+        status: "waiting_for_input",
+        logs: [
+          ...(next.logs ?? []),
+          { ts: new Date().toISOString(), msg: `awaiting answer: ${result.ask.question}` },
+        ],
+      })
+      .eq("id", next.id);
     await sb.from("project_jobs").update({ status: "waiting_for_input" }).eq("id", jobRow.id);
     if (attemptRow?.id) {
-      await sb.from("project_job_step_attempts").update({
-        status: "waiting_for_input",
-        finished_at: new Date().toISOString(),
-      }).eq("id", attemptRow.id);
+      await sb
+        .from("project_job_step_attempts")
+        .update({
+          status: "waiting_for_input",
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", attemptRow.id);
     }
     return {
-      advanced: true, jobId: jobRow.id, stepKey: next.step_key,
-      status: "waiting_for_input", questionId: qRow?.id,
+      advanced: true,
+      jobId: jobRow.id,
+      stepKey: next.step_key,
+      status: "waiting_for_input",
+      questionId: qRow?.id,
     };
   }
 
   const finishedAt = new Date().toISOString();
-  await sb.from("project_job_steps").update({
-    status: result.status,
-    output: result.output ?? {},
-    error: result.error ?? null,
-    logs: [...(next.logs ?? []), logEntry],
-    finished_at: finishedAt,
-  }).eq("id", next.id);
-
-  if (attemptRow?.id) {
-    await sb.from("project_job_step_attempts").update({
+  await sb
+    .from("project_job_steps")
+    .update({
       status: result.status,
       output: result.output ?? {},
       error: result.error ?? null,
-      logs: [logEntry],
+      logs: [...(next.logs ?? []), logEntry],
       finished_at: finishedAt,
-    }).eq("id", attemptRow.id);
+    })
+    .eq("id", next.id);
+
+  if (attemptRow?.id) {
+    await sb
+      .from("project_job_step_attempts")
+      .update({
+        status: result.status,
+        output: result.output ?? {},
+        error: result.error ?? null,
+        logs: [logEntry],
+        finished_at: finishedAt,
+      })
+      .eq("id", attemptRow.id);
   }
 
   return {

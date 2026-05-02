@@ -16,10 +16,12 @@ export interface MonsterBackendGenerationResult {
 }
 
 function slug(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "") || "monster_app";
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "monster_app"
+  );
 }
 
 function sqlIdentifier(value: string): string {
@@ -30,7 +32,12 @@ function normalizeColumn(column: string): string {
   const trimmed = column.trim();
   if (!trimmed) return "metadata jsonb not null default '{}'::jsonb";
   if (/\bprimary\s+key\b/i.test(trimmed)) return trimmed;
-  if (/\b(uuid|text|int|integer|numeric|jsonb|boolean|bool|timestamptz|timestamp|date)\b/i.test(trimmed)) return trimmed;
+  if (
+    /\b(uuid|text|int|integer|numeric|jsonb|boolean|bool|timestamptz|timestamp|date)\b/i.test(
+      trimmed,
+    )
+  )
+    return trimmed;
   return `${sqlIdentifier(trimmed)} text`;
 }
 
@@ -57,13 +64,18 @@ function policySql(table: MonsterBlueprintTable, policy: string, index: number):
   const tableName = sqlIdentifier(table.table);
   const policyName = sqlIdentifier(`${tableName}_${index + 1}_${policy}`).slice(0, 62);
   const lower = policy.toLowerCase();
-  const command = lower.includes("insert") || lower.includes("create") ? "insert"
-    : lower.includes("update") || lower.includes("manage") ? "all"
-      : "select";
+  const command =
+    lower.includes("insert") || lower.includes("create")
+      ? "insert"
+      : lower.includes("update") || lower.includes("manage")
+        ? "all"
+        : "select";
   const publicRead = lower.includes("public") || lower.includes("published");
   const admin = lower.includes("admin") || lower.includes("owner");
-  const using = publicRead ? "true"
-    : admin ? "(auth.jwt() ->> 'role') in ('admin', 'owner', 'service_role')"
+  const using = publicRead
+    ? "true"
+    : admin
+      ? "(auth.jwt() ->> 'role') in ('admin', 'owner', 'service_role')"
       : "auth.uid() is not null";
   const check = command === "insert" || command === "all" ? `\n  with check (${using})` : "";
   return [
@@ -125,18 +137,28 @@ export function generateMonsterBackendReadme(blueprint: MonsterBlueprint): strin
   ].join("\n");
 }
 
-export function generateMonsterBackendFiles(blueprint: MonsterBlueprint): MonsterBackendGenerationResult {
+export function generateMonsterBackendFiles(
+  blueprint: MonsterBlueprint,
+): MonsterBackendGenerationResult {
   const base = slug(blueprint.appName);
   const migrationPath = `supabase/migrations/monster_${base}_initial.sql`;
   const readmePath = `docs/generated/${base}_monster_backend.md`;
   const migration = generateMonsterSupabaseMigration(blueprint);
   const readme = generateMonsterBackendReadme(blueprint);
-  const policyCount = blueprint.backend.tables.reduce((n, table) => n + table.rlsPolicies.length, 0);
+  const policyCount = blueprint.backend.tables.reduce(
+    (n, table) => n + table.rlsPolicies.length,
+    0,
+  );
   return {
     files: [
       { path: migrationPath, content: migration, language: "sql", kind: "source" },
       { path: readmePath, content: readme, language: "markdown", kind: "source" },
-      { path: `docs/generated/${base}_monster_blueprint.json`, content: JSON.stringify(blueprint, null, 2), language: "json", kind: "source" },
+      {
+        path: `docs/generated/${base}_monster_blueprint.json`,
+        content: JSON.stringify(blueprint, null, 2),
+        language: "json",
+        kind: "source",
+      },
     ],
     tableCount: blueprint.backend.tables.length,
     policyCount,

@@ -62,13 +62,17 @@ export interface MonsterBrainContext {
 
 /** Build the seed basis used for theme/copy/section variance. */
 function buildSeedBasis(project: ProjectLike, context?: MonsterBrainContext | null): string {
-  return [
-    project.id ?? "",
-    project.name ?? "",
-    project.description ?? "",
-    context?.regenerationSeed ?? "",
-    context?.chatRequest ?? "",
-  ].filter(Boolean).join(":") || "x";
+  return (
+    [
+      project.id ?? "",
+      project.name ?? "",
+      project.description ?? "",
+      context?.regenerationSeed ?? "",
+      context?.chatRequest ?? "",
+    ]
+      .filter(Boolean)
+      .join(":") || "x"
+  );
 }
 
 type ProjectLike = Pick<Project, "id" | "name"> & { description?: string | null };
@@ -78,15 +82,51 @@ type ProjectLike = Pick<Project, "id" | "name"> & { description?: string | null 
 // ---------------------------------------------------------------------------
 
 const ARCHETYPE_RULES: Array<{ archetype: Archetype; pattern: RegExp }> = [
-  { archetype: "social-good", pattern: /\b(goodhand|good[-\s]?hand|scanner|scan|praise|humanity|kindness|impact|community|charity|volunteer|nonprofit|social[-\s]?good|do[-\s]?good)\b/i },
-  { archetype: "corporate",   pattern: /\b(skky\s*group|skkygroup|skky|holding|holdings|group|ventures|capital|portfolio[-\s]?group|infrastructure|corporate|conglomerate|enterprise)\b/i },
-  { archetype: "jobs",        pattern: /\b(ujob|u[-\s]?job|job|jobs|hiring|hire|recruit|recruiter|candidate|candidates|career|careers|work|workforce|gig|gigs|talent|employer|employee)\b/i },
-  { archetype: "fintech",     pattern: /\b(fintech|payment|payments|invoice|invoices|invoicing|money|wallet|bank|banking|ledger|finance|treasury|payroll|stripe|billing|checkout|transactions?)\b/i },
-  { archetype: "identity",    pattern: /\b(identity|identify|verification|verify|verified|trust|kyc|aml|compliance|auth|authn|authz|passport|credential|credentials|id[-\s]?check|last[-\s]?man|lastman)\b/i },
-  { archetype: "gaming",      pattern: /\b(gaming|game|games|player|players|leaderboard|esports|arcade|guild|clan|quest|tournament|multiplayer)\b/i },
-  { archetype: "saas",        pattern: /\b(saas|dashboard|analytics|metrics|crm|admin|platform|workspace|si4|ops|devtool|devtools|monitoring|observability)\b/i },
-  { archetype: "portfolio",   pattern: /\b(portfolio|case[-\s]?stud(?:y|ies)|showcase|gallery|works|selected[-\s]?work|designer|artist)\b/i },
-  { archetype: "marketplace", pattern: /\b(marketplace|market[-\s]?place|listing|listings|sellers?|buyers?|store|shop|catalog|commerce)\b/i },
+  {
+    archetype: "social-good",
+    pattern:
+      /\b(goodhand|good[-\s]?hand|scanner|scan|praise|humanity|kindness|impact|community|charity|volunteer|nonprofit|social[-\s]?good|do[-\s]?good)\b/i,
+  },
+  {
+    archetype: "corporate",
+    pattern:
+      /\b(skky\s*group|skkygroup|skky|holding|holdings|group|ventures|capital|portfolio[-\s]?group|infrastructure|corporate|conglomerate|enterprise)\b/i,
+  },
+  {
+    archetype: "jobs",
+    pattern:
+      /\b(ujob|u[-\s]?job|job|jobs|hiring|hire|recruit|recruiter|candidate|candidates|career|careers|work|workforce|gig|gigs|talent|employer|employee)\b/i,
+  },
+  {
+    archetype: "fintech",
+    pattern:
+      /\b(fintech|payment|payments|invoice|invoices|invoicing|money|wallet|bank|banking|ledger|finance|treasury|payroll|stripe|billing|checkout|transactions?)\b/i,
+  },
+  {
+    archetype: "identity",
+    pattern:
+      /\b(identity|identify|verification|verify|verified|trust|kyc|aml|compliance|auth|authn|authz|passport|credential|credentials|id[-\s]?check|last[-\s]?man|lastman)\b/i,
+  },
+  {
+    archetype: "gaming",
+    pattern:
+      /\b(gaming|game|games|player|players|leaderboard|esports|arcade|guild|clan|quest|tournament|multiplayer)\b/i,
+  },
+  {
+    archetype: "saas",
+    pattern:
+      /\b(saas|dashboard|analytics|metrics|crm|admin|platform|workspace|si4|ops|devtool|devtools|monitoring|observability)\b/i,
+  },
+  {
+    archetype: "portfolio",
+    pattern:
+      /\b(portfolio|case[-\s]?stud(?:y|ies)|showcase|gallery|works|selected[-\s]?work|designer|artist)\b/i,
+  },
+  {
+    archetype: "marketplace",
+    pattern:
+      /\b(marketplace|market[-\s]?place|listing|listings|sellers?|buyers?|store|shop|catalog|commerce)\b/i,
+  },
 ];
 
 export function inferProjectArchetype(
@@ -186,25 +226,135 @@ type SectionKey =
 function baseThemeFor(archetype: Archetype): Theme {
   switch (archetype) {
     case "social-good":
-      return { bg: "#0a1410", surface: "#0f1c16", surface2: "#13261d", fg: "#ecfff4", muted: "#88a99a", accent: "#f5b84b", accent2: "#3ddc84", ring: "rgba(245,184,75,.35)", display: '"Fraunces", Georgia, serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#0a1410",
+        surface: "#0f1c16",
+        surface2: "#13261d",
+        fg: "#ecfff4",
+        muted: "#88a99a",
+        accent: "#f5b84b",
+        accent2: "#3ddc84",
+        ring: "rgba(245,184,75,.35)",
+        display: '"Fraunces", Georgia, serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "corporate":
-      return { bg: "#070b0c", surface: "#0c1416", surface2: "#101c20", fg: "#eef5f5", muted: "#8aa0a4", accent: "#3fb39a", accent2: "#9bbac0", ring: "rgba(63,179,154,.28)", display: '"Playfair Display", Georgia, serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#070b0c",
+        surface: "#0c1416",
+        surface2: "#101c20",
+        fg: "#eef5f5",
+        muted: "#8aa0a4",
+        accent: "#3fb39a",
+        accent2: "#9bbac0",
+        ring: "rgba(63,179,154,.28)",
+        display: '"Playfair Display", Georgia, serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "jobs":
-      return { bg: "#0a0d18", surface: "#121730", surface2: "#171d3d", fg: "#f3f5ff", muted: "#9aa3c8", accent: "#5b8cff", accent2: "#c084fc", ring: "rgba(91,140,255,.32)", display: '"Plus Jakarta Sans", "Inter", sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#0a0d18",
+        surface: "#121730",
+        surface2: "#171d3d",
+        fg: "#f3f5ff",
+        muted: "#9aa3c8",
+        accent: "#5b8cff",
+        accent2: "#c084fc",
+        ring: "rgba(91,140,255,.32)",
+        display: '"Plus Jakarta Sans", "Inter", sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "fintech":
-      return { bg: "#040813", surface: "#0a1224", surface2: "#0f182f", fg: "#e8f3ff", muted: "#7c92ad", accent: "#5cf2c8", accent2: "#7c9cff", ring: "rgba(92,242,200,.28)", display: '"JetBrains Mono", ui-monospace, monospace', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#040813",
+        surface: "#0a1224",
+        surface2: "#0f182f",
+        fg: "#e8f3ff",
+        muted: "#7c92ad",
+        accent: "#5cf2c8",
+        accent2: "#7c9cff",
+        ring: "rgba(92,242,200,.28)",
+        display: '"JetBrains Mono", ui-monospace, monospace',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "identity":
-      return { bg: "#06101a", surface: "#0c1928", surface2: "#102236", fg: "#e6f1ff", muted: "#7d96b3", accent: "#4dd0e1", accent2: "#7cffb3", ring: "rgba(77,208,225,.32)", display: '"Space Grotesk", "Inter", sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#06101a",
+        surface: "#0c1928",
+        surface2: "#102236",
+        fg: "#e6f1ff",
+        muted: "#7d96b3",
+        accent: "#4dd0e1",
+        accent2: "#7cffb3",
+        ring: "rgba(77,208,225,.32)",
+        display: '"Space Grotesk", "Inter", sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "gaming":
-      return { bg: "#08060f", surface: "#120c20", surface2: "#1a1230", fg: "#fdf3ff", muted: "#a89bc4", accent: "#ff3ea5", accent2: "#7cf5ff", ring: "rgba(255,62,165,.4)", display: '"Bricolage Grotesque", "Inter", sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#08060f",
+        surface: "#120c20",
+        surface2: "#1a1230",
+        fg: "#fdf3ff",
+        muted: "#a89bc4",
+        accent: "#ff3ea5",
+        accent2: "#7cf5ff",
+        ring: "rgba(255,62,165,.4)",
+        display: '"Bricolage Grotesque", "Inter", sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "saas":
-      return { bg: "#070b14", surface: "#0f1626", surface2: "#141d33", fg: "#eef3ff", muted: "#7d8aa6", accent: "#7c9cff", accent2: "#5cf2c8", ring: "rgba(124,156,255,.3)", display: '"Inter", system-ui, sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#070b14",
+        surface: "#0f1626",
+        surface2: "#141d33",
+        fg: "#eef3ff",
+        muted: "#7d8aa6",
+        accent: "#7c9cff",
+        accent2: "#5cf2c8",
+        ring: "rgba(124,156,255,.3)",
+        display: '"Inter", system-ui, sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "portfolio":
-      return { bg: "#0a0a0c", surface: "#131316", surface2: "#1a1a1f", fg: "#fafafa", muted: "#9a9aa6", accent: "#ff5e3a", accent2: "#ffd6c2", ring: "rgba(255,94,58,.3)", display: '"Bricolage Grotesque", "Inter", sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#0a0a0c",
+        surface: "#131316",
+        surface2: "#1a1a1f",
+        fg: "#fafafa",
+        muted: "#9a9aa6",
+        accent: "#ff5e3a",
+        accent2: "#ffd6c2",
+        ring: "rgba(255,94,58,.3)",
+        display: '"Bricolage Grotesque", "Inter", sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     case "marketplace":
-      return { bg: "#0a0e1a", surface: "#121a30", fg: "#f1f4ff", surface2: "#16203a", muted: "#8c95b3", accent: "#ffb547", accent2: "#5b8cff", ring: "rgba(255,181,71,.3)", display: '"Plus Jakarta Sans", "Inter", sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#0a0e1a",
+        surface: "#121a30",
+        fg: "#f1f4ff",
+        surface2: "#16203a",
+        muted: "#8c95b3",
+        accent: "#ffb547",
+        accent2: "#5b8cff",
+        ring: "rgba(255,181,71,.3)",
+        display: '"Plus Jakarta Sans", "Inter", sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
     default:
-      return { bg: "#0b0f14", surface: "#141a22", surface2: "#1a212c", fg: "#e6edf3", muted: "#8b96a7", accent: "#7c9cff", accent2: "#c8d4ff", ring: "rgba(124,156,255,.28)", display: '"Inter", system-ui, sans-serif', body: '"Inter", system-ui, sans-serif' };
+      return {
+        bg: "#0b0f14",
+        surface: "#141a22",
+        surface2: "#1a212c",
+        fg: "#e6edf3",
+        muted: "#8b96a7",
+        accent: "#7c9cff",
+        accent2: "#c8d4ff",
+        ring: "rgba(124,156,255,.28)",
+        display: '"Inter", system-ui, sans-serif',
+        body: '"Inter", system-ui, sans-serif',
+      };
   }
 }
 
@@ -289,39 +439,178 @@ interface ModeRecipe {
 }
 
 const MODE_RECIPES: Record<DesignMode, ModeRecipe> = {
-  "editorial-luxury": { mode: "editorial-luxury", hero: "editorial-split",   palette: "cream-ink",      typography: "fraunces-inter",      shape: "soft"   },
-  "glass-dashboard":  { mode: "glass-dashboard",  hero: "dashboard-grid",    palette: "graphite-mint",  typography: "spacegrotesk-inter",  shape: "soft"   },
-  "civic-map":        { mode: "civic-map",        hero: "map-impact",        palette: "deep-civic",     typography: "playfair-inter",      shape: "pill"   },
-  "neon-command":     { mode: "neon-command",     hero: "command-terminal",  palette: "neon-violet",    typography: "jetbrains-inter",     shape: "sharp"  },
-  "magazine-cards":   { mode: "magazine-cards",   hero: "magazine-portrait", palette: "paper-coral",    typography: "bricolage-inter",     shape: "soft"   },
-  "minimal-light":    { mode: "minimal-light",    hero: "minimal-stack",     palette: "snow-noir",      typography: "inter-inter",         shape: "sharp"  },
-  "brutalist-data":   { mode: "brutalist-data",   hero: "brutalist-blocks",  palette: "concrete-acid",  typography: "ibmplex-mono",        shape: "blocky" },
+  "editorial-luxury": {
+    mode: "editorial-luxury",
+    hero: "editorial-split",
+    palette: "cream-ink",
+    typography: "fraunces-inter",
+    shape: "soft",
+  },
+  "glass-dashboard": {
+    mode: "glass-dashboard",
+    hero: "dashboard-grid",
+    palette: "graphite-mint",
+    typography: "spacegrotesk-inter",
+    shape: "soft",
+  },
+  "civic-map": {
+    mode: "civic-map",
+    hero: "map-impact",
+    palette: "deep-civic",
+    typography: "playfair-inter",
+    shape: "pill",
+  },
+  "neon-command": {
+    mode: "neon-command",
+    hero: "command-terminal",
+    palette: "neon-violet",
+    typography: "jetbrains-inter",
+    shape: "sharp",
+  },
+  "magazine-cards": {
+    mode: "magazine-cards",
+    hero: "magazine-portrait",
+    palette: "paper-coral",
+    typography: "bricolage-inter",
+    shape: "soft",
+  },
+  "minimal-light": {
+    mode: "minimal-light",
+    hero: "minimal-stack",
+    palette: "snow-noir",
+    typography: "inter-inter",
+    shape: "sharp",
+  },
+  "brutalist-data": {
+    mode: "brutalist-data",
+    hero: "brutalist-blocks",
+    palette: "concrete-acid",
+    typography: "ibmplex-mono",
+    shape: "blocky",
+  },
 };
 
 interface PaletteSpec {
-  bg: string; surface: string; surface2: string; fg: string; muted: string;
-  accent: string; accent2: string; ring: string;
+  bg: string;
+  surface: string;
+  surface2: string;
+  fg: string;
+  muted: string;
+  accent: string;
+  accent2: string;
+  ring: string;
   isLight: boolean;
 }
 
 const PALETTES: Record<PaletteId, PaletteSpec> = {
-  "cream-ink":     { bg: "#f6f1e6", surface: "#ffffff", surface2: "#efe6d2", fg: "#1a1410", muted: "#6b5e4c", accent: "#b8421f", accent2: "#1a1410", ring: "rgba(184,66,31,.30)", isLight: true },
-  "graphite-mint": { bg: "#0e1316", surface: "#161d22", surface2: "#1d262c", fg: "#e8f4ee", muted: "#7e8e8a", accent: "#3ddc84", accent2: "#7cf5ff", ring: "rgba(61,220,132,.32)", isLight: false },
-  "deep-civic":    { bg: "#0a1a2e", surface: "#11253f", surface2: "#173052", fg: "#eaf3ff", muted: "#7e9bbd", accent: "#ffb547", accent2: "#5b8cff", ring: "rgba(255,181,71,.32)", isLight: false },
-  "neon-violet":   { bg: "#06050d", surface: "#0e0a1f", surface2: "#15102c", fg: "#f4eeff", muted: "#9b8fc4", accent: "#b06bff", accent2: "#3ddcff", ring: "rgba(176,107,255,.40)", isLight: false },
-  "paper-coral":   { bg: "#fff8f3", surface: "#ffffff", surface2: "#ffe8d8", fg: "#2b1a14", muted: "#7a5a4a", accent: "#ff5e3a", accent2: "#2b1a14", ring: "rgba(255,94,58,.28)", isLight: true },
-  "snow-noir":     { bg: "#fafafa", surface: "#ffffff", surface2: "#f0f0f0", fg: "#0a0a0a", muted: "#6a6a6a", accent: "#0a0a0a", accent2: "#5b8cff", ring: "rgba(10,10,10,.18)", isLight: true },
-  "concrete-acid": { bg: "#1c1c1c", surface: "#262626", surface2: "#2f2f2f", fg: "#f0f0e8", muted: "#9a9a90", accent: "#d6ff3a", accent2: "#ff3a8a", ring: "rgba(214,255,58,.40)", isLight: false },
+  "cream-ink": {
+    bg: "#f6f1e6",
+    surface: "#ffffff",
+    surface2: "#efe6d2",
+    fg: "#1a1410",
+    muted: "#6b5e4c",
+    accent: "#b8421f",
+    accent2: "#1a1410",
+    ring: "rgba(184,66,31,.30)",
+    isLight: true,
+  },
+  "graphite-mint": {
+    bg: "#0e1316",
+    surface: "#161d22",
+    surface2: "#1d262c",
+    fg: "#e8f4ee",
+    muted: "#7e8e8a",
+    accent: "#3ddc84",
+    accent2: "#7cf5ff",
+    ring: "rgba(61,220,132,.32)",
+    isLight: false,
+  },
+  "deep-civic": {
+    bg: "#0a1a2e",
+    surface: "#11253f",
+    surface2: "#173052",
+    fg: "#eaf3ff",
+    muted: "#7e9bbd",
+    accent: "#ffb547",
+    accent2: "#5b8cff",
+    ring: "rgba(255,181,71,.32)",
+    isLight: false,
+  },
+  "neon-violet": {
+    bg: "#06050d",
+    surface: "#0e0a1f",
+    surface2: "#15102c",
+    fg: "#f4eeff",
+    muted: "#9b8fc4",
+    accent: "#b06bff",
+    accent2: "#3ddcff",
+    ring: "rgba(176,107,255,.40)",
+    isLight: false,
+  },
+  "paper-coral": {
+    bg: "#fff8f3",
+    surface: "#ffffff",
+    surface2: "#ffe8d8",
+    fg: "#2b1a14",
+    muted: "#7a5a4a",
+    accent: "#ff5e3a",
+    accent2: "#2b1a14",
+    ring: "rgba(255,94,58,.28)",
+    isLight: true,
+  },
+  "snow-noir": {
+    bg: "#fafafa",
+    surface: "#ffffff",
+    surface2: "#f0f0f0",
+    fg: "#0a0a0a",
+    muted: "#6a6a6a",
+    accent: "#0a0a0a",
+    accent2: "#5b8cff",
+    ring: "rgba(10,10,10,.18)",
+    isLight: true,
+  },
+  "concrete-acid": {
+    bg: "#1c1c1c",
+    surface: "#262626",
+    surface2: "#2f2f2f",
+    fg: "#f0f0e8",
+    muted: "#9a9a90",
+    accent: "#d6ff3a",
+    accent2: "#ff3a8a",
+    ring: "rgba(214,255,58,.40)",
+    isLight: false,
+  },
 };
 
 const TYPOGRAPHY: Record<TypographyId, { display: string; body: string }> = {
-  "fraunces-inter":     { display: '"Fraunces", Georgia, serif',                       body: '"Inter", system-ui, sans-serif' },
-  "playfair-inter":     { display: '"Playfair Display", Georgia, serif',               body: '"Inter", system-ui, sans-serif' },
-  "spacegrotesk-inter": { display: '"Space Grotesk", "Inter", sans-serif',             body: '"Inter", system-ui, sans-serif' },
-  "jetbrains-inter":    { display: '"JetBrains Mono", ui-monospace, monospace',        body: '"Inter", system-ui, sans-serif' },
-  "bricolage-inter":    { display: '"Bricolage Grotesque", "Inter", sans-serif',       body: '"Inter", system-ui, sans-serif' },
-  "inter-inter":        { display: '"Inter", system-ui, sans-serif',                   body: '"Inter", system-ui, sans-serif' },
-  "ibmplex-mono":       { display: '"IBM Plex Mono", ui-monospace, monospace',         body: '"IBM Plex Sans", "Inter", system-ui, sans-serif' },
+  "fraunces-inter": {
+    display: '"Fraunces", Georgia, serif',
+    body: '"Inter", system-ui, sans-serif',
+  },
+  "playfair-inter": {
+    display: '"Playfair Display", Georgia, serif',
+    body: '"Inter", system-ui, sans-serif',
+  },
+  "spacegrotesk-inter": {
+    display: '"Space Grotesk", "Inter", sans-serif',
+    body: '"Inter", system-ui, sans-serif',
+  },
+  "jetbrains-inter": {
+    display: '"JetBrains Mono", ui-monospace, monospace',
+    body: '"Inter", system-ui, sans-serif',
+  },
+  "bricolage-inter": {
+    display: '"Bricolage Grotesque", "Inter", sans-serif',
+    body: '"Inter", system-ui, sans-serif',
+  },
+  "inter-inter": {
+    display: '"Inter", system-ui, sans-serif',
+    body: '"Inter", system-ui, sans-serif',
+  },
+  "ibmplex-mono": {
+    display: '"IBM Plex Mono", ui-monospace, monospace',
+    body: '"IBM Plex Sans", "Inter", system-ui, sans-serif',
+  },
 };
 
 /** Choose a design mode index from seed. */
@@ -387,7 +676,9 @@ export function fingerprintToString(fp: VisualFingerprint): string {
 export function parseVisualFingerprintFromHtml(html: string): VisualFingerprint | null {
   if (!html) return null;
   const get = (n: string) => {
-    const m = html.match(new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"));
+    const m = html.match(
+      new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"),
+    );
     return m ? m[1] : null;
   };
   const archetype = get("yawb-archetype") as Archetype | null;
@@ -420,7 +711,9 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Discovery · Praise · Trust",
         title: `${name}: see who shows up for the community.`,
-        lede: desc || "A live scanner that surfaces the people quietly doing good — verified, contextual, and impossible to fake.",
+        lede:
+          desc ||
+          "A live scanner that surfaces the people quietly doing good — verified, contextual, and impossible to fake.",
         primaryCta: "Scan a profile",
         secondaryCta: "How it works",
         navLinks: ["Scanner", "Praise", "Impact", "Trust"],
@@ -431,7 +724,9 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Group · Operating system",
         title: `${name} — quietly building infrastructure that compounds.`,
-        lede: desc || "An operating group of long-horizon ventures. Calm capital, sharp craft, selective partnerships.",
+        lede:
+          desc ||
+          "An operating group of long-horizon ventures. Calm capital, sharp craft, selective partnerships.",
         primaryCta: "Explore the group",
         secondaryCta: "Contact the office",
         navLinks: ["Portfolio", "Principles", "Regions", "Architecture", "Contact"],
@@ -442,7 +737,9 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Hiring marketplace",
         title: `${name} — hire faster. Get hired smarter.`,
-        lede: desc || "A two-sided marketplace where verified employers meet skill-matched candidates in real conversations.",
+        lede:
+          desc ||
+          "A two-sided marketplace where verified employers meet skill-matched candidates in real conversations.",
         primaryCta: "Search roles",
         secondaryCta: "Post a role",
         navLinks: ["Roles", "Companies", "Candidates", "How it works"],
@@ -453,7 +750,9 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Money operations",
         title: `${name} — money operations on autopilot.`,
-        lede: desc || "A finance OS that ingests transactions, reconciles them, and gives you a single, audit-ready ledger.",
+        lede:
+          desc ||
+          "A finance OS that ingests transactions, reconciles them, and gives you a single, audit-ready ledger.",
         primaryCta: "Open the dashboard",
         secondaryCta: "See security model",
         navLinks: ["Transactions", "Ledger", "Security", "Pricing"],
@@ -464,18 +763,27 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Identity · Verification · Trust",
         title: `${name} — proof of who, every time.`,
-        lede: desc || "A verification layer that turns scattered signals into a single, defensible identity graph.",
+        lede:
+          desc ||
+          "A verification layer that turns scattered signals into a single, defensible identity graph.",
         primaryCta: "Verify a profile",
         secondaryCta: "Read trust model",
         navLinks: ["Verification", "Trust graph", "Compliance", "Activity"],
-        metricLabels: ["Profiles verified", "Signals correlated", "Avg. confidence", "False-positive"],
+        metricLabels: [
+          "Profiles verified",
+          "Signals correlated",
+          "Avg. confidence",
+          "False-positive",
+        ],
         metricValues: ["1.2M", "84", "0.97", "0.21%"],
       };
     case "gaming":
       return {
         eyebrow: "Play · Compete · Belong",
         title: `${name} — where the next match starts.`,
-        lede: desc || "A community-first gaming hub: matchmaking, leaderboards, and squads worth showing up for.",
+        lede:
+          desc ||
+          "A community-first gaming hub: matchmaking, leaderboards, and squads worth showing up for.",
         primaryCta: "Find a match",
         secondaryCta: "View leaderboard",
         navLinks: ["Games", "Leaderboard", "Squads", "Events"],
@@ -486,7 +794,9 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Operations platform",
         title: `${name} — run the boring parts on autopilot.`,
-        lede: desc || "Realtime metrics, role-aware controls, and audit-ready logs in one calm dashboard.",
+        lede:
+          desc ||
+          "Realtime metrics, role-aware controls, and audit-ready logs in one calm dashboard.",
         primaryCta: "Open dashboard",
         secondaryCta: "View metrics",
         navLinks: ["Overview", "Metrics", "Controls", "Audit"],
@@ -497,7 +807,9 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Selected work",
         title: `${name} — sharp ideas, made tangible.`,
-        lede: desc || "An independent studio building brand systems, product stories, and launch craft.",
+        lede:
+          desc ||
+          "An independent studio building brand systems, product stories, and launch craft.",
         primaryCta: "See selected work",
         secondaryCta: "Get in touch",
         navLinks: ["Work", "Studio", "Process", "Contact"],
@@ -508,7 +820,8 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       return {
         eyebrow: "Open marketplace",
         title: `${name} — buyers and sellers in one calm place.`,
-        lede: desc || "A curated marketplace built around verified listings and signal-rich profiles.",
+        lede:
+          desc || "A curated marketplace built around verified listings and signal-rich profiles.",
         primaryCta: "Browse listings",
         secondaryCta: "Become a seller",
         navLinks: ["Listings", "Sellers", "Trust", "Pricing"],
@@ -532,25 +845,121 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
 function sectionsFor(archetype: Archetype): SectionKey[] {
   switch (archetype) {
     case "social-good":
-      return ["hero-spotlight", "scanner-feed", "impact-metrics", "praise-cards", "process-steps", "trust-panel", "testimonial-wall", "cta-band", "footer"];
+      return [
+        "hero-spotlight",
+        "scanner-feed",
+        "impact-metrics",
+        "praise-cards",
+        "process-steps",
+        "trust-panel",
+        "testimonial-wall",
+        "cta-band",
+        "footer",
+      ];
     case "corporate":
-      return ["hero-glass", "logo-strip", "portfolio-grid", "operating-principles", "regions", "architecture", "testimonial-wall", "cta-band", "footer"];
+      return [
+        "hero-glass",
+        "logo-strip",
+        "portfolio-grid",
+        "operating-principles",
+        "regions",
+        "architecture",
+        "testimonial-wall",
+        "cta-band",
+        "footer",
+      ];
     case "jobs":
-      return ["hero-search", "logo-strip", "featured-roles", "candidate-company-split", "process-steps", "trust-badges", "metrics-strip", "testimonial-wall", "cta-band", "footer"];
+      return [
+        "hero-search",
+        "logo-strip",
+        "featured-roles",
+        "candidate-company-split",
+        "process-steps",
+        "trust-badges",
+        "metrics-strip",
+        "testimonial-wall",
+        "cta-band",
+        "footer",
+      ];
     case "fintech":
-      return ["hero-finance", "metrics-strip", "transaction-cards", "security-layer", "compliance-cards", "pricing-tiers", "faq-accordion", "cta-band", "footer"];
+      return [
+        "hero-finance",
+        "metrics-strip",
+        "transaction-cards",
+        "security-layer",
+        "compliance-cards",
+        "pricing-tiers",
+        "faq-accordion",
+        "cta-band",
+        "footer",
+      ];
     case "identity":
-      return ["hero-identity", "trust-graph", "compliance-cards", "activity-timeline", "process-steps", "security-layer", "faq-accordion", "cta-band", "footer"];
+      return [
+        "hero-identity",
+        "trust-graph",
+        "compliance-cards",
+        "activity-timeline",
+        "process-steps",
+        "security-layer",
+        "faq-accordion",
+        "cta-band",
+        "footer",
+      ];
     case "gaming":
-      return ["hero-gaming", "game-cards", "leaderboard", "metrics-strip", "community-cta", "testimonial-wall", "footer"];
+      return [
+        "hero-gaming",
+        "game-cards",
+        "leaderboard",
+        "metrics-strip",
+        "community-cta",
+        "testimonial-wall",
+        "footer",
+      ];
     case "saas":
-      return ["hero-default", "logo-strip", "feature-grid", "metrics-strip", "process-steps", "pricing-tiers", "testimonial-wall", "faq-accordion", "cta-band", "footer"];
+      return [
+        "hero-default",
+        "logo-strip",
+        "feature-grid",
+        "metrics-strip",
+        "process-steps",
+        "pricing-tiers",
+        "testimonial-wall",
+        "faq-accordion",
+        "cta-band",
+        "footer",
+      ];
     case "portfolio":
-      return ["hero-spotlight", "portfolio-grid", "operating-principles", "process-steps", "testimonial-wall", "cta-band", "footer"];
+      return [
+        "hero-spotlight",
+        "portfolio-grid",
+        "operating-principles",
+        "process-steps",
+        "testimonial-wall",
+        "cta-band",
+        "footer",
+      ];
     case "marketplace":
-      return ["hero-search", "feature-grid", "logo-strip", "trust-badges", "testimonial-wall", "pricing-tiers", "faq-accordion", "cta-band", "footer"];
+      return [
+        "hero-search",
+        "feature-grid",
+        "logo-strip",
+        "trust-badges",
+        "testimonial-wall",
+        "pricing-tiers",
+        "faq-accordion",
+        "cta-band",
+        "footer",
+      ];
     default:
-      return ["hero-default", "feature-grid", "metrics-strip", "process-steps", "testimonial-wall", "cta-band", "footer"];
+      return [
+        "hero-default",
+        "feature-grid",
+        "metrics-strip",
+        "process-steps",
+        "testimonial-wall",
+        "cta-band",
+        "footer",
+      ];
   }
 }
 
@@ -567,15 +976,24 @@ function esc(value: unknown, maxLen = 600): string {
     .slice(0, maxLen);
   return cleaned.replace(/[&<>"'`/=]/g, (c) => {
     switch (c) {
-      case "&": return "&amp;";
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case '"': return "&quot;";
-      case "'": return "&#39;";
-      case "`": return "&#96;";
-      case "/": return "&#47;";
-      case "=": return "&#61;";
-      default: return c;
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      case "`":
+        return "&#96;";
+      case "/":
+        return "&#47;";
+      case "=":
+        return "&#61;";
+      default:
+        return c;
     }
   });
 }
@@ -607,14 +1025,18 @@ function shuffle<T>(arr: T[], rnd: () => number): T[] {
   return a;
 }
 
-function pick<T>(arr: T[], rnd: () => number): T { return arr[Math.floor(rnd() * arr.length)]; }
+function pick<T>(arr: T[], rnd: () => number): T {
+  return arr[Math.floor(rnd() * arr.length)];
+}
 
 // ---------------------------------------------------------------------------
 // Section renderers — return inner HTML strings
 // ---------------------------------------------------------------------------
 
 function renderNav(name: string, copy: Copy): string {
-  const links = copy.navLinks.map((l) => `<a href="#${esc(l).toLowerCase().replace(/\s+/g, "-")}">${esc(l, 40)}</a>`).join("");
+  const links = copy.navLinks
+    .map((l) => `<a href="#${esc(l).toLowerCase().replace(/\s+/g, "-")}">${esc(l, 40)}</a>`)
+    .join("");
   return `<nav class="mb-nav">
     <div class="mb-brand"><span class="mb-mark"></span><span>${esc(name, 60)}</span></div>
     <div class="mb-nav-links">${links}</div>
@@ -689,7 +1111,13 @@ function renderHero(kind: SectionKey, name: string, copy: Copy): string {
   }
 }
 
-function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Archetype, seed: string = "x"): string {
+function renderSection(
+  key: SectionKey,
+  name: string,
+  copy: Copy,
+  archetype: Archetype,
+  seed: string = "x",
+): string {
   const rnd = rngFor(`${seed}:${key}`);
   switch (key) {
     case "scanner-feed":
@@ -697,7 +1125,23 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2">Live scanner feed</h2>
         <p class="mb-sub">Real signals from real contributors — surfaced the moment they happen.</p>
         <ul class="mb-feed">
-          ${shuffle(["Mira hosted a free repair café for 38 neighbours.", "Devon shipped weekly groceries to 12 elders.", "Aisha published an open-source mental-health toolkit.", "Tom ran a 6-week mentorship circle for first-gen students.", "Priya organised a clothing swap for 60 families.", "Joon ran weekend coding clinics at the public library."], rnd).slice(0, 5).map((t, i) => `<li class="mb-feed-row"><span class="mb-feed-dot"></span><span class="mb-feed-when">${i === 0 ? "just now" : `${i * 7}m ago`} · 0${i + 1}</span><span class="mb-feed-what">${esc(t)}</span></li>`).join("")}
+          ${shuffle(
+            [
+              "Mira hosted a free repair café for 38 neighbours.",
+              "Devon shipped weekly groceries to 12 elders.",
+              "Aisha published an open-source mental-health toolkit.",
+              "Tom ran a 6-week mentorship circle for first-gen students.",
+              "Priya organised a clothing swap for 60 families.",
+              "Joon ran weekend coding clinics at the public library.",
+            ],
+            rnd,
+          )
+            .slice(0, 5)
+            .map(
+              (t, i) =>
+                `<li class="mb-feed-row"><span class="mb-feed-dot"></span><span class="mb-feed-when">${i === 0 ? "just now" : `${i * 7}m ago`} · 0${i + 1}</span><span class="mb-feed-what">${esc(t)}</span></li>`,
+            )
+            .join("")}
         </ul>
       </section>`;
     case "praise-cards":
@@ -707,12 +1151,20 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
           ${[
             { who: "Mira O.", what: "Quietly fed her block for a year.", tag: "neighbourhood" },
             { who: "Devon K.", what: "Drove 4hr/wk delivering medication to elders.", tag: "care" },
-            { who: "Aisha R.", what: "Open-sourced the curriculum she paid $9k for.", tag: "knowledge" },
-          ].map((p) => `<article class="mb-card mb-card-praise">
+            {
+              who: "Aisha R.",
+              what: "Open-sourced the curriculum she paid $9k for.",
+              tag: "knowledge",
+            },
+          ]
+            .map(
+              (p) => `<article class="mb-card mb-card-praise">
             <header class="mb-card-head"><span class="mb-avatar">${esc(p.who.charAt(0))}</span><div><strong>${esc(p.who)}</strong><span class="mb-tag">${esc(p.tag)}</span></div></header>
             <p>${esc(p.what)}</p>
             <footer class="mb-card-foot"><button type="button" class="mb-link">Add praise →</button></footer>
-          </article>`).join("")}
+          </article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "impact-metrics":
@@ -738,18 +1190,22 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2">Operating companies</h2>
         <div class="mb-grid mb-grid-3">
           ${[
-            { n: "Skky Lab",      d: "Independent design and product studio." },
-            { n: "Skky Capital",  d: "Long-horizon checks for compounding teams." },
-            { n: "Skky Infra",    d: "Backbone services for portfolio operations." },
-            { n: "Skky Civic",    d: "Public-good infrastructure with measurable impact." },
-            { n: "Skky Talent",   d: "In-house operators placed inside portfolio companies." },
+            { n: "Skky Lab", d: "Independent design and product studio." },
+            { n: "Skky Capital", d: "Long-horizon checks for compounding teams." },
+            { n: "Skky Infra", d: "Backbone services for portfolio operations." },
+            { n: "Skky Civic", d: "Public-good infrastructure with measurable impact." },
+            { n: "Skky Talent", d: "In-house operators placed inside portfolio companies." },
             { n: "Skky Research", d: "Quiet, long-cycle research on new categories." },
-          ].map((c) => `<article class="mb-card mb-card-portfolio">
+          ]
+            .map(
+              (c) => `<article class="mb-card mb-card-portfolio">
             <div class="mb-card-mark"></div>
             <h3>${esc(c.n)}</h3>
             <p>${esc(c.d)}</p>
             <span class="mb-link">Read brief →</span>
-          </article>`).join("")}
+          </article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "operating-principles":
@@ -757,18 +1213,46 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2">Operating principles</h2>
         <div class="mb-grid mb-grid-2">
           ${[
-            ["01", "Compound, don't spike.", "Every decision is judged on the 10-year version of itself."],
+            [
+              "01",
+              "Compound, don't spike.",
+              "Every decision is judged on the 10-year version of itself.",
+            ],
             ["02", "Operators over observers.", "We hire builders, not commentators."],
             ["03", "Calm capital.", "We rarely move fast and never move loud."],
             ["04", "Selective partnership.", "Most of what crosses our desk is a polite no."],
-          ].map(([n, t, d]) => `<article class="mb-card mb-card-principle"><span class="mb-card-num">${esc(n)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}
+          ]
+            .map(
+              ([n, t, d]) =>
+                `<article class="mb-card mb-card-principle"><span class="mb-card-num">${esc(n)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "regions":
       return `<section id="regions" class="mb-section">
         <h2 class="mb-h2">Regions</h2>
         <div class="mb-region-grid">
-          ${shuffle(["Stockholm", "Berlin", "London", "New York", "Singapore", "São Paulo", "Cape Town", "Tokyo", "Sydney", "Lisbon", "Toronto", "Dubai"], rnd).slice(0, 9).map((r) => `<div class="mb-region"><span class="mb-region-dot"></span>${esc(r)}</div>`).join("")}
+          ${shuffle(
+            [
+              "Stockholm",
+              "Berlin",
+              "London",
+              "New York",
+              "Singapore",
+              "São Paulo",
+              "Cape Town",
+              "Tokyo",
+              "Sydney",
+              "Lisbon",
+              "Toronto",
+              "Dubai",
+            ],
+            rnd,
+          )
+            .slice(0, 9)
+            .map((r) => `<div class="mb-region"><span class="mb-region-dot"></span>${esc(r)}</div>`)
+            .join("")}
         </div>
       </section>`;
     case "architecture":
@@ -787,15 +1271,34 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <div class="mb-grid mb-grid-2">
           ${[
             { co: "North", role: "Senior Backend Engineer", loc: "Remote · EU", comp: "€95–130k" },
-            { co: "Quill", role: "Lead Product Designer", loc: "Berlin · Hybrid", comp: "€110–140k" },
-            { co: "Orbit", role: "Staff Platform Engineer", loc: "Remote · Global", comp: "$160–210k" },
-            { co: "Field", role: "Founding GTM", loc: "London · Onsite", comp: "£90–120k + equity" },
-          ].map((r) => `<article class="mb-card mb-card-role">
+            {
+              co: "Quill",
+              role: "Lead Product Designer",
+              loc: "Berlin · Hybrid",
+              comp: "€110–140k",
+            },
+            {
+              co: "Orbit",
+              role: "Staff Platform Engineer",
+              loc: "Remote · Global",
+              comp: "$160–210k",
+            },
+            {
+              co: "Field",
+              role: "Founding GTM",
+              loc: "London · Onsite",
+              comp: "£90–120k + equity",
+            },
+          ]
+            .map(
+              (r) => `<article class="mb-card mb-card-role">
             <div class="mb-role-head"><span class="mb-co">${esc(r.co)}</span><span class="mb-tag">verified</span></div>
             <h3>${esc(r.role)}</h3>
             <div class="mb-role-meta"><span>${esc(r.loc)}</span><span>${esc(r.comp)}</span></div>
             <button type="button" class="mb-cta sm">Apply</button>
-          </article>`).join("")}
+          </article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "candidate-company-split":
@@ -822,12 +1325,17 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2 mono">Transactions</h2>
         <div class="mb-tx-list">
           ${[
-            { co: "Stripe Inc.",   amt: "+$12,480.00", state: "settled" },
-            { co: "Vercel",        amt: "−$842.10",    state: "pending" },
-            { co: "AWS",           amt: "−$3,201.55",  state: "settled" },
-            { co: "Customer 4012", amt: "+$980.00",    state: "settled" },
-            { co: "Payroll",       amt: "−$48,200.00", state: "scheduled" },
-          ].map((t) => `<div class="mb-tx ${t.state}"><span class="mb-tx-co">${esc(t.co)}</span><span class="mb-tx-state">${esc(t.state)}</span><span class="mb-tx-amt">${esc(t.amt)}</span></div>`).join("")}
+            { co: "Stripe Inc.", amt: "+$12,480.00", state: "settled" },
+            { co: "Vercel", amt: "−$842.10", state: "pending" },
+            { co: "AWS", amt: "−$3,201.55", state: "settled" },
+            { co: "Customer 4012", amt: "+$980.00", state: "settled" },
+            { co: "Payroll", amt: "−$48,200.00", state: "scheduled" },
+          ]
+            .map(
+              (t) =>
+                `<div class="mb-tx ${t.state}"><span class="mb-tx-co">${esc(t.co)}</span><span class="mb-tx-state">${esc(t.state)}</span><span class="mb-tx-amt">${esc(t.amt)}</span></div>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "security-layer":
@@ -838,7 +1346,12 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
             ["Encrypted at rest", "AES-256 across every record."],
             ["Audit-ready logs", "Every action signed & timestamped."],
             ["Role-based access", "Least-privilege by default."],
-          ].map(([t, d]) => `<article class="mb-card mb-card-security"><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}
+          ]
+            .map(
+              ([t, d]) =>
+                `<article class="mb-card mb-card-security"><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "trust-graph":
@@ -846,9 +1359,9 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2">Trust graph</h2>
         <p class="mb-sub">Every identity is the sum of its verifiable signals. We show the graph; you keep the keys.</p>
         <div class="mb-graph">
-          ${[
-            "Government ID", "Phone", "Email", "Domain", "Employer", "Bank", "Address", "Social",
-          ].map((n, i) => `<span class="mb-graph-node n${i % 4}">${esc(n)}</span>`).join("")}
+          ${["Government ID", "Phone", "Email", "Domain", "Employer", "Bank", "Address", "Social"]
+            .map((n, i) => `<span class="mb-graph-node n${i % 4}">${esc(n)}</span>`)
+            .join("")}
         </div>
       </section>`;
     case "compliance-cards":
@@ -859,7 +1372,11 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
             ["KYC", "Document + biometric verification with liveness."],
             ["AML", "Continuous screening against 200+ sanctions lists."],
             ["GDPR / CCPA", "Per-record consent + audit trail by default."],
-          ].map(([t, d]) => `<article class="mb-card"><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}
+          ]
+            .map(
+              ([t, d]) => `<article class="mb-card"><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "activity-timeline":
@@ -871,7 +1388,11 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
             ["08:22", "Signal correlated: employer + bank match"],
             ["09:01", "Manual review escalated for #4022"],
             ["09:18", "Sanctions list refresh — 0 hits"],
-          ].map(([t, w]) => `<li><span class="mb-time">${esc(t)}</span><span>${esc(w)}</span></li>`).join("")}
+          ]
+            .map(
+              ([t, w]) => `<li><span class="mb-time">${esc(t)}</span><span>${esc(w)}</span></li>`,
+            )
+            .join("")}
         </ol>
       </section>`;
     case "game-cards":
@@ -879,10 +1400,15 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2 neon">Featured games</h2>
         <div class="mb-grid mb-grid-3">
           ${[
-            ["Neon Drift",   "Arcade racer · 2–8 players"],
-            ["Skyfall Ops",  "Tactical shooter · 5v5"],
-            ["Lumen Quest",  "Co-op puzzle · 1–4 players"],
-          ].map(([t, d]) => `<article class="mb-card mb-card-game"><div class="mb-card-mark"></div><h3>${esc(t)}</h3><p>${esc(d)}</p><button type="button" class="mb-cta sm neon">Play</button></article>`).join("")}
+            ["Neon Drift", "Arcade racer · 2–8 players"],
+            ["Skyfall Ops", "Tactical shooter · 5v5"],
+            ["Lumen Quest", "Co-op puzzle · 1–4 players"],
+          ]
+            .map(
+              ([t, d]) =>
+                `<article class="mb-card mb-card-game"><div class="mb-card-mark"></div><h3>${esc(t)}</h3><p>${esc(d)}</p><button type="button" class="mb-cta sm neon">Play</button></article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "leaderboard":
@@ -890,12 +1416,17 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2 neon">Leaderboard</h2>
         <ol class="mb-leaderboard">
           ${[
-            ["@nyx",     "12,402 pts"],
-            ["@atlas",   "11,980 pts"],
-            ["@vesper",  "11,510 pts"],
-            ["@rune",    "10,884 pts"],
+            ["@nyx", "12,402 pts"],
+            ["@atlas", "11,980 pts"],
+            ["@vesper", "11,510 pts"],
+            ["@rune", "10,884 pts"],
             ["@halcyon", "10,201 pts"],
-          ].map(([h, s], i) => `<li><span class="mb-rank">#${i + 1}</span><span class="mb-handle">${esc(h)}</span><span class="mb-score">${esc(s)}</span></li>`).join("")}
+          ]
+            .map(
+              ([h, s], i) =>
+                `<li><span class="mb-rank">#${i + 1}</span><span class="mb-handle">${esc(h)}</span><span class="mb-score">${esc(s)}</span></li>`,
+            )
+            .join("")}
         </ol>
       </section>`;
     case "community-cta":
@@ -912,38 +1443,77 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
             ["Built with intent", `Tailored for the shape of ${name}.`],
             ["Designed for clarity", "Calm interfaces, fewer modals, sharper defaults."],
             ["Ready to evolve", "Each section is a real building block, not a placeholder."],
-          ].map(([t, d], i) => `<article class="mb-card"><span class="mb-card-num">0${i + 1}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}
+          ]
+            .map(
+              ([t, d], i) =>
+                `<article class="mb-card"><span class="mb-card-num">0${i + 1}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "pricing-tiers": {
-      const tiers = shuffle([
-        { n: "Starter",      p: "$0",   blurb: "For solo builders just getting traction.",   feats: ["1 workspace", "Community support", "Basic analytics"] },
-        { n: "Team",         p: "$24",  blurb: "Small teams shipping every week.",            feats: ["Unlimited projects", "Priority support", "Audit log", "Roles"] },
-        { n: "Scale",        p: "$98",  blurb: "Operating teams that need guarantees.",       feats: ["SSO + SCIM", "99.99% SLA", "Dedicated CSM", "Custom contracts"] },
-      ], rnd);
+      const tiers = shuffle(
+        [
+          {
+            n: "Starter",
+            p: "$0",
+            blurb: "For solo builders just getting traction.",
+            feats: ["1 workspace", "Community support", "Basic analytics"],
+          },
+          {
+            n: "Team",
+            p: "$24",
+            blurb: "Small teams shipping every week.",
+            feats: ["Unlimited projects", "Priority support", "Audit log", "Roles"],
+          },
+          {
+            n: "Scale",
+            p: "$98",
+            blurb: "Operating teams that need guarantees.",
+            feats: ["SSO + SCIM", "99.99% SLA", "Dedicated CSM", "Custom contracts"],
+          },
+        ],
+        rnd,
+      );
       return `<section id="pricing" class="mb-section">
         <h2 class="mb-h2">Pricing</h2>
         <p class="mb-sub">Honest tiers. No surprise overages.</p>
         <div class="mb-grid mb-grid-3">
-          ${tiers.map((t, i) => `<article class="mb-card mb-card-tier${i === 1 ? " featured" : ""}">
+          ${tiers
+            .map(
+              (t, i) => `<article class="mb-card mb-card-tier${i === 1 ? " featured" : ""}">
             <h3>${esc(t.n)}</h3>
             <div class="mb-tier-price">${esc(t.p)}<span>/mo</span></div>
             <p>${esc(t.blurb)}</p>
             <ul class="mb-checklist">${t.feats.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
             <button type="button" class="mb-cta sm">${esc(copy.primaryCta, 40)}</button>
-          </article>`).join("")}
+          </article>`,
+            )
+            .join("")}
         </div>
       </section>`;
     }
     case "faq-accordion": {
-      const faqs = shuffle([
-        ["Is my data encrypted?", "Yes — AES-256 at rest, TLS 1.3 in transit, and per-tenant keys."],
-        ["How do you handle exports?", "One-click CSV/JSON export from every table. No vendor lock-in."],
-        ["Do you offer SSO?", "SAML SSO and SCIM provisioning are included on Scale and above."],
-        ["What's your uptime?", "99.99% measured SLA with public status history."],
-        ["Can I self-host?", "Self-hosted runtime is available for Scale customers under contract."],
-        ["Is there a free trial?", "Yes — 14 days, full feature access, no credit card."],
-      ], rnd).slice(0, 5);
+      const faqs = shuffle(
+        [
+          [
+            "Is my data encrypted?",
+            "Yes — AES-256 at rest, TLS 1.3 in transit, and per-tenant keys.",
+          ],
+          [
+            "How do you handle exports?",
+            "One-click CSV/JSON export from every table. No vendor lock-in.",
+          ],
+          ["Do you offer SSO?", "SAML SSO and SCIM provisioning are included on Scale and above."],
+          ["What's your uptime?", "99.99% measured SLA with public status history."],
+          [
+            "Can I self-host?",
+            "Self-hosted runtime is available for Scale customers under contract.",
+          ],
+          ["Is there a free trial?", "Yes — 14 days, full feature access, no credit card."],
+        ],
+        rnd,
+      ).slice(0, 5);
       return `<section id="faq" class="mb-section">
         <h2 class="mb-h2">Frequently asked</h2>
         <div class="mb-faq">
@@ -952,25 +1522,51 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
       </section>`;
     }
     case "testimonial-wall": {
-      const quotes = shuffle([
-        { q: `${name} replaced four tools in our stack. We didn't expect that.`, a: "Lena V.", r: "VP Eng, Northwind" },
-        { q: `The team ships like it's a personal project. Rare and great.`,    a: "Marcus T.", r: "Founder, Atlas" },
-        { q: `Best onboarding I've done in years. We were live the same day.`,   a: "Priya R.", r: "Head of Ops, Quill" },
-        { q: `Quiet, clear, and unreasonably reliable.`,                          a: "Jordan B.", r: "CTO, Field" },
-        { q: `It feels like the product knows what we want before we do.`,        a: "Aiko S.",  r: "PM, Lumen" },
-      ], rnd).slice(0, 3);
+      const quotes = shuffle(
+        [
+          {
+            q: `${name} replaced four tools in our stack. We didn't expect that.`,
+            a: "Lena V.",
+            r: "VP Eng, Northwind",
+          },
+          {
+            q: `The team ships like it's a personal project. Rare and great.`,
+            a: "Marcus T.",
+            r: "Founder, Atlas",
+          },
+          {
+            q: `Best onboarding I've done in years. We were live the same day.`,
+            a: "Priya R.",
+            r: "Head of Ops, Quill",
+          },
+          { q: `Quiet, clear, and unreasonably reliable.`, a: "Jordan B.", r: "CTO, Field" },
+          {
+            q: `It feels like the product knows what we want before we do.`,
+            a: "Aiko S.",
+            r: "PM, Lumen",
+          },
+        ],
+        rnd,
+      ).slice(0, 3);
       return `<section id="testimonials" class="mb-section">
         <h2 class="mb-h2">Trusted by teams that ship</h2>
         <div class="mb-grid mb-grid-3">
-          ${quotes.map((t) => `<figure class="mb-card mb-card-quote">
+          ${quotes
+            .map(
+              (t) => `<figure class="mb-card mb-card-quote">
             <blockquote>“${esc(t.q)}”</blockquote>
             <figcaption><strong>${esc(t.a)}</strong><span>${esc(t.r)}</span></figcaption>
-          </figure>`).join("")}
+          </figure>`,
+            )
+            .join("")}
         </div>
       </section>`;
     }
     case "logo-strip": {
-      const logos = shuffle(["northwind", "atlas", "quill", "field", "orbit", "lumen", "halo", "ember", "nyx"], rnd).slice(0, 6);
+      const logos = shuffle(
+        ["northwind", "atlas", "quill", "field", "orbit", "lumen", "halo", "ember", "nyx"],
+        rnd,
+      ).slice(0, 6);
       return `<section class="mb-section mb-logos" aria-label="Customer logos">
         <p class="mb-logos-eyebrow">Trusted by teams at</p>
         <div class="mb-logos-row">${logos.map((l) => `<span class="mb-logo">${esc(l)}</span>`).join("")}</div>
@@ -1010,7 +1606,12 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
 // CSS
 // ---------------------------------------------------------------------------
 
-function renderCss(theme: Theme & { _hue?: number }, archetype: Archetype, projectId: string, fp?: VisualFingerprint | null): string {
+function renderCss(
+  theme: Theme & { _hue?: number },
+  archetype: Archetype,
+  projectId: string,
+  fp?: VisualFingerprint | null,
+): string {
   const hue = theme._hue ?? Math.abs(hash(projectId)) % 360;
   const palette = fp ? PALETTES[fp.palette] : null;
   const typo = fp ? TYPOGRAPHY[fp.typography] : null;
@@ -1264,8 +1865,10 @@ const THEMES_DISPLAY_INTER = `"Inter", system-ui, sans-serif`;
  */
 function modeCss(fp: VisualFingerprint): string {
   const shape = fp.shapeLanguage;
-  const radius = shape === "blocky" ? "0px" : shape === "sharp" ? "4px" : shape === "pill" ? "999px" : "14px";
-  const btnRadius = shape === "blocky" ? "0px" : shape === "sharp" ? "4px" : shape === "pill" ? "999px" : "12px";
+  const radius =
+    shape === "blocky" ? "0px" : shape === "sharp" ? "4px" : shape === "pill" ? "999px" : "14px";
+  const btnRadius =
+    shape === "blocky" ? "0px" : shape === "sharp" ? "4px" : shape === "pill" ? "999px" : "12px";
   const base = `
 .mb-mode .mb-cta{border-radius:${btnRadius}}
 .mb-mode .mb-card{border-radius:${radius}}
@@ -1273,7 +1876,9 @@ function modeCss(fp: VisualFingerprint): string {
 `;
   switch (fp.designMode) {
     case "editorial-luxury":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-editorial-luxury .mb-nav{background:transparent;border-bottom:1px solid rgba(0,0,0,.08)}
 .mb-mode-editorial-luxury .mb-nav-cta{background:var(--accent);color:#fff}
 .mb-hero-editorial{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:start;padding-top:120px}
@@ -1284,9 +1889,12 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-hero-editorial .mb-edl-chip{font-family:${TYPOGRAPHY[fp.typography].body};font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:24px}
 .mb-hero-editorial .mb-edl-pull{font-family:${TYPOGRAPHY[fp.typography].display};font-style:italic;font-size:24px;line-height:1.3;color:var(--fg)}
 @media(max-width:760px){.mb-hero-editorial{grid-template-columns:1fr}}
-`;
+`
+      );
     case "glass-dashboard":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-glass-dashboard .mb-nav{background:rgba(14,19,22,.72);backdrop-filter:blur(14px) saturate(160%)}
 .mb-hero-dashboard{display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center}
 .mb-hero-dashboard::before{content:"";position:absolute;inset:-30% -10% auto auto;width:60%;height:120%;background:radial-gradient(closest-side,color-mix(in oklab,var(--accent) 22%,transparent),transparent 70%);pointer-events:none;filter:blur(40px)}
@@ -1298,9 +1906,12 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-dash-val{font-family:${TYPOGRAPHY[fp.typography].display};font-size:32px;color:var(--fg);letter-spacing:-.02em}
 .mb-dash-lab{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.18em;margin-top:6px}
 @media(max-width:760px){.mb-hero-dashboard{grid-template-columns:1fr}}
-`;
+`
+      );
     case "civic-map":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-civic-map .mb-nav{background:rgba(10,26,46,.85)}
 .mb-hero-map{min-height:560px;padding:120px 32px}
 .mb-map-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,color-mix(in oklab,var(--accent) 14%,transparent),transparent 60%),linear-gradient(180deg,#0a1a2e 0%,#173052 100%);pointer-events:none}
@@ -1313,9 +1924,12 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-map-card{position:relative;max-width:560px;background:rgba(10,26,46,.78);backdrop-filter:blur(12px);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);border-radius:24px;padding:32px}
 .mb-map-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(32px,4.4vw,48px);line-height:1.08;margin:14px 0 14px;color:var(--fg);background:none;-webkit-text-fill-color:initial}
 .mb-map-lede{color:var(--muted);font-size:16px;margin:0 0 22px}
-`;
+`
+      );
     case "neon-command":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-neon-command{background:radial-gradient(ellipse at top,color-mix(in oklab,var(--accent) 12%,transparent),transparent 60%),var(--bg)}
 .mb-mode-neon-command .mb-nav{background:rgba(6,5,13,.86);border-bottom:1px solid color-mix(in oklab,var(--accent) 30%,transparent)}
 .mb-hero-terminal{max-width:980px;background:#0a0817;border:1px solid color-mix(in oklab,var(--accent) 40%,transparent);border-radius:14px;padding:0;overflow:hidden;box-shadow:0 0 0 1px color-mix(in oklab,var(--accent) 20%,transparent),0 40px 100px -40px var(--ring)}
@@ -1327,9 +1941,12 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-term-line.dim{color:var(--muted)}
 .mb-term-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(34px,4.6vw,52px);color:var(--fg);margin:18px 0 14px;letter-spacing:-.01em;line-height:1.1;text-shadow:0 0 32px color-mix(in oklab,var(--accent) 60%,transparent);background:none;-webkit-text-fill-color:initial}
 .mb-term-lede{color:var(--muted);font-family:${TYPOGRAPHY[fp.typography].body};font-size:15px;margin:0 0 22px;max-width:560px}
-`;
+`
+      );
     case "magazine-cards":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-magazine-cards .mb-nav{background:transparent;border-bottom:1px solid rgba(43,26,20,.12)}
 .mb-hero-magazine{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:center;padding-top:96px}
 .mb-mag-portrait{aspect-ratio:3/4;background:linear-gradient(160deg,var(--accent) 0%,var(--accent-2) 100%);border-radius:24px;display:grid;place-items:center;box-shadow:0 40px 80px -40px var(--ring)}
@@ -1338,9 +1955,12 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-mag-title{font-family:${TYPOGRAPHY[fp.typography].display};font-size:clamp(48px,7vw,88px);line-height:.96;letter-spacing:-.03em;color:var(--fg);margin:0 0 22px;background:none;-webkit-text-fill-color:initial}
 .mb-mag-lede{color:var(--muted);font-size:18px;max-width:520px;margin:0 0 28px;column-count:1}
 @media(max-width:760px){.mb-hero-magazine{grid-template-columns:1fr}.mb-mag-mono{font-size:120px}}
-`;
+`
+      );
     case "minimal-light":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-minimal-light .mb-nav{background:rgba(250,250,250,.84);border-bottom:1px solid rgba(10,10,10,.06)}
 .mb-mode-minimal-light .mb-nav-cta{background:#0a0a0a;color:#fff}
 .mb-hero-minimal{max-width:780px;padding:160px 32px 80px}
@@ -1350,9 +1970,12 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-min-rule{margin:64px 0 0;border:0;height:1px;background:rgba(10,10,10,.1)}
 .mb-mode-minimal-light .mb-cta{background:#0a0a0a;color:#fff;box-shadow:none}
 .mb-mode-minimal-light .mb-cta.ghost{background:transparent;color:#0a0a0a;border:1px solid rgba(10,10,10,.18)}
-`;
+`
+      );
     case "brutalist-data":
-      return base + `
+      return (
+        base +
+        `
 .mb-mode-brutalist-data{background:var(--bg)}
 .mb-mode-brutalist-data .mb-nav{background:#1c1c1c;border-bottom:2px solid var(--accent);font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;font-size:11px}
 .mb-hero-brutalist{padding:96px 32px}
@@ -1366,7 +1989,8 @@ function modeCss(fp: VisualFingerprint): string {
 .mb-brut-cell{padding:32px 18px;border-right:2px solid var(--fg);text-align:center;font-family:ui-monospace,monospace;font-size:13px;letter-spacing:.18em;color:var(--accent);background:var(--surface)}
 .mb-brut-cell:last-child{border-right:0}
 @media(max-width:760px){.mb-brut-grid{grid-template-columns:repeat(2,1fr)}}
-`;
+`
+      );
     default:
       return "";
   }
@@ -1407,7 +2031,12 @@ function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: strin
   const safeName = esc(name, 200);
   const fp = blueprint.fingerprint;
   const safeArchetype = esc(blueprint.archetype, 40);
-  const css = renderCss(blueprint.theme as Theme & { _hue?: number }, blueprint.archetype, seedBasis, fp);
+  const css = renderCss(
+    blueprint.theme as Theme & { _hue?: number },
+    blueprint.archetype,
+    seedBasis,
+    fp,
+  );
   const heroOverride = renderModeHero(fp, name, blueprint.copy);
   const sectionsHtml = blueprint.sections
     .map((k, i) => {
@@ -1450,8 +2079,8 @@ function renderHtml(blueprint: Blueprint, project: ProjectLike, seedBasis: strin
 /** Render a mode-distinct hero. Returns null when no override applies. */
 function renderModeHero(fp: VisualFingerprint, name: string, copy: Copy): string | null {
   const eyebrow = esc(copy.eyebrow, 80);
-  const title   = esc(copy.title, 240);
-  const lede    = esc(copy.lede, 600);
+  const title = esc(copy.title, 240);
+  const lede = esc(copy.lede, 600);
   const primary = esc(copy.primaryCta, 40);
   const secondary = esc(copy.secondaryCta, 40);
   const safeName = esc(name, 80);
@@ -1478,7 +2107,13 @@ function renderModeHero(fp: VisualFingerprint, name: string, copy: Copy): string
           <div class="mb-cta-row"><button type="button" class="mb-cta">${primary}</button><button type="button" class="mb-cta ghost">${secondary}</button></div>
         </header>
         <div class="mb-dash-grid" aria-hidden="true">
-          ${copy.metricLabels.slice(0, 4).map((l, i) => `<div class="mb-dash-card"><div class="mb-dash-val">${esc(copy.metricValues[i] ?? "—", 24)}</div><div class="mb-dash-lab">${esc(l, 40)}</div></div>`).join("")}
+          ${copy.metricLabels
+            .slice(0, 4)
+            .map(
+              (l, i) =>
+                `<div class="mb-dash-card"><div class="mb-dash-val">${esc(copy.metricValues[i] ?? "—", 24)}</div><div class="mb-dash-lab">${esc(l, 40)}</div></div>`,
+            )
+            .join("")}
         </div>
       </section>`;
     case "map-impact":
@@ -1546,15 +2181,15 @@ function renderModeHero(fp: VisualFingerprint, name: string, copy: Copy): string
 
 const HERO_VARIANTS: Record<Archetype, SectionKey[]> = {
   "social-good": ["hero-spotlight", "hero-glass", "hero-default"],
-  corporate:     ["hero-glass", "hero-spotlight", "hero-default"],
-  jobs:          ["hero-search", "hero-default", "hero-spotlight"],
-  fintech:       ["hero-finance", "hero-default", "hero-glass"],
-  identity:      ["hero-identity", "hero-spotlight", "hero-default"],
-  gaming:        ["hero-gaming", "hero-spotlight", "hero-default"],
-  saas:          ["hero-default", "hero-glass", "hero-spotlight"],
-  portfolio:     ["hero-spotlight", "hero-default", "hero-glass"],
-  marketplace:   ["hero-search", "hero-spotlight", "hero-default"],
-  default:       ["hero-default", "hero-spotlight", "hero-glass"],
+  corporate: ["hero-glass", "hero-spotlight", "hero-default"],
+  jobs: ["hero-search", "hero-default", "hero-spotlight"],
+  fintech: ["hero-finance", "hero-default", "hero-glass"],
+  identity: ["hero-identity", "hero-spotlight", "hero-default"],
+  gaming: ["hero-gaming", "hero-spotlight", "hero-default"],
+  saas: ["hero-default", "hero-glass", "hero-spotlight"],
+  portfolio: ["hero-spotlight", "hero-default", "hero-glass"],
+  marketplace: ["hero-search", "hero-spotlight", "hero-default"],
+  default: ["hero-default", "hero-spotlight", "hero-glass"],
 };
 
 /** Apply seed-driven variance: swap hero variant + shuffle middle sections. */
@@ -1584,7 +2219,9 @@ export function designSignature(
   context?: MonsterBrainContext | null,
 ): string {
   const seedBasis = buildSeedBasis(project, context);
-  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  const previous = context?.previousIndexHtml
+    ? parseVisualFingerprintFromHtml(context.previousIndexHtml)
+    : null;
   const fp = chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
   const seedTag = context?.regenerationSeed
     ? `:seed${Math.abs(hash(context.regenerationSeed)).toString(36).slice(0, 6)}`
@@ -1600,7 +2237,9 @@ export function computeVisualFingerprint(
 ): VisualFingerprint {
   const archetype = inferProjectArchetype(project, context ?? null);
   const seedBasis = buildSeedBasis(project, context);
-  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  const previous = context?.previousIndexHtml
+    ? parseVisualFingerprintFromHtml(context.previousIndexHtml)
+    : null;
   return chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
 }
 
@@ -1614,9 +2253,19 @@ export function generateProjectFiles(
   const theme = shiftedTheme(baseTheme, seedBasis);
   const copy = copyFor(archetype, project);
   const baseSections = sectionsFor(archetype);
-  const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant) || Boolean(context?.designMode);
-  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
+  const variance =
+    Boolean(context?.regenerationSeed) ||
+    Boolean(context?.forceVariant) ||
+    Boolean(context?.designMode);
+  const previous = context?.previousIndexHtml
+    ? parseVisualFingerprintFromHtml(context.previousIndexHtml)
+    : null;
+  const fingerprint = chooseVisualFingerprint(
+    archetype,
+    seedBasis,
+    previous,
+    context?.designMode ?? null,
+  );
   const sections = variance
     ? fingerprint.sectionOrder
     : applyVariance(baseSections, archetype, seedBasis, false);
@@ -1627,9 +2276,9 @@ export function generateProjectFiles(
   const js = renderJs(project.name ?? "Untitled", archetype);
 
   return [
-    { path: "app.css",    content: css,  language: "css",        kind: "source" },
-    { path: "app.js",     content: js,   language: "javascript", kind: "source" },
-    { path: "index.html", content: html, language: "html",       kind: "source" },
+    { path: "app.css", content: css, language: "css", kind: "source" },
+    { path: "app.js", content: js, language: "javascript", kind: "source" },
+    { path: "index.html", content: html, language: "html", kind: "source" },
   ];
 }
 
@@ -1638,7 +2287,10 @@ export function generateProjectFiles(
 // ---------------------------------------------------------------------------
 
 export interface ProjectGenerator {
-  generate(project: ProjectLike, context?: MonsterBrainContext | null): Promise<GeneratedProjectFile[]> | GeneratedProjectFile[];
+  generate(
+    project: ProjectLike,
+    context?: MonsterBrainContext | null,
+  ): Promise<GeneratedProjectFile[]> | GeneratedProjectFile[];
 }
 
 export const deterministicGenerator: ProjectGenerator = {

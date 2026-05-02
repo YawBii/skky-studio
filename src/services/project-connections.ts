@@ -69,7 +69,9 @@ function rowToConnection(r: Record<string, unknown>): ProjectConnection {
   };
 }
 
-export async function listConnections(projectId: string | null | undefined): Promise<ConnectionsResult> {
+export async function listConnections(
+  projectId: string | null | undefined,
+): Promise<ConnectionsResult> {
   if (!projectId) return { connections: [], source: "no-project" };
   try {
     const { data, error } = await supabase
@@ -79,7 +81,12 @@ export async function listConnections(projectId: string | null | undefined): Pro
       .order("created_at", { ascending: false });
     if (error) {
       if (isMissingTable(error)) {
-        return { connections: [], source: "table-missing", error: error.message, sqlFile: SQL_FILE };
+        return {
+          connections: [],
+          source: "table-missing",
+          error: error.message,
+          sqlFile: SQL_FILE,
+        };
       }
       return { connections: [], source: "error", error: error.message };
     }
@@ -121,9 +128,9 @@ export async function createConnection(input: {
       metadata: input.metadata ?? {},
       created_by: u.user.id,
     };
-    if (input.workspaceId !== undefined)   payload.workspace_id = input.workspaceId;
-    if (input.externalId !== undefined)    payload.external_id = input.externalId;
-    if (input.url !== undefined)           payload.url = input.url;
+    if (input.workspaceId !== undefined) payload.workspace_id = input.workspaceId;
+    if (input.externalId !== undefined) payload.external_id = input.externalId;
+    if (input.url !== undefined) payload.url = input.url;
     if (input.tokenOwnerType !== undefined) payload.token_owner_type = input.tokenOwnerType;
 
     const { data, error } = await supabase
@@ -134,7 +141,13 @@ export async function createConnection(input: {
 
     if (error) {
       if (isMissingTable(error)) {
-        return { ok: false, error: error.message, code: error.code, tableMissing: true, sqlFile: SQL_FILE };
+        return {
+          ok: false,
+          error: error.message,
+          code: error.code,
+          tableMissing: true,
+          sqlFile: SQL_FILE,
+        };
       }
       return { ok: false, error: error.message, code: error.code };
     }
@@ -205,10 +218,13 @@ export async function upsertConnection(input: {
         repo_full_name: input.repoFullName ?? existing.repo_full_name,
         repo_url: input.repoUrl ?? existing.repo_url,
         default_branch: input.defaultBranch ?? existing.default_branch,
-        metadata: { ...(existing.metadata as Record<string, unknown> ?? {}), ...(input.metadata ?? {}) },
+        metadata: {
+          ...((existing.metadata as Record<string, unknown>) ?? {}),
+          ...(input.metadata ?? {}),
+        },
         updated_at: new Date().toISOString(),
       };
-      if (input.workspaceId !== undefined)    patch.workspace_id = input.workspaceId;
+      if (input.workspaceId !== undefined) patch.workspace_id = input.workspaceId;
       if (input.tokenOwnerType !== undefined) patch.token_owner_type = input.tokenOwnerType;
       const { data, error } = await supabase
         .from("project_connections")

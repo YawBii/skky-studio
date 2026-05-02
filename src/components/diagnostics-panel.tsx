@@ -30,8 +30,12 @@ export function DiagnosticsPanel() {
       ta.value = report;
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand("copy"); toast.success("Diagnostics copied"); }
-      catch { toast.error("Couldn't copy. Select the text manually."); }
+      try {
+        document.execCommand("copy");
+        toast.success("Diagnostics copied");
+      } catch {
+        toast.error("Couldn't copy. Select the text manually.");
+      }
       document.body.removeChild(ta);
     }
   }
@@ -41,7 +45,7 @@ export function DiagnosticsPanel() {
       state.workspaceInsertError ||
       state.workspaceSelectError ||
       state.projectInsertError ||
-      state.projectSelectError
+      state.projectSelectError,
     );
     return (
       <button
@@ -56,7 +60,11 @@ export function DiagnosticsPanel() {
       >
         <Bug className="h-3 w-3" />
         Diagnostics
-        {hasError && <span className="ml-1 rounded-full bg-destructive px-1.5 text-[9px] text-destructive-foreground">!</span>}
+        {hasError && (
+          <span className="ml-1 rounded-full bg-destructive px-1.5 text-[9px] text-destructive-foreground">
+            !
+          </span>
+        )}
       </button>
     );
   }
@@ -78,7 +86,10 @@ export function DiagnosticsPanel() {
           </button>
           <button
             type="button"
-            onClick={() => { clearDiag(); toast("Diagnostics cleared"); }}
+            onClick={() => {
+              clearDiag();
+              toast("Diagnostics cleared");
+            }}
             className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[11px] hover:bg-white/5"
             title="Clear captured state and events"
           >
@@ -127,9 +138,14 @@ export function DiagnosticsPanel() {
           ) : (
             <div className="space-y-1.5">
               {events.map((e, i) => (
-                <details key={i} className="rounded border border-white/5 bg-white/[0.02] px-2 py-1">
+                <details
+                  key={i}
+                  className="rounded border border-white/5 bg-white/[0.02] px-2 py-1"
+                >
                   <summary className="cursor-pointer text-[11px]">
-                    <span className="text-muted-foreground">{new Date(e.ts).toLocaleTimeString()}</span>{" "}
+                    <span className="text-muted-foreground">
+                      {new Date(e.ts).toLocaleTimeString()}
+                    </span>{" "}
                     <span className="text-foreground">{e.label}</span>
                   </summary>
                   <pre className="mt-1 whitespace-pre-wrap break-all text-[10.5px] text-muted-foreground">
@@ -148,7 +164,9 @@ export function DiagnosticsPanel() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-3">
-      <h3 className="mb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.22em] text-muted-foreground">{title}</h3>
+      <h3 className="mb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -167,14 +185,18 @@ function Block({ label, v, error }: { label: string; v: unknown; error?: boolean
   const empty = v === undefined || v === null;
   return (
     <div className="mb-1">
-      <div className={`text-[10.5px] uppercase tracking-[0.16em] ${error && !empty ? "text-destructive" : "text-muted-foreground"}`}>
+      <div
+        className={`text-[10.5px] uppercase tracking-[0.16em] ${error && !empty ? "text-destructive" : "text-muted-foreground"}`}
+      >
         {label}
       </div>
-      <pre className={`mt-0.5 whitespace-pre-wrap break-all rounded border px-2 py-1 text-[10.5px] ${
-        error && !empty
-          ? "border-destructive/30 bg-destructive/10 text-destructive"
-          : "border-white/5 bg-white/[0.02] text-muted-foreground"
-      }`}>
+      <pre
+        className={`mt-0.5 whitespace-pre-wrap break-all rounded border px-2 py-1 text-[10.5px] ${
+          error && !empty
+            ? "border-destructive/30 bg-destructive/10 text-destructive"
+            : "border-white/5 bg-white/[0.02] text-muted-foreground"
+        }`}
+      >
         {empty ? "—" : safeStringify(v)}
       </pre>
     </div>
@@ -189,5 +211,9 @@ function fmt(v: unknown): string {
 }
 
 function safeStringify(v: unknown): string {
-  try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
 }

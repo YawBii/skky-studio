@@ -49,14 +49,24 @@ const ARCHETYPE_TO_CATEGORY: Record<Archetype, ProjectCategory> = {
   default: "generic",
 };
 
-export function detectCategory(input: { name: string; description?: string | null; chatRequest?: string | null }): ProjectCategory {
+export function detectCategory(input: {
+  name: string;
+  description?: string | null;
+  chatRequest?: string | null;
+}): ProjectCategory {
   const arch = inferProjectArchetype(
     { id: input.name, name: input.name, description: input.description ?? null },
     { chatRequest: input.chatRequest ?? null },
   );
   // Domain-specific mappings to keep legacy tests stable.
-  if (/\bskkylab|studio|creative|lab\b/i.test(`${input.name} ${input.description ?? ""}`)) return "studio";
-  if (/\b(directory|index|catalog|profiles?|people|community|leaders?|influencers?|popular|lastman)\b/i.test(`${input.name} ${input.description ?? ""}`)) return "directory";
+  if (/\bskkylab|studio|creative|lab\b/i.test(`${input.name} ${input.description ?? ""}`))
+    return "studio";
+  if (
+    /\b(directory|index|catalog|profiles?|people|community|leaders?|influencers?|popular|lastman)\b/i.test(
+      `${input.name} ${input.description ?? ""}`,
+    )
+  )
+    return "directory";
   return ARCHETYPE_TO_CATEGORY[arch];
 }
 

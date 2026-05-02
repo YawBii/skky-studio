@@ -9,8 +9,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const AI_PLANNER_NOT_CONFIGURED_ERROR =
-  "AI planner provider is not configured.";
+export const AI_PLANNER_NOT_CONFIGURED_ERROR = "AI planner provider is not configured.";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
@@ -50,7 +49,13 @@ export interface PlanContext {
   project: { id: string; name: string | null; description: string | null } | null;
   selectedPage: string | null;
   selectedEnvironment: string | null;
-  recentJobs: Array<{ id: string; type: string; status: string; createdAt: string; error: string | null }>;
+  recentJobs: Array<{
+    id: string;
+    type: string;
+    status: string;
+    createdAt: string;
+    error: string | null;
+  }>;
   latestProofs: Array<{ jobId: string; stepKey: string; output: Record<string, unknown> }>;
   github: { connected: boolean; repo?: string | null };
   vercel: { connected: boolean; project?: string | null; deployUrl?: string | null };
@@ -90,18 +95,34 @@ export async function gatherPlanContext(
 
   try {
     const { data, error } = await sb
-      .from("projects").select("id,name,description").eq("id", args.projectId).maybeSingle();
+      .from("projects")
+      .select("id,name,description")
+      .eq("id", args.projectId)
+      .maybeSingle();
     if (error || !data) missing.push("project");
-    else { projectRow = data as unknown as ProjectRow; sources.push("projects"); }
-  } catch { missing.push("project"); }
+    else {
+      projectRow = data as unknown as ProjectRow;
+      sources.push("projects");
+    }
+  } catch {
+    missing.push("project");
+  }
 
   if (args.workspaceId) {
     try {
       const { data, error } = await sb
-        .from("workspaces").select("id,name").eq("id", args.workspaceId).maybeSingle();
+        .from("workspaces")
+        .select("id,name")
+        .eq("id", args.workspaceId)
+        .maybeSingle();
       if (error || !data) missing.push("workspace");
-      else { workspaceRow = data as unknown as WorkspaceRow; sources.push("workspaces"); }
-    } catch { missing.push("workspace"); }
+      else {
+        workspaceRow = data as unknown as WorkspaceRow;
+        sources.push("workspaces");
+      }
+    } catch {
+      missing.push("workspace");
+    }
   } else {
     missing.push("workspace");
   }
@@ -119,11 +140,16 @@ export async function gatherPlanContext(
     else {
       sources.push("project_jobs");
       recentJobs = (data ?? []).map((r) => ({
-        id: String(r.id), type: String(r.type), status: String(r.status),
-        createdAt: String(r.created_at), error: (r.error as string | null) ?? null,
+        id: String(r.id),
+        type: String(r.type),
+        status: String(r.status),
+        createdAt: String(r.created_at),
+        error: (r.error as string | null) ?? null,
       }));
     }
-  } catch { missing.push("recent_jobs"); }
+  } catch {
+    missing.push("recent_jobs");
+  }
 
   // Latest proofs: take outputs from the most recent succeeded steps across recent jobs.
   let latestProofs: PlanContext["latestProofs"] = [];
@@ -147,7 +173,9 @@ export async function gatherPlanContext(
         }));
       }
     }
-  } catch { missing.push("step_proofs"); }
+  } catch {
+    missing.push("step_proofs");
+  }
 
   // Connections (github / vercel / supabase)
   let github: PlanContext["github"] = { connected: false };
@@ -168,14 +196,22 @@ export async function gatherPlanContext(
         if (provider === "github") {
           github = {
             connected,
-            repo: typeof meta.repo === "string" ? meta.repo
-              : typeof meta.fullName === "string" ? meta.fullName : null,
+            repo:
+              typeof meta.repo === "string"
+                ? meta.repo
+                : typeof meta.fullName === "string"
+                  ? meta.fullName
+                  : null,
           };
         } else if (provider === "vercel") {
           vercel = {
             connected,
-            project: typeof meta.projectName === "string" ? meta.projectName
-              : typeof meta.projectId === "string" ? meta.projectId : null,
+            project:
+              typeof meta.projectName === "string"
+                ? meta.projectName
+                : typeof meta.projectId === "string"
+                  ? meta.projectId
+                  : null,
             deployUrl: (row.url as string | null) ?? null,
           };
         } else if (provider === "supabase") {
@@ -183,7 +219,9 @@ export async function gatherPlanContext(
         }
       }
     }
-  } catch { missing.push("connections"); }
+  } catch {
+    missing.push("connections");
+  }
 
   return {
     context: {
@@ -228,12 +266,26 @@ const PLAN_TOOL = {
               risk: { type: "string", enum: ["low", "medium", "high"] },
               category: {
                 type: "string",
-                enum: ["build_next", "improve_quality", "fix_failure", "publish_deploy", "inspect_proof"],
+                enum: [
+                  "build_next",
+                  "improve_quality",
+                  "fix_failure",
+                  "publish_deploy",
+                  "inspect_proof",
+                ],
               },
               prompt: { type: "string", description: "Prefill chat prompt for the user to send." },
               requiredProviders: { type: "array", items: { type: "string" } },
             },
-            required: ["label", "reason", "confidence", "risk", "category", "prompt", "requiredProviders"],
+            required: [
+              "label",
+              "reason",
+              "confidence",
+              "risk",
+              "category",
+              "prompt",
+              "requiredProviders",
+            ],
             additionalProperties: false,
           },
         },
@@ -302,26 +354,51 @@ export async function runAiPlan(args: {
       }),
     });
   } catch (e) {
-    return { ok: false, error: `AI planner network error: ${e instanceof Error ? e.message : String(e)}` };
+    return {
+      ok: false,
+      error: `AI planner network error: ${e instanceof Error ? e.message : String(e)}`,
+    };
   }
 
   if (!resp.ok) {
     const text = await safeText(resp);
     if (resp.status === 429) {
-      return { ok: false, error: "AI planner rate limited (429). Try again in a moment.", httpStatus: 429, raw: text };
+      return {
+        ok: false,
+        error: "AI planner rate limited (429). Try again in a moment.",
+        httpStatus: 429,
+        raw: text,
+      };
     }
     if (resp.status === 402) {
-      return { ok: false, error: "AI planner credits exhausted (402). Add credits in Settings → Workspace → Usage.", httpStatus: 402, raw: text };
+      return {
+        ok: false,
+        error: "AI planner credits exhausted (402). Add credits in Settings → Workspace → Usage.",
+        httpStatus: 402,
+        raw: text,
+      };
     }
-    return { ok: false, error: `AI planner gateway error ${resp.status}.`, httpStatus: resp.status, raw: text };
+    return {
+      ok: false,
+      error: `AI planner gateway error ${resp.status}.`,
+      httpStatus: resp.status,
+      raw: text,
+    };
   }
 
   let body: unknown;
-  try { body = await resp.json(); }
-  catch (e) { return { ok: false, error: `AI planner returned non-JSON: ${e instanceof Error ? e.message : String(e)}` }; }
+  try {
+    body = await resp.json();
+  } catch (e) {
+    return {
+      ok: false,
+      error: `AI planner returned non-JSON: ${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
 
   const parsed = parseToolCall(body);
-  if (!parsed.ok) return { ok: false, error: parsed.error, raw: JSON.stringify(body).slice(0, 4000) };
+  if (!parsed.ok)
+    return { ok: false, error: parsed.error, raw: JSON.stringify(body).slice(0, 4000) };
 
   const durationMs = Date.now() - startedAt;
   const plan: PlanResult = {
@@ -329,7 +406,9 @@ export async function runAiPlan(args: {
     recommendedActions: normalizeActions(parsed.value.recommendedActions),
     missingContext: dedupeStrings([
       ...args.baseMissing,
-      ...((Array.isArray(parsed.value.missingContext) ? parsed.value.missingContext : []) as string[]),
+      ...((Array.isArray(parsed.value.missingContext)
+        ? parsed.value.missingContext
+        : []) as string[]),
     ]),
     proof: {
       model,
@@ -338,20 +417,33 @@ export async function runAiPlan(args: {
     },
   };
   if (!plan.recommendedActions.length) {
-    return { ok: false, error: "AI planner returned no actions.", raw: JSON.stringify(parsed.value).slice(0, 4000) };
+    return {
+      ok: false,
+      error: "AI planner returned no actions.",
+      raw: JSON.stringify(parsed.value).slice(0, 4000),
+    };
   }
   return { ok: true, plan };
 }
 
 async function safeText(r: Response): Promise<string> {
-  try { return (await r.text()).slice(0, 4000); } catch { return ""; }
+  try {
+    return (await r.text()).slice(0, 4000);
+  } catch {
+    return "";
+  }
 }
 
-function parseToolCall(body: unknown):
-  | { ok: true; value: Record<string, unknown> }
-  | { ok: false; error: string }
-{
-  const choices = (body as { choices?: Array<{ message?: { tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> } }> } | null)?.choices;
+function parseToolCall(
+  body: unknown,
+): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+  const choices = (
+    body as {
+      choices?: Array<{
+        message?: { tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> };
+      }>;
+    } | null
+  )?.choices;
   const call = choices?.[0]?.message?.tool_calls?.[0];
   if (!call?.function?.arguments) {
     return { ok: false, error: "AI planner response missing tool_calls[0].function.arguments." };
@@ -360,7 +452,10 @@ function parseToolCall(body: unknown):
     const value = JSON.parse(call.function.arguments) as Record<string, unknown>;
     return { ok: true, value };
   } catch (e) {
-    return { ok: false, error: `AI planner tool arguments not JSON: ${e instanceof Error ? e.message : String(e)}` };
+    return {
+      ok: false,
+      error: `AI planner tool arguments not JSON: ${e instanceof Error ? e.message : String(e)}`,
+    };
   }
 }
 
@@ -371,7 +466,13 @@ function normalizeActions(input: unknown): PlanRecommendedAction[] {
     if (!item || typeof item !== "object") continue;
     const o = item as Record<string, unknown>;
     const category = String(o.category ?? "build_next") as PlanCategory;
-    const allowedCat: PlanCategory[] = ["build_next", "improve_quality", "fix_failure", "publish_deploy", "inspect_proof"];
+    const allowedCat: PlanCategory[] = [
+      "build_next",
+      "improve_quality",
+      "fix_failure",
+      "publish_deploy",
+      "inspect_proof",
+    ];
     const risk = String(o.risk ?? "low") as PlanRisk;
     const allowedRisk: PlanRisk[] = ["low", "medium", "high"];
     const conf = Number(o.confidence);

@@ -98,11 +98,22 @@ export function clearDiag() {
 }
 
 function safeClone(v: unknown): unknown {
-  try { return JSON.parse(JSON.stringify(v)); } catch { return String(v); }
+  try {
+    return JSON.parse(JSON.stringify(v));
+  } catch {
+    return String(v);
+  }
 }
 
-function subscribe(l: () => void) { listeners.add(l); return () => { listeners.delete(l); }; }
-function getSnapshot() { return snapshot; }
+function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => {
+    listeners.delete(l);
+  };
+}
+function getSnapshot() {
+  return snapshot;
+}
 
 export function useDiagnostics() {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

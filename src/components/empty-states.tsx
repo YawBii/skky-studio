@@ -9,7 +9,12 @@ import { parseRepoInput, recordGitHubConnection, type ParsedRepo } from "@/servi
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
 function slugify(s: string) {
-  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 }
 
 /* -------- Workspace empty state -------- */
@@ -33,13 +38,17 @@ export function CreateWorkspaceEmpty({
 
   async function submit() {
     const finalSlug = slugify(slug || name);
-    if (!name.trim() || finalSlug.length < 2) { toast.error("Add a name and a valid slug"); return; }
+    if (!name.trim() || finalSlug.length < 2) {
+      toast.error("Add a name and a valid slug");
+      return;
+    }
     setBusy(true);
     const res = await createWorkspace({ name: name.trim(), slug: finalSlug });
     setBusy(false);
     if (!res.ok) {
       const detail = [res.code && `[${res.code}]`, res.error, res.hint && `Hint: ${res.hint}`]
-        .filter(Boolean).join(" ");
+        .filter(Boolean)
+        .join(" ");
       toast.error(detail || "Couldn't create workspace");
       return;
     }
@@ -60,23 +69,38 @@ export function CreateWorkspaceEmpty({
           <div>
             <div className="font-medium">Couldn't load workspaces from Lovable Cloud.</div>
             <div className="opacity-80 mt-0.5 break-words">{errorMessage}</div>
-            <div className="opacity-80 mt-1">Run <code className="font-mono">docs/sql/2026-04-30-collaboration.sql</code> in the Cloud SQL editor, then reload.</div>
+            <div className="opacity-80 mt-1">
+              Run <code className="font-mono">docs/sql/2026-04-30-collaboration.sql</code> in the
+              Cloud SQL editor, then reload.
+            </div>
           </div>
         </div>
       )}
       <div className="space-y-3">
         <Field label="Workspace name">
-          <Input value={name} onChange={(e) => onName(e.target.value)} placeholder="Acme Inc." autoFocus />
+          <Input
+            value={name}
+            onChange={(e) => onName(e.target.value)}
+            placeholder="Acme Inc."
+            autoFocus
+          />
         </Field>
         <Field label="Slug" hint="Used in URLs. Lowercase, numbers and dashes only.">
           <Input
             value={slug}
-            onChange={(e) => { setTouchedSlug(true); setSlug(e.target.value); }}
+            onChange={(e) => {
+              setTouchedSlug(true);
+              setSlug(e.target.value);
+            }}
             placeholder="acme"
           />
         </Field>
         <Button onClick={submit} variant="hero" className="w-full" disabled={busy || !name.trim()}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Plus className="h-3.5 w-3.5" />
+          )}
           Create workspace
         </Button>
       </div>
@@ -91,7 +115,11 @@ export function CreateProjectEmpty({
   workspaceId,
   workspaceName,
   onCreated,
-}: { workspaceId: string; workspaceName: string; onCreated: (p: Project) => void }) {
+}: {
+  workspaceId: string;
+  workspaceName: string;
+  onCreated: (p: Project) => void;
+}) {
   const [mode, setMode] = useState<"describe" | "import">("describe");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -106,7 +134,10 @@ export function CreateProjectEmpty({
 
   async function submit() {
     const finalSlug = slugify(slug || name);
-    if (!name.trim() || finalSlug.length < 1) { toast.error("Add a name and a valid slug"); return; }
+    if (!name.trim() || finalSlug.length < 1) {
+      toast.error("Add a name and a valid slug");
+      return;
+    }
     setBusy(true);
     const res = await createProject({
       workspaceId,
@@ -117,7 +148,8 @@ export function CreateProjectEmpty({
     setBusy(false);
     if (!res.ok) {
       const detail = [res.code && `[${res.code}]`, res.error, res.hint && `Hint: ${res.hint}`]
-        .filter(Boolean).join(" ");
+        .filter(Boolean)
+        .join(" ");
       toast.error(detail || "Couldn't create project");
       return;
     }
@@ -133,23 +165,44 @@ export function CreateProjectEmpty({
       hint="Describe an app and yawB will scaffold it, or connect a GitHub repo to import an existing one."
     >
       <div className="grid grid-cols-2 gap-2 mb-4">
-        <ModeButton active={mode === "describe"} onClick={() => setMode("describe")} icon={Sparkles} label="Describe an app" />
-        <ModeButton active={mode === "import"}   onClick={() => setMode("import")}   icon={Github}    label="Import GitHub repo" />
+        <ModeButton
+          active={mode === "describe"}
+          onClick={() => setMode("describe")}
+          icon={Sparkles}
+          label="Describe an app"
+        />
+        <ModeButton
+          active={mode === "import"}
+          onClick={() => setMode("import")}
+          icon={Github}
+          label="Import GitHub repo"
+        />
       </div>
 
       {mode === "describe" ? (
         <div className="space-y-3">
           <Field label="Project name">
-            <Input value={name} onChange={(e) => onName(e.target.value)} placeholder="Customer Portal" autoFocus />
+            <Input
+              value={name}
+              onChange={(e) => onName(e.target.value)}
+              placeholder="Customer Portal"
+              autoFocus
+            />
           </Field>
           <Field label="Slug">
             <Input
               value={slug}
-              onChange={(e) => { setTouchedSlug(true); setSlug(e.target.value); }}
+              onChange={(e) => {
+                setTouchedSlug(true);
+                setSlug(e.target.value);
+              }}
               placeholder="customer-portal"
             />
           </Field>
-          <Field label="Describe your app" hint="One or two sentences. yawB will use this as the first prompt.">
+          <Field
+            label="Describe your app"
+            hint="One or two sentences. yawB will use this as the first prompt."
+          >
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -158,16 +211,22 @@ export function CreateProjectEmpty({
               className="w-full rounded-lg bg-background/40 border border-white/10 px-3 py-2 text-[13px] outline-none focus:border-primary/50 resize-none"
             />
           </Field>
-          <Button onClick={submit} variant="hero" className="w-full" disabled={busy || !name.trim()}>
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+          <Button
+            onClick={submit}
+            variant="hero"
+            className="w-full"
+            disabled={busy || !name.trim()}
+          >
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" />
+            )}
             Create project
           </Button>
         </div>
       ) : (
-        <ImportGitHubForm
-          workspaceId={workspaceId}
-          onCreated={onCreated}
-        />
+        <ImportGitHubForm workspaceId={workspaceId} onCreated={onCreated} />
       )}
       <MobileBootstrapPanel selectedWorkspaceId={workspaceId} />
     </Shell>
@@ -177,8 +236,12 @@ export function CreateProjectEmpty({
 /* -------- GitHub import sub-form -------- */
 
 function ImportGitHubForm({
-  workspaceId, onCreated,
-}: { workspaceId: string; onCreated: (p: Project) => void }) {
+  workspaceId,
+  onCreated,
+}: {
+  workspaceId: string;
+  onCreated: (p: Project) => void;
+}) {
   const [repoInput, setRepoInput] = useState("");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -188,19 +251,26 @@ function ImportGitHubForm({
   const [busy, setBusy] = useState(false);
 
   const parsed: ParsedRepo | null = parseRepoInput(repoInput);
-  const repoError = repoInput.trim().length > 0 && !parsed
-    ? "Use https://github.com/owner/repo or owner/repo"
-    : null;
+  const repoError =
+    repoInput.trim().length > 0 && !parsed
+      ? "Use https://github.com/owner/repo or owner/repo"
+      : null;
 
   // Auto-fill name + slug from parsed repo, until the user edits them.
-  const effectiveName = touchedName ? name : parsed?.repo ?? "";
-  const effectiveSlug = touchedSlug ? slug : (parsed ? slugify(parsed.repo) : "");
+  const effectiveName = touchedName ? name : (parsed?.repo ?? "");
+  const effectiveSlug = touchedSlug ? slug : parsed ? slugify(parsed.repo) : "";
 
   async function submit() {
-    if (!parsed) { toast.error("Enter a valid GitHub repo"); return; }
+    if (!parsed) {
+      toast.error("Enter a valid GitHub repo");
+      return;
+    }
     const finalName = effectiveName.trim() || parsed.repo;
     const finalSlug = slugify(effectiveSlug || parsed.repo);
-    if (finalSlug.length < 1) { toast.error("Slug is required"); return; }
+    if (finalSlug.length < 1) {
+      toast.error("Slug is required");
+      return;
+    }
 
     setBusy(true);
     const res = await createProject({
@@ -212,7 +282,8 @@ function ImportGitHubForm({
     if (!res.ok) {
       setBusy(false);
       const detail = [res.code && `[${res.code}]`, res.error, res.hint && `Hint: ${res.hint}`]
-        .filter(Boolean).join(" ");
+        .filter(Boolean)
+        .join(" ");
       toast.error(detail || "Couldn't create project");
       return;
     }
@@ -234,7 +305,10 @@ function ImportGitHubForm({
 
   return (
     <div className="space-y-3">
-      <Field label="GitHub repo" hint="Paste a GitHub URL or owner/repo. We'll never read private code without your token.">
+      <Field
+        label="GitHub repo"
+        hint="Paste a GitHub URL or owner/repo. We'll never read private code without your token."
+      >
         <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-background/40 px-3">
           <Github className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           <input
@@ -260,7 +334,10 @@ function ImportGitHubForm({
       <Field label="Project name">
         <Input
           value={effectiveName}
-          onChange={(e) => { setTouchedName(true); setName(e.target.value); }}
+          onChange={(e) => {
+            setTouchedName(true);
+            setName(e.target.value);
+          }}
           placeholder={parsed?.repo ?? "customer-portal"}
         />
       </Field>
@@ -268,7 +345,10 @@ function ImportGitHubForm({
       <Field label="Slug">
         <Input
           value={effectiveSlug}
-          onChange={(e) => { setTouchedSlug(true); setSlug(e.target.value); }}
+          onChange={(e) => {
+            setTouchedSlug(true);
+            setSlug(e.target.value);
+          }}
           placeholder={parsed ? slugify(parsed.repo) : "customer-portal"}
         />
       </Field>
@@ -284,7 +364,11 @@ function ImportGitHubForm({
       </Field>
 
       <Button onClick={submit} variant="hero" className="w-full" disabled={busy || !parsed}>
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Github className="h-3.5 w-3.5" />}
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Github className="h-3.5 w-3.5" />
+        )}
         Import repository
       </Button>
       <p className="text-[10.5px] text-muted-foreground text-center">
@@ -297,10 +381,17 @@ function ImportGitHubForm({
 /* -------- shared -------- */
 
 function Shell({
-  icon: Icon, eyebrow, title, hint, children,
+  icon: Icon,
+  eyebrow,
+  title,
+  hint,
+  children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  eyebrow: string; title: string; hint: string; children: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
 }) {
   return (
     <div className="h-full overflow-auto">
@@ -318,10 +409,20 @@ function Shell({
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">{label}</label>
+      <label className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </label>
       <div className="mt-1.5">{children}</div>
       {hint && <p className="mt-1 text-[10.5px] text-muted-foreground">{hint}</p>}
     </div>
@@ -329,14 +430,24 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function ModeButton({
-  active, onClick, icon: Icon, label,
-}: { active: boolean; onClick: () => void; icon: React.ComponentType<{ className?: string }>; label: string }) {
+  active,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`rounded-xl border px-3 py-3 text-left transition ${
-        active ? "border-primary/50 bg-primary/10" : "border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
+        active
+          ? "border-primary/50 bg-primary/10"
+          : "border-white/5 hover:border-white/15 hover:bg-white/[0.04]"
       }`}
     >
       <Icon className="h-3.5 w-3.5" />

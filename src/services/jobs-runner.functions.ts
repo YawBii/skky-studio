@@ -19,9 +19,7 @@ export const runNextJobStep = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<TickResult> => {
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const auth = getRequestHeader("authorization") ?? getRequestHeader("Authorization");
-    const accessToken = auth?.toLowerCase().startsWith("bearer ")
-      ? auth.slice(7).trim()
-      : null;
+    const accessToken = auth?.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
     if (!accessToken) {
       return { advanced: false, error: "Not authenticated." };
     }

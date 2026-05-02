@@ -50,7 +50,9 @@ function tail(s: string, n = 4000): string {
   return s.length <= n ? s : s.slice(s.length - n);
 }
 
-function validate(body: unknown): { ok: true; data: BuildRunnerRequest } | { ok: false; error: string } {
+function validate(
+  body: unknown,
+): { ok: true; data: BuildRunnerRequest } | { ok: false; error: string } {
   if (!body || typeof body !== "object") return { ok: false, error: "body must be a JSON object" };
   const b = body as Record<string, unknown>;
   for (const k of ["command", "kind", "jobId", "stepId", "projectId"] as const) {
@@ -74,11 +76,18 @@ async function runCommand(command: string): Promise<BuildRunnerResponse> {
         const child = cp.spawn(command, { shell: true });
         let stdout = "";
         let stderr = "";
-        child.stdout?.on("data", (d) => { stdout += d.toString(); });
-        child.stderr?.on("data", (d) => { stderr += d.toString(); });
+        child.stdout?.on("data", (d) => {
+          stdout += d.toString();
+        });
+        child.stderr?.on("data", (d) => {
+          stderr += d.toString();
+        });
         child.on("error", (err) => {
           resolve({
-            ok: false, exitCode: null, stdout: tail(stdout), stderr: tail(stderr),
+            ok: false,
+            exitCode: null,
+            stdout: tail(stdout),
+            stderr: tail(stderr),
             durationMs: Date.now() - startedAt,
             error: err instanceof Error ? err.message : String(err),
           });
@@ -95,7 +104,10 @@ async function runCommand(command: string): Promise<BuildRunnerResponse> {
         });
       } catch (err) {
         resolve({
-          ok: false, exitCode: null, stdout: "", stderr: "",
+          ok: false,
+          exitCode: null,
+          stdout: "",
+          stderr: "",
           durationMs: Date.now() - startedAt,
           error: err instanceof Error ? err.message : String(err),
         });
@@ -105,7 +117,10 @@ async function runCommand(command: string): Promise<BuildRunnerResponse> {
     const msg = err instanceof Error ? err.message : String(err);
     const unsupported = /unenv|not implemented|child_process/i.test(msg);
     return {
-      ok: false, exitCode: null, stdout: "", stderr: "",
+      ok: false,
+      exitCode: null,
+      stdout: "",
+      stderr: "",
       durationMs: Date.now() - startedAt,
       error: unsupported
         ? "Build runner requires an external worker. The Lovable serverless runtime cannot spawn child processes. Host this endpoint on a Node server and set BUILD_RUNNER_URL to point at it. See docs/build-runner.md."
@@ -125,17 +140,38 @@ export const Route = createFileRoute("/api/public/build-runner")({
           const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
           if (token !== expectedToken) {
             return json(401, {
-              ok: false, exitCode: null, stdout: "", stderr: "",
-              durationMs: 0, error: "invalid or missing bearer token",
+              ok: false,
+              exitCode: null,
+              stdout: "",
+              stderr: "",
+              durationMs: 0,
+              error: "invalid or missing bearer token",
             });
           }
         }
         let parsed: unknown;
-        try { parsed = await request.json(); }
-        catch { return json(400, { ok: false, exitCode: null, stdout: "", stderr: "", durationMs: 0, error: "invalid JSON body" }); }
+        try {
+          parsed = await request.json();
+        } catch {
+          return json(400, {
+            ok: false,
+            exitCode: null,
+            stdout: "",
+            stderr: "",
+            durationMs: 0,
+            error: "invalid JSON body",
+          });
+        }
         const v = validate(parsed);
         if (!v.ok) {
-          return json(400, { ok: false, exitCode: null, stdout: "", stderr: "", durationMs: 0, error: v.error });
+          return json(400, {
+            ok: false,
+            exitCode: null,
+            stdout: "",
+            stderr: "",
+            durationMs: 0,
+            error: v.error,
+          });
         }
         const result = await runCommand(v.data.command);
         return json(result.ok ? 200 : 502, result);

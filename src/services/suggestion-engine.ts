@@ -15,7 +15,16 @@ import type { ProjectConnection } from "@/services/project-connections";
 import type { Workspace } from "@/services/workspaces";
 import type { Project } from "@/services/projects";
 import type { DiagState } from "@/lib/diagnostics";
-import { isFailedJobResolved, isPlaceholderFailure, isAiPlannerSetupFailure, latestFailedJob, latestSucceededJob, describeUnresolvedReason, getResolvingSuccess, partitionFailures } from "@/lib/job-resolution";
+import {
+  isFailedJobResolved,
+  isPlaceholderFailure,
+  isAiPlannerSetupFailure,
+  latestFailedJob,
+  latestSucceededJob,
+  describeUnresolvedReason,
+  getResolvingSuccess,
+  partitionFailures,
+} from "@/lib/job-resolution";
 
 export type SuggestionCategory =
   | "blocking"
@@ -55,7 +64,11 @@ export type SuggestionActionKind =
 
 export type SmartSuggestionAction =
   | { kind: "enqueue_job"; jobType: string; title: string; input?: Record<string, unknown> }
-  | { kind: "switch_tab"; tab: "preview" | "code" | "database" | "deploy" | "jobs" | "history"; focusJobId?: string }
+  | {
+      kind: "switch_tab";
+      tab: "preview" | "code" | "database" | "deploy" | "jobs" | "history";
+      focusJobId?: string;
+    }
   | { kind: "navigate"; to: string }
   | { kind: "open_page_picker" }
   | { kind: "open_command_center"; focusJobId?: string }
@@ -116,7 +129,8 @@ interface ProductSignals {
 }
 
 function extractSignals(project: Project | null | undefined, chatSummary?: string): ProductSignals {
-  const text = `${project?.name ?? ""} ${project?.description ?? ""} ${chatSummary ?? ""}`.toLowerCase();
+  const text =
+    `${project?.name ?? ""} ${project?.description ?? ""} ${chatSummary ?? ""}`.toLowerCase();
   return {
     scanner: /\b(scanner|scans?|crawl(er|ing)?|ingest|harvest|spider)\b/.test(text),
     people: /\b(people|person|profile|profiles|users?|members?|community)\b/.test(text),
@@ -135,7 +149,10 @@ function extractSignals(project: Project | null | undefined, chatSummary?: strin
 const DISMISS_KEY = (projectId: string) => `yawb:suggestions:dismissed:${projectId}`;
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000;
 
-interface DismissEntry { id: string; at: number }
+interface DismissEntry {
+  id: string;
+  at: number;
+}
 
 export function loadDismissed(projectId: string | null | undefined): Set<string> {
   if (!projectId || typeof window === "undefined") return new Set();
@@ -146,7 +163,9 @@ export function loadDismissed(projectId: string | null | undefined): Set<string>
     const now = Date.now();
     const fresh = arr.filter((e) => now - e.at < DISMISS_TTL_MS);
     return new Set(fresh.map((e) => e.id));
-  } catch { return new Set(); }
+  } catch {
+    return new Set();
+  }
 }
 
 export function dismissSuggestion(projectId: string | null | undefined, id: string) {
@@ -158,15 +177,28 @@ export function dismissSuggestion(projectId: string | null | undefined, id: stri
     const next = arr.filter((e) => e.id !== id && now - e.at < DISMISS_TTL_MS);
     next.push({ id, at: now });
     window.localStorage.setItem(DISMISS_KEY(projectId), JSON.stringify(next));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // ----- Engine -----
 
 export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[] {
   const out: SmartSuggestion[] = [];
-  const { project, jobs, connections, selectedPage = "/", selectedEnvironment, currentBuilderTab,
-          diagnostics, jobsSource, connectionsSource, hasDeployUrl, buildRunnerConfigured } = ctx;
+  const {
+    project,
+    jobs,
+    connections,
+    selectedPage = "/",
+    selectedEnvironment,
+    currentBuilderTab,
+    diagnostics,
+    jobsSource,
+    connectionsSource,
+    hasDeployUrl,
+    buildRunnerConfigured,
+  } = ctx;
 
   // Summarize for diagnostics
   const summary = {
@@ -224,14 +256,12 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
   // Also skip ai.plan setup failures — they need provider configuration, not
   // retry; we surface a dedicated "Configure AI provider" suggestion below.
   const failed = jobs.find(
-    (j) =>
-      j.status === "failed" &&
-      !isFailedJobResolved(j, jobs) &&
-      !isAiPlannerSetupFailure(j),
+    (j) => j.status === "failed" && !isFailedJobResolved(j, jobs) && !isAiPlannerSetupFailure(j),
   );
   if (failed) {
     const errText = (failed.error ?? "").toLowerCase();
-    const isRunnerErr = errText.includes("build runner") || errText.includes("runner is not configured");
+    const isRunnerErr =
+      errText.includes("build runner") || errText.includes("runner is not configured");
     if (isRunnerErr) {
       out.push({
         id: "fix-build-runner",
@@ -274,13 +304,9 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
   // Suppress entirely once Monster Brain v1 has produced any successful
   // ai.plan job — the provider is wired and old placeholder failures are
   // stale history.
-  const hasSuccessfulAiPlan = jobs.some(
-    (j) => j.type === "ai.plan" && j.status === "succeeded",
-  );
+  const hasSuccessfulAiPlan = jobs.some((j) => j.type === "ai.plan" && j.status === "succeeded");
   const aiPlanPlaceholder = !hasSuccessfulAiPlan
-    ? jobs.find(
-        (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
-      )
+    ? jobs.find((j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j))
     : undefined;
   if (aiPlanPlaceholder) {
     out.push({
@@ -294,9 +320,7 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
     });
   } else if (
     hasSuccessfulAiPlan &&
-    jobs.some(
-      (j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j),
-    )
+    jobs.some((j) => j.type === "ai.plan" && j.status === "failed" && isPlaceholderFailure(j))
   ) {
     console.info("[yawb] suggestions.filtered.stale", {
       id: "wire-ai-planner-provider",
@@ -372,7 +396,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
 
   // Build runner not configured but no failure yet → only suggest if user is
   // about to need it (e.g., started a build attempt or is on Deploy tab).
-  if (buildRunnerConfigured === false && (jobs.some((j) => j.type.startsWith("build.")) || currentBuilderTab === "deploy")) {
+  if (
+    buildRunnerConfigured === false &&
+    (jobs.some((j) => j.type.startsWith("build.")) || currentBuilderTab === "deploy")
+  ) {
     out.push({
       id: "configure-build-runner",
       label: "Configure build runner",
@@ -468,7 +495,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Add listings page",
       category: "build_next",
       priority: CATEGORY_BASE.build_next + 5,
-      action: { kind: "ask_chat_prefill", prompt: `Build the listings page for ${noun} with filters, sort, and a card grid.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Build the listings page for ${noun} with filters, sort, and a card grid.`,
+      },
       reason: "Marketplace products need a browsable listings surface first.",
     });
     out.push({
@@ -476,7 +506,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Add seller onboarding",
       category: "build_next",
       priority: CATEGORY_BASE.build_next + 3,
-      action: { kind: "ask_chat_prefill", prompt: `Add seller onboarding for ${noun}: signup, verification, listing creation flow, payout setup.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Add seller onboarding for ${noun}: signup, verification, listing creation flow, payout setup.`,
+      },
       reason: "Marketplaces need supply-side onboarding.",
     });
   }
@@ -488,7 +521,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Add onboarding flow",
       category: "build_next",
       priority: CATEGORY_BASE.build_next + 2,
-      action: { kind: "ask_chat_prefill", prompt: `Build a 3-step onboarding for ${noun} that captures workspace name, invites teammates, and sets a primary goal.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Build a 3-step onboarding for ${noun} that captures workspace name, invites teammates, and sets a primary goal.`,
+      },
       reason: "SaaS conversion depends on guided first-run.",
     });
   }
@@ -500,7 +536,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Add role-based access",
       category: "build_next",
       priority: CATEGORY_BASE.build_next + 4,
-      action: { kind: "ask_chat_prefill", prompt: `Add role-based access (admin/member/viewer) for ${noun}, with a separate user_roles table and RLS policies that use a SECURITY DEFINER has_role() function.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Add role-based access (admin/member/viewer) for ${noun}, with a separate user_roles table and RLS policies that use a SECURITY DEFINER has_role() function.`,
+      },
       reason: "Portals require RBAC before data is real.",
     });
   }
@@ -512,7 +551,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Add prompt workflow + history",
       category: "build_next",
       priority: CATEGORY_BASE.build_next + 4,
-      action: { kind: "ask_chat_prefill", prompt: `Add a prompt workflow for ${noun} with run history, side-by-side comparison, and lightweight evaluation. Use Lovable AI Gateway.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Add a prompt workflow for ${noun} with run history, side-by-side comparison, and lightweight evaluation. Use Lovable AI Gateway.`,
+      },
       reason: "AI apps need history+eval to be production-ready.",
     });
     out.push({
@@ -520,7 +562,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Add output guardrails",
       category: "improve_quality",
       priority: CATEGORY_BASE.improve_quality + 3,
-      action: { kind: "ask_chat_prefill", prompt: `Add output guardrails for ${noun}: refusal handling, content filters, max length, and a fallback message when the model errors.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Add output guardrails for ${noun}: refusal handling, content filters, max length, and a fallback message when the model errors.`,
+      },
       reason: "Unguarded LLM apps are unsafe to ship.",
     });
   }
@@ -534,8 +579,12 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
         label: `Design ${noun} homepage`,
         category: "build_next",
         priority: CATEGORY_BASE.build_next + 1,
-        action: { kind: "ask_chat_prefill", prompt: `Design the homepage for ${noun}. Include a hero with one-line value prop, three benefit cards, a primary product surface preview, and a clear primary CTA.` },
-        reason: "On / with no specific product type detected — generic landing improvement is the safe next step.",
+        action: {
+          kind: "ask_chat_prefill",
+          prompt: `Design the homepage for ${noun}. Include a hero with one-line value prop, three benefit cards, a primary product surface preview, and a clear primary CTA.`,
+        },
+        reason:
+          "On / with no specific product type detected — generic landing improvement is the safe next step.",
       });
     } else if (sig.scanner && sig.people) {
       out.push({
@@ -543,7 +592,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
         label: `Design ${noun} discovery feed`,
         category: "build_next",
         priority: CATEGORY_BASE.build_next + 9,
-        action: { kind: "ask_chat_prefill", prompt: `Design the public discovery feed for ${noun} on the homepage. Show recently approved profiles with name, photo, one-sentence praise, source link, and an empty state for the first deploy.` },
+        action: {
+          kind: "ask_chat_prefill",
+          prompt: `Design the public discovery feed for ${noun} on the homepage. Show recently approved profiles with name, photo, one-sentence praise, source link, and an empty state for the first deploy.`,
+        },
         reason: "Scanner+people app on homepage → main surface is a discovery feed.",
       });
     }
@@ -553,7 +605,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Design dashboard cards",
       category: "build_next",
       priority: CATEGORY_BASE.build_next,
-      action: { kind: "ask_chat_prefill", prompt: `Design the /dashboard for ${noun}. Pick the 4 most useful KPIs for this product and lay them out as cards with sparkline + recent activity.` },
+      action: {
+        kind: "ask_chat_prefill",
+        prompt: `Design the /dashboard for ${noun}. Pick the 4 most useful KPIs for this product and lay them out as cards with sparkline + recent activity.`,
+      },
       reason: "User is on /dashboard — suggest dashboard layout.",
     });
   } else if (selectedPage === "/billing") {
@@ -563,7 +618,10 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
         label: "Design billing plans",
         category: "build_next",
         priority: CATEGORY_BASE.build_next,
-        action: { kind: "ask_chat_prefill", prompt: `Design the /billing page for ${noun} with three plan tiers, feature comparison, and Stripe checkout wiring.` },
+        action: {
+          kind: "ask_chat_prefill",
+          prompt: `Design the /billing page for ${noun} with three plan tiers, feature comparison, and Stripe checkout wiring.`,
+        },
         reason: "On /billing for a product type that uses billing.",
       });
     }
@@ -620,7 +678,11 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
       label: "Trigger preview deploy",
       category: "publish_deploy",
       priority: CATEGORY_BASE.publish_deploy,
-      action: { kind: "enqueue_job", jobType: "vercel.create_preview_deploy", title: "Create preview deploy" },
+      action: {
+        kind: "enqueue_job",
+        jobType: "vercel.create_preview_deploy",
+        title: "Create preview deploy",
+      },
       reason: "Build passed and Vercel is connected.",
     });
   }
@@ -628,7 +690,11 @@ export function buildSmartSuggestions(ctx: SuggestionContext): SmartSuggestion[]
   return finalize(out, project.id, jobs);
 }
 
-function finalize(list: SmartSuggestion[], projectId: string | null, jobs: Job[] = []): SmartSuggestion[] {
+function finalize(
+  list: SmartSuggestion[],
+  projectId: string | null,
+  jobs: Job[] = [],
+): SmartSuggestion[] {
   const dismissed = loadDismissed(projectId);
   const seen = new Set<string>();
   const sorted = [...list]
@@ -644,8 +710,16 @@ function finalize(list: SmartSuggestion[], projectId: string | null, jobs: Job[]
     return { failedId: f.id, type: f.type, resolvedById: r?.id ?? null };
   });
   console.info("[yawb] suggestions.generated", {
-    suggestions: sorted.map((s) => ({ id: s.id, category: s.category, priority: s.priority, reason: s.reason, explanation: s.explanation })),
-    latestFailed: lf ? { id: lf.id, type: lf.type, createdAt: lf.createdAt, error: lf.error } : null,
+    suggestions: sorted.map((s) => ({
+      id: s.id,
+      category: s.category,
+      priority: s.priority,
+      reason: s.reason,
+      explanation: s.explanation,
+    })),
+    latestFailed: lf
+      ? { id: lf.id, type: lf.type, createdAt: lf.createdAt, error: lf.error }
+      : null,
     latestSucceeded: ls ? { id: ls.id, type: ls.type, createdAt: ls.createdAt } : null,
     skippedResolvedFailures,
   });
@@ -658,7 +732,13 @@ function truncate(s: string, n: number): string {
 }
 
 function slug(s: string): string {
-  return (s || "x").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "x";
+  return (
+    (s || "x")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 40) || "x"
+  );
 }
 
 interface AiPlanAction {
@@ -671,7 +751,11 @@ interface AiPlanAction {
 }
 
 const AI_PLAN_ALLOWED_CATEGORIES: SuggestionCategory[] = [
-  "build_next", "improve_quality", "fix_failure", "publish_deploy", "inspect_proof",
+  "build_next",
+  "improve_quality",
+  "fix_failure",
+  "publish_deploy",
+  "inspect_proof",
 ];
 
 /**
@@ -689,7 +773,9 @@ export function extractPlanActions(output: unknown): AiPlanAction[] {
     if (!item || typeof item !== "object") continue;
     const o = item as Record<string, unknown>;
     const cat = String(o.category ?? "build_next") as SuggestionCategory;
-    const category: SuggestionCategory = AI_PLAN_ALLOWED_CATEGORIES.includes(cat) ? cat : "build_next";
+    const category: SuggestionCategory = AI_PLAN_ALLOWED_CATEGORIES.includes(cat)
+      ? cat
+      : "build_next";
     const risk = String(o.risk ?? "low");
     out.push({
       label: String(o.label ?? "").slice(0, 80),
@@ -697,9 +783,8 @@ export function extractPlanActions(output: unknown): AiPlanAction[] {
       category,
       prompt: String(o.prompt ?? ""),
       confidence: typeof o.confidence === "number" ? o.confidence : 0.5,
-      risk: (risk === "low" || risk === "medium" || risk === "high") ? risk : "low",
+      risk: risk === "low" || risk === "medium" || risk === "high" ? risk : "low",
     });
   }
   return out;
 }
-

@@ -18,8 +18,22 @@ export interface PresentUser {
 
 /** Demo collaborators — only used for the signed-out marketing preview. */
 export const DEMO_PRESENCE: PresentUser[] = [
-  { userId: "demo-ya", name: "Demo · Yaw",     initials: "YA", color: "bg-[oklch(0.72_0.18_240)]", role: "owner",  status: "editing" },
-  { userId: "demo-bb", name: "Demo · Builder", initials: "BB", color: "bg-[oklch(0.74_0.16_150)]", role: "member", status: "online"  },
+  {
+    userId: "demo-ya",
+    name: "Demo · Yaw",
+    initials: "YA",
+    color: "bg-[oklch(0.72_0.18_240)]",
+    role: "owner",
+    status: "editing",
+  },
+  {
+    userId: "demo-bb",
+    name: "Demo · Builder",
+    initials: "BB",
+    color: "bg-[oklch(0.74_0.16_150)]",
+    role: "member",
+    status: "online",
+  },
 ];
 
 const COLORS = [
@@ -37,7 +51,13 @@ function colorFor(id: string) {
 }
 
 function initials(name: string) {
-  return name.split(/\s+/).map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+  return name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 interface UseProjectPresenceOpts {
@@ -48,7 +68,12 @@ interface UseProjectPresenceOpts {
   forceFallback?: boolean;
 }
 
-export function useProjectPresence({ projectId, status = "online", pagePath, forceFallback }: UseProjectPresenceOpts) {
+export function useProjectPresence({
+  projectId,
+  status = "online",
+  pagePath,
+  forceFallback,
+}: UseProjectPresenceOpts) {
   const [present, setPresent] = useState<PresentUser[]>(DEMO_PRESENCE);
   const [isLive, setIsLive] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -56,7 +81,11 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
   useEffect(() => {
     // No demo collaborators in the authenticated app. Empty until a real
     // presence channel reports users.
-    if (forceFallback || !projectId) { setIsLive(false); setPresent([]); return; }
+    if (forceFallback || !projectId) {
+      setIsLive(false);
+      setPresent([]);
+      return;
+    }
 
     let cancelled = false;
     let cleanup: (() => void) | null = null;
@@ -64,7 +93,11 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
     (async () => {
       const { data: userData } = await supabase.auth.getUser();
       const me = userData.user;
-      if (!me) { setIsLive(false); setPresent([]); return; }
+      if (!me) {
+        setIsLive(false);
+        setPresent([]);
+        return;
+      }
 
       const channel = supabase.channel(`presence:project:${projectId}`, {
         config: { presence: { key: me.id } },
@@ -83,8 +116,8 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
               name,
               initials: initials(name),
               color: colorFor(uid),
-              role: ((meta.role as PresentUser["role"]) ?? "member"),
-              status: ((meta.status as PresenceStatus) ?? "online"),
+              role: (meta.role as PresentUser["role"]) ?? "member",
+              status: (meta.status as PresenceStatus) ?? "online",
               pagePath: meta.pagePath as string | undefined,
             };
           });
@@ -103,12 +136,20 @@ export function useProjectPresence({ projectId, status = "online", pagePath, for
         });
 
       cleanup = () => {
-        try { channel.untrack(); } catch {}
-        try { supabase.removeChannel(channel); } catch {}
+        try {
+          channel.untrack();
+        } catch {}
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
       };
     })();
 
-    return () => { cancelled = true; cleanup?.(); channelRef.current = null; };
+    return () => {
+      cancelled = true;
+      cleanup?.();
+      channelRef.current = null;
+    };
   }, [projectId, status, pagePath, forceFallback]);
 
   return useMemo(() => ({ present, isLive }), [present, isLive]);

@@ -50,9 +50,11 @@ export const getProvidersOverview = createServerFn({ method: "GET" }).handler(
 
 export const runProviderDiagnosticFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({
-      provider: z.enum(["github", "vercel", "supabase", "build-runner"]),
-    }).parse(d),
+    z
+      .object({
+        provider: z.enum(["github", "vercel", "supabase", "build-runner"]),
+      })
+      .parse(d),
   )
   .handler(async ({ data }): Promise<ProviderDiagnosticDTO> => {
     const m = await import("../server/providers.server");
@@ -60,7 +62,9 @@ export const runProviderDiagnosticFn = createServerFn({ method: "POST" })
   });
 
 export const listGithubReposFn = createServerFn({ method: "GET" })
-  .inputValidator((d) => z.object({ perPage: z.number().int().min(1).max(100).optional() }).parse(d ?? {}))
+  .inputValidator((d) =>
+    z.object({ perPage: z.number().int().min(1).max(100).optional() }).parse(d ?? {}),
+  )
   .handler(async ({ data }) => {
     const m = await import("../server/providers.server");
     return m.listGithubRepos({ perPage: data.perPage });
@@ -68,10 +72,11 @@ export const listGithubReposFn = createServerFn({ method: "GET" })
 
 export const listVercelProjectsFn = createServerFn({ method: "GET" })
   .inputValidator((d) =>
-    z.object({ teamId: z.string().optional(), limit: z.number().int().min(1).max(100).optional() }).parse(d ?? {}),
+    z
+      .object({ teamId: z.string().optional(), limit: z.number().int().min(1).max(100).optional() })
+      .parse(d ?? {}),
   )
   .handler(async ({ data }) => {
     const m = await import("../server/providers.server");
     return m.listVercelProjects({ teamId: data.teamId, limit: data.limit });
   });
-

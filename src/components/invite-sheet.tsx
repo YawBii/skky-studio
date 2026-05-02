@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Send, X, UserPlus, Mail, Crown, Eye, User } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +15,15 @@ import { createInvite } from "@/services/invites";
 
 type Role = "admin" | "member" | "viewer";
 
-const ROLES: { value: Role; label: string; hint: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: "admin",  label: "Admin",  hint: "Manage members, projects and billing.", Icon: Crown },
-  { value: "member", label: "Member", hint: "Build and edit projects.",              Icon: User  },
-  { value: "viewer", label: "Viewer", hint: "Read-only access.",                     Icon: Eye   },
+const ROLES: {
+  value: Role;
+  label: string;
+  hint: string;
+  Icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { value: "admin", label: "Admin", hint: "Manage members, projects and billing.", Icon: Crown },
+  { value: "member", label: "Member", hint: "Build and edit projects.", Icon: User },
+  { value: "viewer", label: "Viewer", hint: "Read-only access.", Icon: Eye },
 ];
 
 interface Props {
@@ -24,7 +33,12 @@ interface Props {
   workspaceName?: string;
 }
 
-export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "your workspace" }: Props) {
+export function InviteSheet({
+  open,
+  onOpenChange,
+  workspaceId,
+  workspaceName = "your workspace",
+}: Props) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("member");
   const [pending, setPending] = useState<{ email: string; role: Role }[]>([]);
@@ -32,7 +46,10 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
 
   async function send() {
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !/.+@.+\..+/.test(trimmed)) { toast.error("Enter a valid email"); return; }
+    if (!trimmed || !/.+@.+\..+/.test(trimmed)) {
+      toast.error("Enter a valid email");
+      return;
+    }
     setBusy(true);
     if (workspaceId) {
       const res = await createInvite({ workspaceId, email: trimmed, role });
@@ -55,7 +72,10 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="bg-background/95 backdrop-blur-xl border-white/10 sm:max-w-md">
+      <SheetContent
+        side="right"
+        className="bg-background/95 backdrop-blur-xl border-white/10 sm:max-w-md"
+      >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2 font-display">
             <UserPlus className="h-4 w-4" /> Invite to {workspaceName}
@@ -67,20 +87,26 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
 
         <div className="mt-5 space-y-4">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-            <label className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">Email</label>
+            <label className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">
+              Email
+            </label>
             <div className="mt-1.5 flex items-center gap-2">
               <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <Input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") void send(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void send();
+                }}
                 placeholder="teammate@company.com"
                 className="bg-transparent border-0 px-0 h-8 text-[13px] focus-visible:ring-0"
               />
             </div>
 
             <div className="mt-3">
-              <label className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">Role</label>
+              <label className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">
+                Role
+              </label>
               <div className="mt-1.5 grid grid-cols-3 gap-1.5">
                 {ROLES.map((r) => (
                   <button
@@ -101,10 +127,17 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-[11px] text-muted-foreground">{ROLES.find((r) => r.value === role)?.hint}</p>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {ROLES.find((r) => r.value === role)?.hint}
+              </p>
             </div>
 
-            <Button onClick={send} disabled={busy || !email.trim()} variant="hero" className="mt-3 w-full">
+            <Button
+              onClick={send}
+              disabled={busy || !email.trim()}
+              variant="hero"
+              className="mt-3 w-full"
+            >
               <Send className="h-3.5 w-3.5" /> Send invite
             </Button>
           </div>
@@ -121,11 +154,19 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
             ) : (
               <ul className="space-y-1">
                 {pending.map((p, i) => (
-                  <li key={i} className="flex items-center gap-2 rounded-lg border border-white/5 px-2.5 py-2">
+                  <li
+                    key={i}
+                    className="flex items-center gap-2 rounded-lg border border-white/5 px-2.5 py-2"
+                  >
                     <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
                     <span className="text-[12.5px] truncate flex-1">{p.email}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded">{p.role}</span>
-                    <button onClick={() => setPending((arr) => arr.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-foreground">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded">
+                      {p.role}
+                    </span>
+                    <button
+                      onClick={() => setPending((arr) => arr.filter((_, j) => j !== i))}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </li>
@@ -135,7 +176,8 @@ export function InviteSheet({ open, onOpenChange, workspaceId, workspaceName = "
           </div>
 
           <p className="text-[11px] text-muted-foreground">
-            Invites are stored in <code className="font-mono">workspace_invites</code> with admin/owner-only RLS.
+            Invites are stored in <code className="font-mono">workspace_invites</code> with
+            admin/owner-only RLS.
           </p>
         </div>
       </SheetContent>

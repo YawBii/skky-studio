@@ -1,8 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import {
-  Github, Triangle, Database, Server, RefreshCw, Check, X,
-  AlertTriangle, ExternalLink, ChevronDown, ChevronUp, PlayCircle,
+  Github,
+  Triangle,
+  Database,
+  Server,
+  RefreshCw,
+  Check,
+  X,
+  AlertTriangle,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,7 +28,11 @@ export const Route = createFileRoute("/integrations")({
   head: () => ({
     meta: [
       { title: "Integrations — yawB" },
-      { name: "description", content: "Provider hub: GitHub, Vercel, Supabase, and the build runner. Real status, no fake states." },
+      {
+        name: "description",
+        content:
+          "Provider hub: GitHub, Vercel, Supabase, and the build runner. Real status, no fake states.",
+      },
     ],
   }),
   component: IntegrationsPage,
@@ -28,12 +42,15 @@ type ProviderId = ProviderStatusDTO["provider"];
 
 const PROVIDERS: ProviderId[] = ["github", "vercel", "supabase", "build-runner"];
 
-const META: Record<ProviderId, {
-  label: string;
-  Icon: React.ComponentType<{ className?: string }>;
-  helpUrl: string;
-  setupHint: string;
-}> = {
+const META: Record<
+  ProviderId,
+  {
+    label: string;
+    Icon: React.ComponentType<{ className?: string }>;
+    helpUrl: string;
+    setupHint: string;
+  }
+> = {
   github: {
     label: "GitHub",
     Icon: Github,
@@ -50,7 +67,8 @@ const META: Record<ProviderId, {
     label: "Supabase (Lovable Cloud)",
     Icon: Database,
     helpUrl: "https://supabase.com/dashboard",
-    setupHint: "Required: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Optional: SUPABASE_SERVICE_ROLE_KEY.",
+    setupHint:
+      "Required: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Optional: SUPABASE_SERVICE_ROLE_KEY.",
   },
   "build-runner": {
     label: "Build Runner",
@@ -67,12 +85,18 @@ function loadDiagnostics(): Record<string, ProviderDiagnosticDTO> {
   try {
     const raw = window.localStorage.getItem(DIAG_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as Record<string, ProviderDiagnosticDTO>) : {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 function saveDiagnostics(d: Record<string, ProviderDiagnosticDTO>) {
   if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(DIAG_STORAGE_KEY, JSON.stringify(d)); } catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(DIAG_STORAGE_KEY, JSON.stringify(d));
+  } catch {
+    /* ignore */
+  }
 }
 
 type CardState =
@@ -94,13 +118,15 @@ function IntegrationsPage() {
   const [globalRefreshing, setGlobalRefreshing] = useState(false);
 
   // Hydrate cached diagnostics on mount.
-  useEffect(() => { setDiagnostics(loadDiagnostics()); }, []);
+  useEffect(() => {
+    setDiagnostics(loadDiagnostics());
+  }, []);
 
   const applyOverview = useCallback((o: ProvidersOverview) => {
     setCards({
-      github:        { kind: "ready", status: o.github },
-      vercel:        { kind: "ready", status: o.vercel },
-      supabase:      { kind: "ready", status: o.supabase },
+      github: { kind: "ready", status: o.github },
+      vercel: { kind: "ready", status: o.vercel },
+      supabase: { kind: "ready", status: o.supabase },
       "build-runner": { kind: "ready", status: o.buildRunner },
     });
   }, []);
@@ -129,7 +155,9 @@ function IntegrationsPage() {
     }
   }, [applyOverview]);
 
-  useEffect(() => { void refreshAll(); }, [refreshAll]);
+  useEffect(() => {
+    void refreshAll();
+  }, [refreshAll]);
 
   const runTest = useCallback(async (provider: ProviderId) => {
     setTestingProvider(provider);
@@ -172,11 +200,19 @@ function IntegrationsPage() {
     <div className="px-6 md:px-10 py-8 max-w-[1200px] mx-auto">
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-1">Workspace</div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">Integrations</h1>
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-1">
+            Workspace
+          </div>
+          <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
+            Integrations
+          </h1>
           <p className="text-muted-foreground mt-1 max-w-2xl">
             Provider status, token diagnostics and sync health for the whole workspace.
-            Project-level imports live in <Link to="/projects" className="text-primary">Projects</Link>.
+            Project-level imports live in{" "}
+            <Link to="/projects" className="text-primary">
+              Projects
+            </Link>
+            .
           </p>
         </div>
         <Button variant="soft" size="sm" onClick={refreshAll} disabled={globalRefreshing}>
@@ -204,10 +240,14 @@ function IntegrationsPage() {
       />
 
       <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-[12.5px] text-muted-foreground">
-        Tokens are read from server-side environment variables only. They are never returned to the browser.
-        Add or rotate them via Lovable Cloud secrets, then refresh this page.
+        Tokens are read from server-side environment variables only. They are never returned to the
+        browser. Add or rotate them via Lovable Cloud secrets, then refresh this page.
         <span className="ml-1">
-          See <Link to="/server-setup" className="text-primary">Server Setup</Link> for the full env matrix.
+          See{" "}
+          <Link to="/server-setup" className="text-primary">
+            Server Setup
+          </Link>{" "}
+          for the full env matrix.
         </span>
       </div>
     </div>
@@ -217,7 +257,11 @@ function IntegrationsPage() {
 /* -------------------- Provider card -------------------- */
 
 function ProviderCard({
-  provider, state, testing, lastDiagnostic, onTest,
+  provider,
+  state,
+  testing,
+  lastDiagnostic,
+  onTest,
 }: {
   provider: ProviderId;
   state: CardState;
@@ -272,18 +316,26 @@ function ProviderCard({
 
       <div className="mt-4 flex items-center gap-2 flex-wrap">
         <Button variant="soft" size="sm" onClick={onTest} disabled={testing}>
-          {testing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
+          {testing ? (
+            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <PlayCircle className="h-3.5 w-3.5" />
+          )}
           {testing ? "Testing…" : "Test"}
         </Button>
 
         {provider === "github" && state.kind === "ready" && state.status.configured && (
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/projects" search={{ tab: "github" } as never}>Browse repos</Link>
+            <Link to="/projects" search={{ tab: "github" } as never}>
+              Browse repos
+            </Link>
           </Button>
         )}
         {provider === "vercel" && state.kind === "ready" && state.status.configured && (
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/projects" search={{ tab: "vercel" } as never}>Browse deployments</Link>
+            <Link to="/projects" search={{ tab: "vercel" } as never}>
+              Browse deployments
+            </Link>
           </Button>
         )}
         {provider === "build-runner" && (
@@ -302,13 +354,18 @@ function ProviderCard({
       </div>
 
       <div className="mt-3 text-[10.5px] text-muted-foreground">
-        {state.kind === "ready"
-          ? <>Last checked {new Date(state.status.checkedAt).toLocaleTimeString()}</>
-          : state.kind === "loading"
-            ? "Checking…"
-            : "Not checked"}
+        {state.kind === "ready" ? (
+          <>Last checked {new Date(state.status.checkedAt).toLocaleTimeString()}</>
+        ) : state.kind === "loading" ? (
+          "Checking…"
+        ) : (
+          "Not checked"
+        )}
         {lastDiagnostic && (
-          <> · last test {lastDiagnostic.durationMs}ms · {lastDiagnostic.httpStatus ?? "—"}</>
+          <>
+            {" "}
+            · last test {lastDiagnostic.durationMs}ms · {lastDiagnostic.httpStatus ?? "—"}
+          </>
         )}
       </div>
     </div>
@@ -317,23 +374,63 @@ function ProviderCard({
 
 function CardBadge({ state }: { state: CardState }) {
   if (state.kind === "loading") {
-    return <Pill cls="border-white/10 text-muted-foreground" Icon={RefreshCw} label="Checking…" spin />;
+    return (
+      <Pill cls="border-white/10 text-muted-foreground" Icon={RefreshCw} label="Checking…" spin />
+    );
   }
   if (state.kind === "error") {
-    return <Pill cls="border-destructive/30 text-destructive bg-destructive/5" Icon={X} label="Error" />;
+    return (
+      <Pill cls="border-destructive/30 text-destructive bg-destructive/5" Icon={X} label="Error" />
+    );
   }
   const s = state.status;
-  if (!s.configured)        return <Pill cls="border-white/10 text-muted-foreground" Icon={AlertTriangle} label="Not configured" />;
-  if (s.reachable === false) return <Pill cls="border-destructive/30 text-destructive bg-destructive/5" Icon={X} label="API failed" />;
-  if (s.reachable === true)  return <Pill cls="border-success/30 text-success bg-success/5" Icon={Check} label="Connected" />;
-  return <Pill cls="border-warning/30 text-warning bg-warning/5" Icon={AlertTriangle} label="Configured" />;
+  if (!s.configured)
+    return (
+      <Pill
+        cls="border-white/10 text-muted-foreground"
+        Icon={AlertTriangle}
+        label="Not configured"
+      />
+    );
+  if (s.reachable === false)
+    return (
+      <Pill
+        cls="border-destructive/30 text-destructive bg-destructive/5"
+        Icon={X}
+        label="API failed"
+      />
+    );
+  if (s.reachable === true)
+    return (
+      <Pill cls="border-success/30 text-success bg-success/5" Icon={Check} label="Connected" />
+    );
+  return (
+    <Pill
+      cls="border-warning/30 text-warning bg-warning/5"
+      Icon={AlertTriangle}
+      label="Configured"
+    />
+  );
 }
 
 function Pill({
-  cls, Icon, label, spin,
-}: { cls: string; Icon: React.ComponentType<{ className?: string }>; label: string; spin?: boolean }) {
+  cls,
+  Icon,
+  label,
+  spin,
+}: {
+  cls: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  spin?: boolean;
+}) {
   return (
-    <span className={cn("inline-flex items-center gap-1 text-[10.5px] px-2 py-0.5 rounded-full border", cls)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-[10.5px] px-2 py-0.5 rounded-full border",
+        cls,
+      )}
+    >
       <Icon className={cn("h-3 w-3", spin && "animate-spin")} /> {label}
     </span>
   );
@@ -342,8 +439,14 @@ function Pill({
 /* -------------------- Diagnostics panel -------------------- */
 
 function DiagnosticsPanel({
-  open, onToggle, diagnostics,
-}: { open: boolean; onToggle: () => void; diagnostics: Record<string, ProviderDiagnosticDTO> }) {
+  open,
+  onToggle,
+  diagnostics,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  diagnostics: Record<string, ProviderDiagnosticDTO>;
+}) {
   const entries = useMemo(
     () => PROVIDERS.map((p) => [p, diagnostics[p] ?? null] as const),
     [diagnostics],
@@ -360,10 +463,16 @@ function DiagnosticsPanel({
         <div className="flex items-center gap-2">
           <span className="font-display font-semibold text-sm">Diagnostics</span>
           <span className="text-[11px] text-muted-foreground">
-            {hasAny ? `${entries.filter(([, d]) => d).length}/4 providers tested` : "Run a Test on any card"}
+            {hasAny
+              ? `${entries.filter(([, d]) => d).length}/4 providers tested`
+              : "Run a Test on any card"}
           </span>
         </div>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
       </button>
 
       {open && (
@@ -377,7 +486,13 @@ function DiagnosticsPanel({
   );
 }
 
-function DiagnosticRow({ provider, diag }: { provider: ProviderId; diag: ProviderDiagnosticDTO | null }) {
+function DiagnosticRow({
+  provider,
+  diag,
+}: {
+  provider: ProviderId;
+  diag: ProviderDiagnosticDTO | null;
+}) {
   const meta = META[provider];
   const Icon = meta.Icon;
   return (
@@ -402,10 +517,16 @@ function DiagnosticRow({ provider, diag }: { provider: ProviderId; diag: Provide
           <KV label="Account">{diag.account ?? "—"}</KV>
           <KV label="Target">{diag.target ?? "—"}</KV>
           <KV label="Missing env">{diag.missing.length ? diag.missing.join(", ") : "—"}</KV>
-          {diag.normalizedError && <KV label="Error" full>{diag.normalizedError}</KV>}
+          {diag.normalizedError && (
+            <KV label="Error" full>
+              {diag.normalizedError}
+            </KV>
+          )}
           {diag.responseBody && (
             <div className="sm:col-span-2 mt-1">
-              <div className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Response body</div>
+              <div className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+                Response body
+              </div>
               <pre className="rounded-lg border border-white/10 bg-black/40 p-2 text-[11px] overflow-auto max-h-48 whitespace-pre-wrap break-all">
                 {diag.responseBody}
               </pre>
@@ -417,7 +538,15 @@ function DiagnosticRow({ provider, diag }: { provider: ProviderId; diag: Provide
   );
 }
 
-function KV({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+function KV({
+  label,
+  children,
+  full,
+}: {
+  label: string;
+  children: React.ReactNode;
+  full?: boolean;
+}) {
   return (
     <div className={cn(full && "sm:col-span-2")}>
       <div className="text-[10.5px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>

@@ -9,7 +9,11 @@ export type DirectWorkspace = { id: string; name: string; slug: string };
 
 export function readCurrentWorkspaceId(): string | null {
   if (typeof window === "undefined") return null;
-  try { return window.localStorage.getItem(CURRENT_WORKSPACE_KEY); } catch { return null; }
+  try {
+    return window.localStorage.getItem(CURRENT_WORKSPACE_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export function writeCurrentWorkspaceId(id: string | null) {
@@ -17,13 +21,21 @@ export function writeCurrentWorkspaceId(id: string | null) {
   try {
     if (id) window.localStorage.setItem(CURRENT_WORKSPACE_KEY, id);
     else window.localStorage.removeItem(CURRENT_WORKSPACE_KEY);
-    window.dispatchEvent(new CustomEvent("yawb:selection-changed", { detail: { workspaceId: id } }));
-  } catch { /* ignore */ }
+    window.dispatchEvent(
+      new CustomEvent("yawb:selection-changed", { detail: { workspaceId: id } }),
+    );
+  } catch {
+    /* ignore */
+  }
 }
 
 export function readCurrentProjectId(workspaceId: string | null | undefined): string | null {
   if (typeof window === "undefined" || !workspaceId) return null;
-  try { return window.localStorage.getItem(CURRENT_PROJECT_PREFIX + workspaceId); } catch { return null; }
+  try {
+    return window.localStorage.getItem(CURRENT_PROJECT_PREFIX + workspaceId);
+  } catch {
+    return null;
+  }
 }
 
 export function writeCurrentProjectId(workspaceId: string | null | undefined, id: string | null) {
@@ -31,8 +43,12 @@ export function writeCurrentProjectId(workspaceId: string | null | undefined, id
   try {
     if (id) window.localStorage.setItem(CURRENT_PROJECT_PREFIX + workspaceId, id);
     else window.localStorage.removeItem(CURRENT_PROJECT_PREFIX + workspaceId);
-    window.dispatchEvent(new CustomEvent("yawb:selection-changed", { detail: { workspaceId, projectId: id } }));
-  } catch { /* ignore */ }
+    window.dispatchEvent(
+      new CustomEvent("yawb:selection-changed", { detail: { workspaceId, projectId: id } }),
+    );
+  } catch {
+    /* ignore */
+  }
 }
 
 export function readDirectWorkspace(): DirectWorkspace | null {
@@ -42,7 +58,9 @@ export function readDirectWorkspace(): DirectWorkspace | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DirectWorkspace;
     return parsed?.id ? parsed : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function readDirectProject(): Project | null {
@@ -52,7 +70,9 @@ export function readDirectProject(): Project | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Project;
     return parsed?.id && parsed?.workspaceId ? parsed : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function rememberDirectProject(project: Project) {
@@ -65,7 +85,9 @@ export function rememberDirectProject(project: Project) {
   try {
     window.localStorage.setItem(DIRECT_WORKSPACE_KEY, JSON.stringify(workspace));
     window.localStorage.setItem(DIRECT_PROJECT_KEY, JSON.stringify(project));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   writeCurrentWorkspaceId(project.workspaceId);
   writeCurrentProjectId(project.workspaceId, project.id);
   window.dispatchEvent(new CustomEvent("yawb:project-bootstrap", { detail: { project } }));

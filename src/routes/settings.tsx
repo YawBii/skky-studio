@@ -7,12 +7,24 @@ import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — yawB" }, { name: "description", content: "Workspace preferences and account settings." }] }),
+  head: () => ({
+    meta: [
+      { title: "Settings — yawB" },
+      { name: "description", content: "Workspace preferences and account settings." },
+    ],
+  }),
   component: SettingsPage,
 });
 
-const tabs = ["Profile", "Workspace", "Notifications", "Appearance", "Security", "Danger zone"] as const;
-type Tab = typeof tabs[number];
+const tabs = [
+  "Profile",
+  "Workspace",
+  "Notifications",
+  "Appearance",
+  "Security",
+  "Danger zone",
+] as const;
+type Tab = (typeof tabs)[number];
 
 function SettingsPage() {
   const [tab, setTab] = useState<Tab>("Profile");
@@ -24,9 +36,16 @@ function SettingsPage() {
       <div className="grid md:grid-cols-[200px_1fr] gap-8">
         <nav className="space-y-1">
           {tabs.map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={cn("w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                tab === t ? "bg-white/[0.07] text-foreground" : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground")}>
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
+                tab === t
+                  ? "bg-white/[0.07] text-foreground"
+                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+              )}
+            >
               {t}
             </button>
           ))}
@@ -54,7 +73,12 @@ function Field({ label, children }: any) {
   );
 }
 function Input(props: any) {
-  return <input {...props} className="w-full rounded-lg border border-white/10 bg-background/50 px-3 h-10 text-sm focus:outline-none focus:border-white/20" />;
+  return (
+    <input
+      {...props}
+      className="w-full rounded-lg border border-white/10 bg-background/50 px-3 h-10 text-sm focus:outline-none focus:border-white/20"
+    />
+  );
 }
 
 function ProfilePane() {
@@ -62,13 +86,30 @@ function ProfilePane() {
     <div className="space-y-5">
       <h2 className="font-display font-semibold">Profile</h2>
       <div className="flex items-center gap-4">
-        <div className="h-16 w-16 rounded-full bg-white/10 border border-white/10 grid place-items-center font-semibold">AR</div>
-        <div className="flex gap-2"><Button variant="soft" size="sm">Upload</Button><Button variant="ghost" size="sm">Remove</Button></div>
+        <div className="h-16 w-16 rounded-full bg-white/10 border border-white/10 grid place-items-center font-semibold">
+          AR
+        </div>
+        <div className="flex gap-2">
+          <Button variant="soft" size="sm">
+            Upload
+          </Button>
+          <Button variant="ghost" size="sm">
+            Remove
+          </Button>
+        </div>
       </div>
-      <Field label="Full name"><Input defaultValue="Ana Reyes" /></Field>
-      <Field label="Email"><Input defaultValue="ana@skky.group" type="email" /></Field>
-      <Field label="Job title"><Input defaultValue="Head of Engineering" /></Field>
-      <Button variant="hero"><Save className="h-4 w-4" /> Save changes</Button>
+      <Field label="Full name">
+        <Input defaultValue="Ana Reyes" />
+      </Field>
+      <Field label="Email">
+        <Input defaultValue="ana@skky.group" type="email" />
+      </Field>
+      <Field label="Job title">
+        <Input defaultValue="Head of Engineering" />
+      </Field>
+      <Button variant="hero">
+        <Save className="h-4 w-4" /> Save changes
+      </Button>
     </div>
   );
 }
@@ -77,10 +118,13 @@ function WorkspacePane() {
   const { session } = useAuth();
 
   const sourceLabel =
-    source === "supabase" ? { text: "Live · Lovable Cloud", tone: "ok" as const }
-    : source === "demo-empty" ? { text: "No workspace yet", tone: "warn" as const }
-    : source === "error" ? { text: "Cloud query failed", tone: "err" as const }
-    : { text: "Demo (signed-out preview)", tone: "warn" as const };
+    source === "supabase"
+      ? { text: "Live · Lovable Cloud", tone: "ok" as const }
+      : source === "demo-empty"
+        ? { text: "No workspace yet", tone: "warn" as const }
+        : source === "error"
+          ? { text: "Cloud query failed", tone: "err" as const }
+          : { text: "Demo (signed-out preview)", tone: "warn" as const };
 
   return (
     <div className="space-y-5">
@@ -91,7 +135,8 @@ function WorkspacePane() {
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] uppercase tracking-[0.16em] border",
             sourceLabel.tone === "ok" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
             sourceLabel.tone === "warn" && "border-amber-500/30 bg-amber-500/10 text-amber-300",
-            sourceLabel.tone === "err" && "border-destructive/40 bg-destructive/10 text-destructive",
+            sourceLabel.tone === "err" &&
+              "border-destructive/40 bg-destructive/10 text-destructive",
           )}
         >
           <Database className="h-3 w-3" /> {sourceLabel.text}
@@ -102,17 +147,38 @@ function WorkspacePane() {
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-[12px] text-muted-foreground flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <div>
-            {source === "demo-fallback" && <>You're not signed in, so this shows demo data. Sign in to see your real workspace.</>}
-            {source === "demo-empty" && <>No workspace exists yet for <span className="font-mono">{session?.userId ?? "this user"}</span>. Create one from the home screen.</>}
+            {source === "demo-fallback" && (
+              <>
+                You're not signed in, so this shows demo data. Sign in to see your real workspace.
+              </>
+            )}
+            {source === "demo-empty" && (
+              <>
+                No workspace exists yet for{" "}
+                <span className="font-mono">{session?.userId ?? "this user"}</span>. Create one from
+                the home screen.
+              </>
+            )}
             {source === "error" && (
-              <>Couldn't read from Lovable Cloud. {error && <span className="block mt-1 break-words">{error}</span>}<span className="block mt-1">Run <code className="font-mono">docs/sql/2026-04-30-collaboration.sql</code> in the Cloud SQL editor.</span></>
+              <>
+                Couldn't read from Lovable Cloud.{" "}
+                {error && <span className="block mt-1 break-words">{error}</span>}
+                <span className="block mt-1">
+                  Run <code className="font-mono">docs/sql/2026-04-30-collaboration.sql</code> in
+                  the Cloud SQL editor.
+                </span>
+              </>
             )}
           </div>
         </div>
       )}
 
       <Field label="Workspace name">
-        <Input value={loading ? "Loading…" : (current?.name ?? "")} readOnly placeholder="No workspace" />
+        <Input
+          value={loading ? "Loading…" : (current?.name ?? "")}
+          readOnly
+          placeholder="No workspace"
+        />
       </Field>
       <Field label="Workspace slug">
         <Input value={loading ? "" : (current?.slug ?? "")} readOnly placeholder="no-workspace" />
@@ -125,10 +191,14 @@ function WorkspacePane() {
       </Field>
       <Field label="Default region">
         <select className="w-full rounded-lg border border-white/10 bg-background/50 px-3 h-10 text-sm focus:outline-none">
-          <option>eu-west-1 (Ireland)</option><option>us-east-1 (Virginia)</option><option>ap-south-1 (Mumbai)</option>
+          <option>eu-west-1 (Ireland)</option>
+          <option>us-east-1 (Virginia)</option>
+          <option>ap-south-1 (Mumbai)</option>
         </select>
       </Field>
-      <Button variant="hero" disabled={!isReal}><Save className="h-4 w-4" /> Save changes</Button>
+      <Button variant="hero" disabled={!isReal}>
+        <Save className="h-4 w-4" /> Save changes
+      </Button>
 
       <Link
         to="/server-setup"
@@ -138,7 +208,9 @@ function WorkspacePane() {
           <Server className="h-4 w-4 text-muted-foreground" />
           <span>
             <span className="block text-sm font-medium">Server Setup</span>
-            <span className="block text-xs text-muted-foreground">Check server-side env vars (build runner, Supabase, GitHub, Vercel).</span>
+            <span className="block text-xs text-muted-foreground">
+              Check server-side env vars (build runner, Supabase, GitHub, Vercel).
+            </span>
           </span>
         </span>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -148,17 +220,29 @@ function WorkspacePane() {
 }
 function NotificationsPane() {
   const items = [
-    "Deploy succeeded", "Deploy failed", "New pull request", "Health scan finds issues", "Billing alerts", "Weekly summary",
+    "Deploy succeeded",
+    "Deploy failed",
+    "New pull request",
+    "Health scan finds issues",
+    "Billing alerts",
+    "Weekly summary",
   ];
   return (
     <div className="space-y-3">
       <h2 className="font-display font-semibold">Notifications</h2>
       {items.map((i) => (
-        <label key={i} className="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0">
+        <label
+          key={i}
+          className="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0"
+        >
           <span className="text-sm">{i}</span>
           <span className="flex items-center gap-3 text-xs text-muted-foreground">
-            <label className="flex items-center gap-1.5"><input type="checkbox" defaultChecked className="accent-foreground" /> Email</label>
-            <label className="flex items-center gap-1.5"><input type="checkbox" className="accent-foreground" /> Slack</label>
+            <label className="flex items-center gap-1.5">
+              <input type="checkbox" defaultChecked className="accent-foreground" /> Email
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="checkbox" className="accent-foreground" /> Slack
+            </label>
           </span>
         </label>
       ))}
@@ -172,14 +256,24 @@ function AppearancePane() {
       <Field label="Theme">
         <div className="grid grid-cols-3 gap-3">
           {["Dark", "Light", "System"].map((t, i) => (
-            <button key={t} className={cn("rounded-xl border px-4 py-6 text-sm",
-              i === 0 ? "border-foreground/40 bg-white/5" : "border-white/10 hover:bg-white/[0.03]")}>{t}</button>
+            <button
+              key={t}
+              className={cn(
+                "rounded-xl border px-4 py-6 text-sm",
+                i === 0
+                  ? "border-foreground/40 bg-white/5"
+                  : "border-white/10 hover:bg-white/[0.03]",
+              )}
+            >
+              {t}
+            </button>
           ))}
         </div>
       </Field>
       <Field label="Density">
         <select className="w-full rounded-lg border border-white/10 bg-background/50 px-3 h-10 text-sm focus:outline-none">
-          <option>Comfortable</option><option>Compact</option>
+          <option>Comfortable</option>
+          <option>Compact</option>
         </select>
       </Field>
     </div>
@@ -192,23 +286,31 @@ function SecurityPane() {
       <div className="rounded-xl border border-white/10 p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">Two-factor authentication</div>
-          <div className="text-xs text-muted-foreground">Add an extra layer of security to your account.</div>
+          <div className="text-xs text-muted-foreground">
+            Add an extra layer of security to your account.
+          </div>
         </div>
-        <Button variant="soft" size="sm">Enable</Button>
+        <Button variant="soft" size="sm">
+          Enable
+        </Button>
       </div>
       <div className="rounded-xl border border-white/10 p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">Active sessions</div>
           <div className="text-xs text-muted-foreground">2 devices currently signed in.</div>
         </div>
-        <Button variant="soft" size="sm">Manage</Button>
+        <Button variant="soft" size="sm">
+          Manage
+        </Button>
       </div>
       <div className="rounded-xl border border-white/10 p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">Personal access tokens</div>
           <div className="text-xs text-muted-foreground">Use tokens for CLI and API access.</div>
         </div>
-        <Button variant="soft" size="sm">Generate</Button>
+        <Button variant="soft" size="sm">
+          Generate
+        </Button>
       </div>
     </div>
   );
@@ -220,9 +322,13 @@ function DangerPane() {
       <div className="rounded-xl border border-destructive/30 p-4 flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">Delete workspace</div>
-          <div className="text-xs text-muted-foreground">This permanently deletes the current workspace and all its projects.</div>
+          <div className="text-xs text-muted-foreground">
+            This permanently deletes the current workspace and all its projects.
+          </div>
         </div>
-        <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /> Delete</Button>
+        <Button variant="destructive" size="sm">
+          <Trash2 className="h-4 w-4" /> Delete
+        </Button>
       </div>
     </div>
   );

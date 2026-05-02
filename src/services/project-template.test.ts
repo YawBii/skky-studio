@@ -1,20 +1,28 @@
 import { describe, it, expect } from "vitest";
-import {
-  generateProjectFiles,
-  detectCategory,
-  inferProjectArchetype,
-} from "./project-template";
+import { generateProjectFiles, detectCategory, inferProjectArchetype } from "./project-template";
 
 describe("project-template (Monster Brain v1 shim)", () => {
   it("produces visibly different index.html for different projects", () => {
     const goodhand = generateProjectFiles({
-      project: { id: "p-goodhand", name: "Goodhand", description: "Discover and verify community contributors." },
+      project: {
+        id: "p-goodhand",
+        name: "Goodhand",
+        description: "Discover and verify community contributors.",
+      },
     });
     const skky = generateProjectFiles({
-      project: { id: "p-skky", name: "skkygroup", description: "A holding group of long-horizon ventures." },
+      project: {
+        id: "p-skky",
+        name: "skkygroup",
+        description: "A holding group of long-horizon ventures.",
+      },
     });
     const ujob = generateProjectFiles({
-      project: { id: "p-ujob", name: "uJob", description: "Marketplace for hiring and getting hired." },
+      project: {
+        id: "p-ujob",
+        name: "uJob",
+        description: "Marketplace for hiring and getting hired.",
+      },
     });
 
     const ghHtml = goodhand.find((f) => f.path === "index.html")!.content;
@@ -36,12 +44,22 @@ describe("project-template (Monster Brain v1 shim)", () => {
   });
 
   it("infers archetypes from name + description", () => {
-    expect(inferProjectArchetype({ id: "1", name: "Goodhand", description: "discovery" })).toBe("social-good");
+    expect(inferProjectArchetype({ id: "1", name: "Goodhand", description: "discovery" })).toBe(
+      "social-good",
+    );
     expect(inferProjectArchetype({ id: "2", name: "uJob", description: "" })).toBe("jobs");
-    expect(inferProjectArchetype({ id: "3", name: "skkygroup", description: "holdings" })).toBe("corporate");
-    expect(inferProjectArchetype({ id: "4", name: "PayFlow", description: "invoice payments" })).toBe("fintech");
-    expect(inferProjectArchetype({ id: "5", name: "TrustID", description: "verification" })).toBe("identity");
-    expect(inferProjectArchetype({ id: "6", name: "Arena", description: "multiplayer game" })).toBe("gaming");
+    expect(inferProjectArchetype({ id: "3", name: "skkygroup", description: "holdings" })).toBe(
+      "corporate",
+    );
+    expect(
+      inferProjectArchetype({ id: "4", name: "PayFlow", description: "invoice payments" }),
+    ).toBe("fintech");
+    expect(inferProjectArchetype({ id: "5", name: "TrustID", description: "verification" })).toBe(
+      "identity",
+    );
+    expect(inferProjectArchetype({ id: "6", name: "Arena", description: "multiplayer game" })).toBe(
+      "gaming",
+    );
     expect(inferProjectArchetype({ id: "7", name: "Random", description: "" })).toBe("default");
   });
 
@@ -65,7 +83,9 @@ describe("project-template (Monster Brain v1 shim)", () => {
 
   it("emits valid HTML doctype", () => {
     const files = generateProjectFiles({ project: { id: "x", name: "X", description: "" } });
-    expect(files.find((f) => f.path === "index.html")!.content.startsWith("<!doctype html>")).toBe(true);
+    expect(files.find((f) => f.path === "index.html")!.content.startsWith("<!doctype html>")).toBe(
+      true,
+    );
   });
 
   it("escapes HTML-significant characters in project name and description", () => {

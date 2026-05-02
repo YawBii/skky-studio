@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { listProjects, type Project, type ProjectsResult } from "@/services/projects";
 import { setDiag } from "@/lib/diagnostics";
-import { readCurrentProjectId, readDirectProject, writeCurrentProjectId } from "@/lib/project-selection";
+import {
+  readCurrentProjectId,
+  readDirectProject,
+  writeCurrentProjectId,
+} from "@/lib/project-selection";
 
 export function useProjects(workspaceId: string | null | undefined) {
   const [result, setResult] = useState<ProjectsResult>({ projects: [], source: "no-workspace" });
@@ -12,14 +16,26 @@ export function useProjects(workspaceId: string | null | undefined) {
     setLoading(true);
     const r = await listProjects(workspaceId ?? null);
     const direct = readDirectProject();
-    const shouldInjectDirect = direct && direct.workspaceId === workspaceId && !r.projects.some((p) => p.id === direct.id);
-    const next = shouldInjectDirect ? { projects: [direct, ...r.projects], source: "supabase" as const } : r;
+    const shouldInjectDirect =
+      direct && direct.workspaceId === workspaceId && !r.projects.some((p) => p.id === direct.id);
+    const next = shouldInjectDirect
+      ? { projects: [direct, ...r.projects], source: "supabase" as const }
+      : r;
     setResult(next);
     setLoading(false);
-    setDiag({ workspaceId: workspaceId ?? null, projectsCount: next.projects.length, projectsSource: next.source });
+    setDiag({
+      workspaceId: workspaceId ?? null,
+      projectsCount: next.projects.length,
+      projectsSource: next.source,
+    });
     if (typeof window !== "undefined") {
       // eslint-disable-next-line no-console
-      console.info("[yawb] projects source:", next.source, `count=${next.projects.length}`, r.error ?? "");
+      console.info(
+        "[yawb] projects source:",
+        next.source,
+        `count=${next.projects.length}`,
+        r.error ?? "",
+      );
     }
     return next;
   }, [workspaceId]);
@@ -35,12 +51,19 @@ export function useProjects(workspaceId: string | null | undefined) {
       if (!project || project.workspaceId !== workspaceId) return;
       setResult((prev) => {
         const exists = prev.projects.some((p) => p.id === project.id);
-        const projects = exists ? prev.projects.map((p) => (p.id === project.id ? project : p)) : [project, ...prev.projects];
+        const projects = exists
+          ? prev.projects.map((p) => (p.id === project.id ? project : p))
+          : [project, ...prev.projects];
         return { projects, source: "supabase" };
       });
       setCurrentId(project.id);
       setLoading(false);
-      setDiag({ workspaceId: project.workspaceId, projectId: project.id, projectsCount: 1, projectsSource: "supabase" });
+      setDiag({
+        workspaceId: project.workspaceId,
+        projectId: project.id,
+        projectsCount: 1,
+        projectsSource: "supabase",
+      });
     };
     window.addEventListener("yawb:project-bootstrap", onBootstrap as EventListener);
     return () => window.removeEventListener("yawb:project-bootstrap", onBootstrap as EventListener);
@@ -55,10 +78,13 @@ export function useProjects(workspaceId: string | null | undefined) {
     writeCurrentProjectId(workspaceId, next);
   }, [loading, result.projects, currentId, workspaceId]);
 
-  const select = useCallback((id: string) => {
-    setCurrentId(id);
-    writeCurrentProjectId(workspaceId, id);
-  }, [workspaceId]);
+  const select = useCallback(
+    (id: string) => {
+      setCurrentId(id);
+      writeCurrentProjectId(workspaceId, id);
+    },
+    [workspaceId],
+  );
 
   const inject = useCallback((project: Project) => {
     setResult((prev) => {
@@ -66,7 +92,12 @@ export function useProjects(workspaceId: string | null | undefined) {
       const projects = exists
         ? prev.projects.map((p) => (p.id === project.id ? project : p))
         : [project, ...prev.projects];
-      setDiag({ workspaceId: project.workspaceId, projectId: project.id, projectsCount: projects.length, projectsSource: prev.source === "supabase" ? "supabase" : "supabase" });
+      setDiag({
+        workspaceId: project.workspaceId,
+        projectId: project.id,
+        projectsCount: projects.length,
+        projectsSource: prev.source === "supabase" ? "supabase" : "supabase",
+      });
       return { projects, source: "supabase" };
     });
     setCurrentId(project.id);
