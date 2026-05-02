@@ -1572,13 +1572,24 @@ export function designSignature(
   context?: MonsterBrainContext | null,
 ): string {
   const seedBasis = buildSeedBasis(project, context);
-  const hue = Math.abs(hash(seedBasis)) % 360;
-  const variant = variantIndex(seedBasis);
+  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  const fp = chooseVisualFingerprint(archetype, seedBasis, previous);
   const seedTag = context?.regenerationSeed
     ? `:seed${Math.abs(hash(context.regenerationSeed)).toString(36).slice(0, 6)}`
     : "";
   const slug = (project.name ?? "").trim().toLowerCase().replace(/\s+/g, "-");
-  return `mb-v1:${archetype}:hue${hue}:variant-${variant}${seedTag}:${slug}`;
+  return `${fingerprintToString(fp)}${seedTag}:${slug}`;
+}
+
+/** Return the visual fingerprint that generateProjectFiles will use for this project+ctx. */
+export function computeVisualFingerprint(
+  project: ProjectLike,
+  context?: MonsterBrainContext | null,
+): VisualFingerprint {
+  const archetype = inferProjectArchetype(project, context ?? null);
+  const seedBasis = buildSeedBasis(project, context);
+  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  return chooseVisualFingerprint(archetype, seedBasis, previous);
 }
 
 export function generateProjectFiles(
@@ -1592,11 +1603,15 @@ export function generateProjectFiles(
   const copy = copyFor(archetype, project);
   const baseSections = sectionsFor(archetype);
   const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant);
-  const sections = applyVariance(baseSections, archetype, seedBasis, variance);
-  const blueprint: Blueprint = { archetype, theme, copy, sections };
+  const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
+  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous);
+  const sections = variance
+    ? fingerprint.sectionOrder
+    : applyVariance(baseSections, archetype, seedBasis, false);
+  const blueprint: Blueprint = { archetype, theme, copy, sections, fingerprint };
 
   const html = renderHtml(blueprint, project, seedBasis);
-  const css = renderCss(theme as Theme & { _hue?: number }, archetype, seedBasis);
+  const css = renderCss(theme as Theme & { _hue?: number }, archetype, seedBasis, fingerprint);
   const js = renderJs(project.name ?? "Untitled", archetype);
 
   return [
