@@ -558,7 +558,7 @@ export function PreviewPane({
           "flex-1 min-h-0 bg-[oklch(0.13_0_0)]",
           device === "desktop"
             ? "overflow-hidden"
-            : "overflow-auto p-8 grid place-items-start justify-center",
+            : "overflow-auto p-2 sm:p-8 grid place-items-start justify-center",
         )}
       >
         <div
