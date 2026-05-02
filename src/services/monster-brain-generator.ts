@@ -46,6 +46,21 @@ export interface MonsterBrainContext {
   previousFiles?: { path: string }[] | null;
   /** Last few job summaries — used as proof block hints. */
   recentJobs?: Array<{ type: string; status: string; summary?: string | null }> | null;
+  /** Per-regeneration entropy — when present, every regen produces a distinct design. */
+  regenerationSeed?: string | null;
+  /** Forces a non-default variant pick even when no chat request changed. */
+  forceVariant?: boolean;
+}
+
+/** Build the seed basis used for theme/copy/section variance. */
+function buildSeedBasis(project: ProjectLike, context?: MonsterBrainContext | null): string {
+  return [
+    project.id ?? "",
+    project.name ?? "",
+    project.description ?? "",
+    context?.regenerationSeed ?? "",
+    context?.chatRequest ?? "",
+  ].filter(Boolean).join(":") || "x";
 }
 
 type ProjectLike = Pick<Project, "id" | "name"> & { description?: string | null };
