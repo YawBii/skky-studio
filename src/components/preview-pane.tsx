@@ -479,22 +479,39 @@ export function PreviewPane({
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
         {onRegenerateDesign && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
-            data-testid="preview-regenerate-design"
-            onClick={() => {
-              console.info("[yawb] preview.regenerate.clicked", { projectId: project.id });
-              onRegenerateDesign();
-            }}
-            disabled={regenerating}
-            title="Rewrite project_files with a fresh design"
-          >
-            {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-            Regenerate design
-          </Button>
+          <>
+            <select
+              data-testid="preview-design-angle"
+              aria-label="Design angle"
+              value={designAngle}
+              onChange={(e) => {
+                const next = e.target.value as DesignAngle;
+                console.info("[yawb] preview.designAngle.changed", { projectId: project.id, angle: next });
+                setDesignAngle(next);
+              }}
+              className="h-7 rounded-md bg-white/[0.04] border border-white/10 px-2 text-[11px] uppercase tracking-[0.14em] text-foreground touch-manipulation"
+            >
+              {DESIGN_ANGLES.map((a) => (
+                <option key={a.id} value={a.id}>{a.label}</option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
+              data-testid="preview-regenerate-design"
+              onClick={() => {
+                console.info("[yawb] preview.regenerate.clicked", { projectId: project.id, designMode: designAngle });
+                onRegenerateDesign(designAngle);
+              }}
+              disabled={regenerating}
+              title="Rewrite project_files with the selected design angle"
+            >
+              {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Regenerate design
+            </Button>
+          </>
         )}
         {onRefreshLocalPreview && (
           <Button
