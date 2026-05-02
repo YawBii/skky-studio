@@ -246,10 +246,29 @@ export function PreviewPane({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const softHintRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset + start the load timer whenever the iframe URL or srcDoc changes.
-  // Local previews (srcDoc / same-origin route) get NO failure fallback —
-  // they shouldn't be blocked by CSP.
+  // Local previews render statically — no loading state, no overlay, no
+  // raf/timeout machinery. The loading overlay applies ONLY to live iframes
+  // (cross-origin, may be blocked by CSP). This effect short-circuits early
+  // for local so it cannot trigger remount/loading loops on file refresh.
   useEffect(() => {
+    if (resolved.kind === "local") {
+      // Cancel any in-flight live timers (mode switch live → local).
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (softHintRef.current) {
+        clearTimeout(softHintRef.current);
+        softHintRef.current = null;
+      }
+      setSoftHintVisible(false);
+      // Static render — never set "loading" for local.
+      console.info("[yawb] preview.local.render.static", {
+        source: resolved.source,
+        hasSrcDoc: Boolean(localSrcDoc || resolved.srcDoc),
+      });
+      return;
+    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -259,7 +278,7 @@ export function PreviewPane({
       softHintRef.current = null;
     }
     setSoftHintVisible(false);
-    if (!iframeSrc && !localSrcDoc && !resolved.srcDoc) {
+    if (!iframeSrc) {
       setIframeState("idle");
       return;
     }
@@ -267,24 +286,7 @@ export function PreviewPane({
     console.info("[yawb] preview.iframe.loading", {
       kind: resolved.kind,
       url: iframeSrc,
-      srcDoc: !!(localSrcDoc ?? resolved.srcDoc),
     });
-    if (resolved.kind === "local") {
-      // Local previews (srcDoc) don't reliably fire onLoad in all envs.
-      // Mark as loaded on next frame so the loading overlay never sticks.
-      const raf =
-        typeof requestAnimationFrame === "function"
-          ? requestAnimationFrame
-          : (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0);
-      raf(() => {
-        setIframeState("loaded");
-        console.info("[yawb] preview.local.loaded", {
-          source: resolved.source,
-          hasSrcDoc: Boolean(localSrcDoc || resolved.srcDoc),
-        });
-      });
-      return;
-    }
     if (resolved.kind !== "live") return; // skip CSP timeout for non-live
     softHintRef.current = setTimeout(() => {
       setSoftHintVisible(true);
