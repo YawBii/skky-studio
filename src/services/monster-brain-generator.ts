@@ -478,7 +478,7 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
         <h2 class="mb-h2">Live scanner feed</h2>
         <p class="mb-sub">Real signals from real contributors — surfaced the moment they happen.</p>
         <ul class="mb-feed">
-          ${["Mira hosted a free repair café for 38 neighbours.", "Devon shipped weekly groceries to 12 elders.", "Aisha published an open-source mental-health toolkit.", "Tom ran a 6-week mentorship circle for first-gen students."].map((t, i) => `<li class="mb-feed-row"><span class="mb-feed-dot"></span><span class="mb-feed-when">just now · 0${i + 1}</span><span class="mb-feed-what">${esc(t)}</span></li>`).join("")}
+          ${shuffle(["Mira hosted a free repair café for 38 neighbours.", "Devon shipped weekly groceries to 12 elders.", "Aisha published an open-source mental-health toolkit.", "Tom ran a 6-week mentorship circle for first-gen students.", "Priya organised a clothing swap for 60 families.", "Joon ran weekend coding clinics at the public library."], rnd).slice(0, 5).map((t, i) => `<li class="mb-feed-row"><span class="mb-feed-dot"></span><span class="mb-feed-when">${i === 0 ? "just now" : `${i * 7}m ago`} · 0${i + 1}</span><span class="mb-feed-what">${esc(t)}</span></li>`).join("")}
         </ul>
       </section>`;
     case "praise-cards":
@@ -549,7 +549,7 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
       return `<section id="regions" class="mb-section">
         <h2 class="mb-h2">Regions</h2>
         <div class="mb-region-grid">
-          ${["Stockholm", "Berlin", "London", "New York", "Singapore", "São Paulo", "Cape Town", "Tokyo", "Sydney"].map((r) => `<div class="mb-region"><span class="mb-region-dot"></span>${esc(r)}</div>`).join("")}
+          ${shuffle(["Stockholm", "Berlin", "London", "New York", "Singapore", "São Paulo", "Cape Town", "Tokyo", "Sydney", "Lisbon", "Toronto", "Dubai"], rnd).slice(0, 9).map((r) => `<div class="mb-region"><span class="mb-region-dot"></span>${esc(r)}</div>`).join("")}
         </div>
       </section>`;
     case "architecture":
