@@ -998,8 +998,20 @@ function renderSection(key: SectionKey, name: string, copy: Copy, archetype: Arc
 // CSS
 // ---------------------------------------------------------------------------
 
-function renderCss(theme: Theme & { _hue?: number }, archetype: Archetype, projectId: string): string {
+function renderCss(theme: Theme & { _hue?: number }, archetype: Archetype, projectId: string, fp?: VisualFingerprint | null): string {
   const hue = theme._hue ?? Math.abs(hash(projectId)) % 360;
+  const palette = fp ? PALETTES[fp.palette] : null;
+  const typo = fp ? TYPOGRAPHY[fp.typography] : null;
+  const bg = palette?.bg ?? theme.bg;
+  const surface = palette?.surface ?? theme.surface;
+  const surface2 = palette?.surface2 ?? theme.surface2;
+  const fg = palette?.fg ?? theme.fg;
+  const muted = palette?.muted ?? theme.muted;
+  const accent = palette?.accent ?? theme.accent;
+  const accent2 = palette?.accent2 ?? theme.accent2;
+  const ring = palette?.ring ?? theme.ring;
+  const display = typo?.display ?? theme.display;
+  const body = typo?.body ?? theme.body;
   return `:root{
   --bg:${theme.bg};
   --surface:${theme.surface};
