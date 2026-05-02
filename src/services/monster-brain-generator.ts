@@ -52,6 +52,12 @@ export interface MonsterBrainContext {
   regenerationSeed?: string | null;
   /** Forces a non-default variant pick even when no chat request changed. */
   forceVariant?: boolean;
+  /**
+   * User-selected Design Angle — when provided, the generator MUST honor
+   * this exact mode. The regenerationSeed only affects internal section
+   * order/details inside that selected mode.
+   */
+  designMode?: DesignMode | null;
 }
 
 /** Build the seed basis used for theme/copy/section variance. */
@@ -332,20 +338,26 @@ export function chooseVisualFingerprint(
   archetype: Archetype,
   seedBasis: string,
   previous?: VisualFingerprint | null,
+  forcedMode?: DesignMode | null,
 ): VisualFingerprint {
   const baseSections = sectionsFor(archetype);
-  let recipe: ModeRecipe = MODE_RECIPES[DESIGN_MODES[pickModeIndex(seedBasis)]];
-  let attempt = 0;
-  while (previous && recipe.mode === previous.designMode && attempt < 5) {
-    attempt += 1;
-    const idx = Math.abs(hash(`mode-retry:${attempt}:${seedBasis}`)) % DESIGN_MODES.length;
-    recipe = MODE_RECIPES[DESIGN_MODES[idx]];
-  }
-  if (previous && recipe.mode === previous.designMode) {
-    // Forced rotation to next mode in list.
-    const cur = DESIGN_MODES.indexOf(previous.designMode);
-    const next = DESIGN_MODES[(cur + 1) % DESIGN_MODES.length];
-    recipe = MODE_RECIPES[next];
+  let recipe: ModeRecipe;
+  if (forcedMode && MODE_RECIPES[forcedMode]) {
+    // User-selected Design Angle wins. Seed only affects section order.
+    recipe = MODE_RECIPES[forcedMode];
+  } else {
+    recipe = MODE_RECIPES[DESIGN_MODES[pickModeIndex(seedBasis)]];
+    let attempt = 0;
+    while (previous && recipe.mode === previous.designMode && attempt < 5) {
+      attempt += 1;
+      const idx = Math.abs(hash(`mode-retry:${attempt}:${seedBasis}`)) % DESIGN_MODES.length;
+      recipe = MODE_RECIPES[DESIGN_MODES[idx]];
+    }
+    if (previous && recipe.mode === previous.designMode) {
+      const cur = DESIGN_MODES.indexOf(previous.designMode);
+      const next = DESIGN_MODES[(cur + 1) % DESIGN_MODES.length];
+      recipe = MODE_RECIPES[next];
+    }
   }
   const rnd = rngFor(`order:${seedBasis}:${recipe.mode}`);
   const head: SectionKey[] = baseSections[0]?.startsWith("hero-") ? [baseSections[0]] : [];
@@ -1573,7 +1585,7 @@ export function designSignature(
 ): string {
   const seedBasis = buildSeedBasis(project, context);
   const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  const fp = chooseVisualFingerprint(archetype, seedBasis, previous);
+  const fp = chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
   const seedTag = context?.regenerationSeed
     ? `:seed${Math.abs(hash(context.regenerationSeed)).toString(36).slice(0, 6)}`
     : "";
@@ -1589,7 +1601,7 @@ export function computeVisualFingerprint(
   const archetype = inferProjectArchetype(project, context ?? null);
   const seedBasis = buildSeedBasis(project, context);
   const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  return chooseVisualFingerprint(archetype, seedBasis, previous);
+  return chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
 }
 
 export function generateProjectFiles(
@@ -1602,9 +1614,9 @@ export function generateProjectFiles(
   const theme = shiftedTheme(baseTheme, seedBasis);
   const copy = copyFor(archetype, project);
   const baseSections = sectionsFor(archetype);
-  const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant);
+  const variance = Boolean(context?.regenerationSeed) || Boolean(context?.forceVariant) || Boolean(context?.designMode);
   const previous = context?.previousIndexHtml ? parseVisualFingerprintFromHtml(context.previousIndexHtml) : null;
-  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous);
+  const fingerprint = chooseVisualFingerprint(archetype, seedBasis, previous, context?.designMode ?? null);
   const sections = variance
     ? fingerprint.sectionOrder
     : applyVariance(baseSections, archetype, seedBasis, false);

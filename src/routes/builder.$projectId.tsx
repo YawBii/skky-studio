@@ -390,29 +390,30 @@ function Builder() {
                 toast.success("Local preview refreshed");
               });
             }}
-            onRegenerateDesign={async () => {
+            onRegenerateDesign={async (designMode) => {
               const regenerationSeed =
                 typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
                   ? crypto.randomUUID()
                   : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-              console.info("[yawb] regenerate.seed", { regenerationSeed, projectId: project.id });
+              console.info("[yawb] regenerate.seed", { regenerationSeed, designMode, projectId: project.id });
               const r = await enqueueJob({
                 projectId: project.id,
                 workspaceId: project.workspaceId,
                 type: "ai.generate_changes",
-                title: "Regenerate design",
+                title: `Regenerate design — ${designMode}`,
                 input: {
                   source: "preview_regenerate_design",
                   regenerationSeed,
                   forceVariant: true,
+                  designMode,
                 },
               });
               if (!r.ok) {
                 toast.error(`Couldn't regenerate: ${r.error}`);
                 return;
               }
-              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id, regenerationSeed });
-              toast.success("Regenerate job queued");
+              console.info("[yawb] regenerate.enqueued", { jobId: r.job.id, regenerationSeed, designMode });
+              toast.success(`Regenerate (${designMode}) queued`);
               setFocusJobId(r.job.id);
               // Refresh jobs list once so the new job appears in the panel.
               void ccJobs.refresh();

@@ -648,6 +648,13 @@ export async function generateAndPersistProjectFiles(
     ? input.regenerationSeed
     : null;
   const forceVariant = input.forceVariant === true || regenerationSeed !== null;
+  const VALID_DESIGN_MODES = new Set([
+    "editorial-luxury", "glass-dashboard", "civic-map", "neon-command",
+    "magazine-cards", "minimal-light", "brutalist-data",
+  ]);
+  const designMode = typeof input.designMode === "string" && VALID_DESIGN_MODES.has(input.designMode)
+    ? (input.designMode as "editorial-luxury" | "glass-dashboard" | "civic-map" | "neon-command" | "magazine-cards" | "minimal-light" | "brutalist-data")
+    : null;
   const projectInput = { id: proj.id, name: proj.name ?? "", description: proj.description ?? null };
 
   // Read previous index.html so the new fingerprint can avoid matching it.
@@ -662,8 +669,8 @@ export async function generateAndPersistProjectFiles(
     if (prevRow && typeof prevRow.content === "string") previousIndexHtml = prevRow.content;
   } catch { /* table may not exist yet */ }
 
-  console.log("[yawb] monster.generate.start", { projectId: job.project_id, name: projectInput.name, regenerationSeed, forceVariant, hasPrevious: Boolean(previousIndexHtml) });
-  const ctx = { chatRequest, regenerationSeed, forceVariant, previousIndexHtml };
+  console.log("[yawb] monster.generate.start", { projectId: job.project_id, name: projectInput.name, regenerationSeed, forceVariant, designMode, hasPrevious: Boolean(previousIndexHtml) });
+  const ctx = { chatRequest, regenerationSeed, forceVariant, designMode, previousIndexHtml };
   const archetype = inferProjectArchetype(projectInput, ctx);
   const fp: VisualFingerprint = computeVisualFingerprint(projectInput, ctx);
   const files = monsterGenerate(projectInput, ctx);

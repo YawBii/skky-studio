@@ -17,6 +17,27 @@ import {
 export type PreviewDevice = "desktop" | "tablet" | "mobile";
 export type PreviewMode = "live" | "local";
 
+export type DesignAngle =
+  | "editorial-luxury"
+  | "glass-dashboard"
+  | "civic-map"
+  | "neon-command"
+  | "magazine-cards"
+  | "minimal-light"
+  | "brutalist-data";
+
+export const DESIGN_ANGLES: { id: DesignAngle; label: string }[] = [
+  { id: "editorial-luxury", label: "Luxury Editorial" },
+  { id: "minimal-light",    label: "Clean Minimal" },
+  { id: "glass-dashboard",  label: "Glass Dashboard" },
+  { id: "neon-command",     label: "Neon Command" },
+  { id: "civic-map",        label: "Civic Impact" },
+  { id: "magazine-cards",   label: "Magazine Cards" },
+  { id: "brutalist-data",   label: "Brutalist Data" },
+];
+
+export const DESIGN_ANGLE_KEY = (projectId: string) => `yawb:design-angle:${projectId}`;
+
 export interface PreviewPaneProps {
   device: PreviewDevice;
   setDevice: (d: PreviewDevice) => void;
@@ -30,8 +51,8 @@ export interface PreviewPaneProps {
   connections?: ProjectConnection[] | null;
   /** Optional generated-files blob for in-browser local preview via srcDoc. */
   generated?: GeneratedFiles | null;
-  /** Optional handler for the "Regenerate design" toolbar action. */
-  onRegenerateDesign?: () => void;
+  /** Optional handler for the "Regenerate design" toolbar action. Receives the user-selected angle. */
+  onRegenerateDesign?: (angle: DesignAngle) => void;
   regenerating?: boolean;
   /** Optional handler for the "Refresh local preview" toolbar action. */
   onRefreshLocalPreview?: () => void;
@@ -43,6 +64,24 @@ export interface PreviewPaneProps {
   onJumpToJob?: (jobId: string) => void;
   /** Open the chat sheet and reveal the full TaskSummaryCard. */
   onOpenSummaryInChat?: (jobId: string) => void;
+}
+
+/** Parse yawb-* meta tags out of an index.html string for the proof pill. */
+export function parseDesignProof(html: string | null | undefined): {
+  designMode: string | null;
+  heroLayout: string | null;
+  palette: string | null;
+} {
+  if (!html) return { designMode: null, heroLayout: null, palette: null };
+  const get = (n: string) => {
+    const m = html.match(new RegExp(`<meta[^>]+name=["']${n}["'][^>]+content=["']([^"']+)["']`, "i"));
+    return m ? m[1] : null;
+  };
+  return {
+    designMode: get("yawb-design-mode"),
+    heroLayout: get("yawb-hero-layout"),
+    palette: get("yawb-palette"),
+  };
 }
 
 type IframeState = "idle" | "loading" | "loaded" | "failed";
@@ -209,6 +248,18 @@ export function PreviewPane({
     }
     return liveAvailable ? "live" : "local";
   });
+
+  // Persisted Design Angle per project.
+  const [designAngle, setDesignAngle] = useState<DesignAngle>(() => {
+    try {
+      const stored = window.localStorage.getItem(DESIGN_ANGLE_KEY(project.id)) as DesignAngle | null;
+      if (stored && DESIGN_ANGLES.some((a) => a.id === stored)) return stored;
+    } catch { /* ignore */ }
+    return "editorial-luxury";
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(DESIGN_ANGLE_KEY(project.id), designAngle); } catch { /* ignore */ }
+  }, [designAngle, project.id]);
 
   // Auto-switch when availability changes (e.g. preview deploy lands).
   useEffect(() => {
@@ -428,22 +479,39 @@ export function PreviewPane({
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
         {onRegenerateDesign && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
-            data-testid="preview-regenerate-design"
-            onClick={() => {
-              console.info("[yawb] preview.regenerate.clicked", { projectId: project.id });
-              onRegenerateDesign();
-            }}
-            disabled={regenerating}
-            title="Rewrite project_files with a fresh design"
-          >
-            {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-            Regenerate design
-          </Button>
+          <>
+            <select
+              data-testid="preview-design-angle"
+              aria-label="Design angle"
+              value={designAngle}
+              onChange={(e) => {
+                const next = e.target.value as DesignAngle;
+                console.info("[yawb] preview.designAngle.changed", { projectId: project.id, angle: next });
+                setDesignAngle(next);
+              }}
+              className="h-7 rounded-md bg-white/[0.04] border border-white/10 px-2 text-[11px] uppercase tracking-[0.14em] text-foreground touch-manipulation"
+            >
+              {DESIGN_ANGLES.map((a) => (
+                <option key={a.id} value={a.id}>{a.label}</option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
+              data-testid="preview-regenerate-design"
+              onClick={() => {
+                console.info("[yawb] preview.regenerate.clicked", { projectId: project.id, designMode: designAngle });
+                onRegenerateDesign(designAngle);
+              }}
+              disabled={regenerating}
+              title="Rewrite project_files with the selected design angle"
+            >
+              {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Regenerate design
+            </Button>
+          </>
         )}
         {onRefreshLocalPreview && (
           <Button
@@ -574,6 +642,8 @@ export function PreviewPane({
           ))}
         </div>
       </div>
+
+      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} />
 
       <div
         className={cn(
@@ -756,6 +826,36 @@ export function PreviewPane({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function DesignProofPill({
+  html,
+  fallbackAngle,
+}: {
+  html: string | null;
+  fallbackAngle: DesignAngle;
+}) {
+  const proof = useMemo(() => parseDesignProof(html), [html]);
+  const angleId = (proof.designMode as DesignAngle | null) ?? fallbackAngle;
+  const angleLabel = DESIGN_ANGLES.find((a) => a.id === angleId)?.label ?? angleId;
+  const hero = proof.heroLayout ?? "—";
+  const palette = proof.palette ?? "—";
+  return (
+    <div
+      data-testid="preview-design-pill"
+      data-design-mode={angleId}
+      data-hero-layout={proof.heroLayout ?? ""}
+      data-palette={proof.palette ?? ""}
+      className="px-3 py-1.5 border-b border-white/5 bg-white/[0.02] text-[11px] text-muted-foreground flex items-center gap-2 overflow-x-auto scrollbar-thin"
+    >
+      <span className="text-foreground font-medium">Design:</span>
+      <span className="text-foreground">{angleLabel}</span>
+      <span className="opacity-50">·</span>
+      <span className="font-mono">{hero}</span>
+      <span className="opacity-50">·</span>
+      <span className="font-mono">{palette}</span>
     </div>
   );
 }
