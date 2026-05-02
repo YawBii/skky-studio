@@ -47,7 +47,7 @@ export function DiagnosticsPanel() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed bottom-3 left-3 z-50 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium shadow-lg backdrop-blur transition ${
+        className={`fixed left-3 z-40 bottom-[calc(env(safe-area-inset-bottom)+4rem)] md:bottom-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium shadow-lg backdrop-blur transition ${
           hasError
             ? "border-destructive/40 bg-destructive/15 text-destructive hover:bg-destructive/25"
             : "border-white/10 bg-background/80 text-muted-foreground hover:text-foreground hover:border-white/25"
@@ -62,7 +62,7 @@ export function DiagnosticsPanel() {
   }
 
   return (
-    <div className="fixed bottom-3 left-3 z-50 w-[420px] max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/10 bg-background/95 backdrop-blur shadow-2xl">
+    <div className="fixed left-3 z-50 bottom-[calc(env(safe-area-inset-bottom)+4rem)] md:bottom-3 w-[420px] max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/10 bg-background/95 backdrop-blur shadow-2xl">
       <header className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
         <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           <Bug className="h-3 w-3" /> Diagnostics
