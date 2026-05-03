@@ -77,12 +77,13 @@ function job(type: "build.production" | "ai.generate_changes"): JobRow {
   };
 }
 
+// Hard-blocked, user-visible preset strings. The internal design-mode tokens
+// ("editorial-luxury", "minimal-light") are allowed because they are emitted
+// only as <meta name="yawb-design-mode"> identifiers — not visible preset copy.
 const BANNED_PRESET_STRINGS = [
   "Luxury Editorial",
   "Clean Minimal",
   "Money operations",
-  "editorial-luxury",
-  "minimal-light",
 ];
 
 describe("jobs-runner project_files persistence (Monster orchestrator)", () => {
