@@ -618,6 +618,13 @@ function MobileBottomNav({
   onTabClick: (id: Tab) => void;
   onOpenChat: () => void;
 }) {
+  // Hide tabs that already have a dedicated bottom-bar button (preview, jobs)
+  // and the currently-active tab so the popover never duplicates what's
+  // already visible in the bottom bar.
+  const VISIBLE_TABS: Tab[] = ["preview", "jobs"];
+  const overflowItems = MOBILE_OVERFLOW_TABS.filter(
+    (t) => !VISIBLE_TABS.includes(t.id) && t.id !== currentTab,
+  );
   const inOverflow = MOBILE_OVERFLOW_TABS.some((t) => t.id === currentTab);
   const { count: unreadSummaries, clear: clearUnread } = useUnreadSummaries();
   const handleChat = () => {
