@@ -167,14 +167,18 @@ async function hasProjectConnection(
   projectId: string,
   provider: "github" | "vercel" | "supabase",
 ): Promise<boolean> {
-  const { data } = await sb
-    .from("project_connections")
-    .select("id")
-    .eq("project_id", projectId)
-    .eq("provider", provider)
-    .limit(1)
-    .maybeSingle();
-  return Boolean(data?.id);
+  try {
+    const { data } = await sb
+      .from("project_connections")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("provider", provider)
+      .limit(1)
+      .maybeSingle();
+    return Boolean(data?.id);
+  } catch {
+    return false;
+  }
 }
 
 // ---------- Provider adapters ----------
