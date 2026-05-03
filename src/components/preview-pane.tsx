@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { ExternalLink, History, Loader2, Monitor, Play, RefreshCw, Smartphone, Tablet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
