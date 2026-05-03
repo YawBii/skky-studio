@@ -71,10 +71,29 @@ export function checkProjectConnectionConsistency(
     }
   }
 
+  // Invariant: at most one connected Vercel connection per project.
+  const vercelConnected = supported.filter(
+    (c) => c.provider === "vercel" && c.status === "connected",
+  );
+  if (vercelConnected.length > 1) {
+    errors.push(
+      `Project has ${vercelConnected.length} active Vercel connections — only one is allowed`,
+    );
+  }
+  // Same invariant for GitHub.
+  const githubConnected = supported.filter(
+    (c) => c.provider === "github" && c.status === "connected",
+  );
+  if (githubConnected.length > 1) {
+    errors.push(
+      `Project has ${githubConnected.length} active GitHub connections — only one is allowed`,
+    );
+  }
+
   // Cross-provider repo compatibility: if both github and vercel are linked,
   // warn when their repo identifiers don't match.
-  const gh = supported.find((c) => c.provider === "github");
-  const vc = supported.find((c) => c.provider === "vercel");
+  const gh = githubConnected[0] ?? supported.find((c) => c.provider === "github");
+  const vc = vercelConnected[0] ?? supported.find((c) => c.provider === "vercel");
   if (gh && vc) {
     const ghRepo = (gh.repoFullName ?? "").toLowerCase();
     const vcRepoMeta = (vc.metadata as { link?: { repo?: string } } | null)?.link?.repo ?? null;
