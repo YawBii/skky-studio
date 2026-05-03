@@ -34,7 +34,7 @@ import {
 } from "@/components/command-center";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
-import { useGitHubPreview } from "@/hooks/use-github-preview";
+
 import { resolveDeployUrl } from "@/lib/deploy-url";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
@@ -184,26 +184,20 @@ function Builder() {
   // Per-project generated files for Local Preview.
   const filesApi = useProjectFiles(project?.id ?? null);
 
-  // For GitHub-imported projects, fetch the live index.html from the repo so
-  // we render the existing app instead of telling the user to "build" it.
-  const githubPreview = useGitHubPreview(connectionsApi.connections);
+  // GitHub-linked projects are treated as the source of truth — yawB must
+  // NOT synthesize a preview from raw repo HTML (relative asset paths like
+  // /src/main.tsx can't resolve in a sandboxed srcDoc, so the preview looks
+  // nothing like the real repo) and must NOT overlay yawB's template files
+  // on top of an imported project. Show the "Linked to repo" empty state and
+  // direct the user to the repo / live deploy instead.
   const hasGithubConnection = useMemo(
     () => (connectionsApi.connections ?? []).some((c) => c.provider === "github"),
     [connectionsApi.connections],
   );
   const mergedGenerated = useMemo(() => {
-    // When a GitHub connection exists, the repo is the source of truth.
-    // Prefer the live repo HTML over any stale locally-generated template
-    // (e.g. an old Goodhand build sitting in project_files for this project).
-    if (hasGithubConnection && githubPreview.indexHtml) {
-      return { indexHtml: githubPreview.indexHtml, hasFiles: true };
-    }
-    if (filesApi.generated && filesApi.generated.indexHtml) return filesApi.generated;
-    if (githubPreview.indexHtml) {
-      return { indexHtml: githubPreview.indexHtml, hasFiles: true };
-    }
+    if (hasGithubConnection) return null;
     return filesApi.generated;
-  }, [filesApi.generated, githubPreview.indexHtml, hasGithubConnection]);
+  }, [filesApi.generated, hasGithubConnection]);
 
   const {
     open: ccOpen,
