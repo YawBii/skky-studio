@@ -225,4 +225,39 @@ export async function deleteConnection(id: string): Promise<{ ok: boolean; error
   }
 }
 
+/** Mark a connection's status (e.g. "disconnected") without deleting the row. */
+export async function setConnectionStatus(
+  id: string,
+  status: ConnectionStatus,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("project_connections")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Returns the single currently-active Vercel connection for a project (status=connected),
+ * if any. If multiple are connected (which violates the invariant), returns the most recent
+ * and exposes the duplicates in `duplicates` so callers can repair.
+ */
+export async function findActiveVercelConnection(
+  projectId: string,
+): Promise<{
+  active: ProjectConnection | null;
+  duplicates: ProjectConnection[];
+}> {
+  const r = await listConnections(projectId);
+  const all = r.connections.filter((c) => c.provider === "vercel" && c.status === "connected");
+  if (all.length === 0) return { active: null, duplicates: [] };
+  const [active, ...rest] = all;
+  return { active, duplicates: rest };
+}
+
 export const PROJECT_CONNECTIONS_SQL_FILE = SQL_FILE;
