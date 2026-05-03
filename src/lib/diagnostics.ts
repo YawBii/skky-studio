@@ -45,6 +45,7 @@ const initialState: DiagState = {
   workspaceId: null,
   workspaceSource: null,
   projectId: null,
+  activeProjectId: null,
   projectsSource: null,
   projectsCount: null,
   workspacesCount: null,
