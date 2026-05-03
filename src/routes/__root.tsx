@@ -138,6 +138,7 @@ function RootComponent() {
   if (isPreviewEmbed) {
     return (
       <AuthProvider>
+        <BodyPointerEventsGuard />
         <Outlet />
       </AuthProvider>
     );
@@ -146,6 +147,7 @@ function RootComponent() {
   if (isBare) {
     return (
       <AuthProvider>
+        <BodyPointerEventsGuard />
         <Outlet />
         <Toaster />
       </AuthProvider>
@@ -154,6 +156,7 @@ function RootComponent() {
 
   return (
     <AuthProvider>
+      <BodyPointerEventsGuard />
       <WorkspaceShell />
       <Toaster />
     </AuthProvider>
