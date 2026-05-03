@@ -56,11 +56,13 @@ export function useWorkspaces() {
     if (loading) return;
     const ids = new Set(result.workspaces.map((w) => w.id));
     if (currentId && ids.has(currentId)) return;
-    const direct = readDirectWorkspace();
-    const next = direct?.id ?? result.workspaces[0]?.id ?? null;
+    // If real workspaces loaded, never let a stale direct-builder bootstrap
+    // workspace (for example an old Goodhand route visit) override them.
+    const direct = result.source === "supabase" ? null : readDirectWorkspace();
+    const next = result.workspaces[0]?.id ?? direct?.id ?? null;
     setCurrentId(next);
     writeCurrentWorkspaceId(next);
-  }, [loading, result.workspaces, currentId]);
+  }, [loading, result.source, result.workspaces, currentId]);
 
   const select = useCallback((id: string) => {
     setCurrentId(id);
@@ -69,7 +71,9 @@ export function useWorkspaces() {
 
   const current: Workspace | null =
     result.workspaces.find((w) => w.id === currentId) ??
-    (readDirectWorkspace()?.id === currentId ? { ...readDirectWorkspace()!, role: null } : null) ??
+    (result.source !== "supabase" && readDirectWorkspace()?.id === currentId
+      ? { ...readDirectWorkspace()!, role: null }
+      : null) ??
     result.workspaces[0] ??
     null;
 
