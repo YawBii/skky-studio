@@ -608,16 +608,24 @@ function VercelProjectsTab({
   }
 
   return (
-    <ProviderListCard
-      title="Vercel Projects"
-      onRefresh={load}
-      loading={state.loading}
-      error={state.error}
-      missing={state.missing}
-      providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
-      empty={state.projects.length === 0 && !state.loading && !state.error}
-      emptyMessage="No Vercel projects visible to this token."
-    >
+    <div className="space-y-4">
+      {currentProjectId && (
+        <ProviderLinksPanel
+          projectId={currentProjectId}
+          workspaceId={workspaceId || null}
+          compact
+        />
+      )}
+      <ProviderListCard
+        title="Vercel Projects"
+        onRefresh={load}
+        loading={state.loading}
+        error={state.error}
+        missing={state.missing}
+        providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
+        empty={state.projects.length === 0 && !state.loading && !state.error}
+        emptyMessage="No Vercel projects visible to this token."
+      >
       {!currentProjectId && (
         <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
