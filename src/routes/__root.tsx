@@ -26,6 +26,7 @@ import { setDiag } from "@/lib/diagnostics";
 import { useAuth } from "@/hooks/use-auth";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 import { Button } from "@/components/ui/button";
+import { BodyPointerEventsGuard } from "@/components/body-pointer-events-guard";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
