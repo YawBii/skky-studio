@@ -272,7 +272,7 @@ export function WorkspaceTopBar({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => toast("Opening analytics…")}
+          onClick={() => void navigate({ to: "/health" })}
           className="hidden lg:inline-flex"
         >
           <BarChart3 className="h-3.5 w-3.5" /> Analytics
@@ -281,7 +281,7 @@ export function WorkspaceTopBar({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => toast("Coming next: connect a custom domain")}
+          onClick={() => void navigate({ to: "/connectors" })}
           className="hidden md:inline-flex"
         >
           <Globe className="h-3.5 w-3.5" /> Domain
@@ -290,7 +290,14 @@ export function WorkspaceTopBar({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => toast("Opening preview…")}
+          onClick={() =>
+            currentProject?.id
+              ? void navigate({
+                  to: "/preview/$projectId",
+                  params: { projectId: currentProject.id },
+                })
+              : toast("Select a project first")
+          }
           className="hidden md:inline-flex"
         >
           <Play className="h-3.5 w-3.5" /> Preview
