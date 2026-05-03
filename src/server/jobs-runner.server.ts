@@ -748,6 +748,15 @@ export async function generateAndPersistProjectFiles(
   typography?: string;
   shapeLanguage?: string;
 }> {
+  if (await hasProjectConnection(sb as SupabaseClient, job.project_id, "github")) {
+    return {
+      ok: false,
+      written: [],
+      error: "This project is linked to GitHub, so yawB will not regenerate local template files over the imported app.",
+      generator: "monster-brain-v1",
+      previewReady: false,
+    };
+  }
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
