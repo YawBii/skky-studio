@@ -205,8 +205,15 @@ export async function listVercelProjects(opts: { teamId?: string; limit?: number
       return { ok: false, projects: [], error: `Vercel API ${res.status} ${res.statusText}` };
     const json = (await res.json()) as { projects?: Array<Record<string, unknown>> };
     const projects: VercelProjectSummary[] = (json.projects ?? []).map((p) => {
-      const targets = p.targets as Record<string, { url?: string }> | undefined;
-      const prodUrl = targets?.production?.url ? `https://${targets.production.url}` : null;
+      const targets = p.targets as Record<string, { url?: string; alias?: string[] }> | undefined;
+      const aliasArr = (p.alias as Array<{ domain?: string }> | undefined) ?? [];
+      const latestDep = (p.latestDeployments as Array<{ url?: string; alias?: string[] }> | undefined) ?? [];
+      const prodTargetUrl = targets?.production?.url ? `https://${targets.production.url}` : null;
+      const prodTargetAlias = targets?.production?.alias?.[0] ? `https://${targets.production.alias[0]}` : null;
+      const aliasUrl = aliasArr[0]?.domain ? `https://${aliasArr[0].domain}` : null;
+      const latestUrl = latestDep[0]?.url ? `https://${latestDep[0].url}` : null;
+      const latestAlias = latestDep[0]?.alias?.[0] ? `https://${latestDep[0].alias[0]}` : null;
+      const prodUrl = prodTargetUrl ?? prodTargetAlias ?? aliasUrl ?? latestAlias ?? latestUrl ?? null;
       const link = (p.link as { type?: string; repo?: string | null } | null) ?? null;
       return {
         id: String(p.id),

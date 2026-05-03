@@ -69,4 +69,29 @@ describe("checkProjectConnectionConsistency", () => {
     const r = checkProjectConnectionConsistency(null, "w1", []);
     expect(r.ok).toBe(false);
   });
+
+  it("errors when more than one Vercel connection is active for the same project", () => {
+    const r = checkProjectConnectionConsistency("p1", "w1", [
+      conn({ id: "c1", provider: "vercel", externalId: "v1" }),
+      conn({ id: "c2", provider: "vercel", externalId: "v2" }),
+    ]);
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.toLowerCase().includes("active vercel"))).toBe(true);
+  });
+
+  it("does not error when one Vercel is connected and the other is disconnected", () => {
+    const r = checkProjectConnectionConsistency("p1", "w1", [
+      conn({ id: "c1", provider: "vercel", externalId: "v1", status: "connected" }),
+      conn({ id: "c2", provider: "vercel", externalId: "v2", status: "disconnected" }),
+    ]);
+    // disconnected one produces a status warning, but not an "active vercel" error.
+    expect(r.errors.some((e) => e.toLowerCase().includes("active vercel"))).toBe(false);
+  });
+
+  it("warns when Vercel is missing a deployment URL", () => {
+    const r = checkProjectConnectionConsistency("p1", "w1", [
+      conn({ provider: "vercel", url: null }),
+    ]);
+    expect(r.warnings.some((w) => w.toLowerCase().includes("deployment url"))).toBe(true);
+  });
 });
