@@ -26,6 +26,7 @@ import { setDiag } from "@/lib/diagnostics";
 import { useAuth } from "@/hooks/use-auth";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 import { Button } from "@/components/ui/button";
+import { BodyPointerEventsGuard } from "@/components/body-pointer-events-guard";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -137,6 +138,7 @@ function RootComponent() {
   if (isPreviewEmbed) {
     return (
       <AuthProvider>
+        <BodyPointerEventsGuard />
         <Outlet />
       </AuthProvider>
     );
@@ -145,6 +147,7 @@ function RootComponent() {
   if (isBare) {
     return (
       <AuthProvider>
+        <BodyPointerEventsGuard />
         <Outlet />
         <Toaster />
       </AuthProvider>
@@ -153,6 +156,7 @@ function RootComponent() {
 
   return (
     <AuthProvider>
+      <BodyPointerEventsGuard />
       <WorkspaceShell />
       <Toaster />
     </AuthProvider>
