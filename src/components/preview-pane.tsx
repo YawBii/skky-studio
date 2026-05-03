@@ -330,8 +330,13 @@ export function PreviewPane({
 
   const localSrcDoc = useMemo(() => {
     if (resolved.kind !== "local") return undefined;
+    // For GitHub-linked projects, never fall back to the synthesized
+    // "No generated screens yet" placeholder — it misleadingly looks like a
+    // freshly scaffolded yawB app. Show the "Linked to repo" empty state
+    // instead so the user knows the real preview lives in the repo / deploy.
+    if (isGithubLinked && !resolved.srcDoc) return undefined;
     return resolved.srcDoc ?? makeLocalPreviewSrcDoc(project);
-  }, [resolved.kind, resolved.srcDoc, project]);
+  }, [resolved.kind, resolved.srcDoc, project, isGithubLinked]);
 
   useEffect(() => {
     console.info("[yawb] preview.source.resolved", {
