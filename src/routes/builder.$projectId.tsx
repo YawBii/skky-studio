@@ -34,6 +34,7 @@ import {
 } from "@/components/command-center";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
+import { useGitHubPreview } from "@/hooks/use-github-preview";
 import { resolveDeployUrl } from "@/lib/deploy-url";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
@@ -182,6 +183,17 @@ function Builder() {
 
   // Per-project generated files for Local Preview.
   const filesApi = useProjectFiles(project?.id ?? null);
+
+  // For GitHub-imported projects, fetch the live index.html from the repo so
+  // we render the existing app instead of telling the user to "build" it.
+  const githubPreview = useGitHubPreview(connectionsApi.connections);
+  const mergedGenerated = useMemo(() => {
+    if (filesApi.generated && filesApi.generated.indexHtml) return filesApi.generated;
+    if (githubPreview.indexHtml) {
+      return { indexHtml: githubPreview.indexHtml, hasFiles: true };
+    }
+    return filesApi.generated;
+  }, [filesApi.generated, githubPreview.indexHtml]);
 
   const {
     open: ccOpen,
@@ -451,7 +463,7 @@ function Builder() {
             selectedPage={selectedPage}
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
-            generated={filesApi.generated}
+            generated={mergedGenerated}
             regenerating={false}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
@@ -618,6 +630,13 @@ function MobileBottomNav({
   onTabClick: (id: Tab) => void;
   onOpenChat: () => void;
 }) {
+  // Hide tabs that already have a dedicated bottom-bar button (preview, jobs)
+  // and the currently-active tab so the popover never duplicates what's
+  // already visible in the bottom bar.
+  const VISIBLE_TABS: Tab[] = ["preview", "jobs"];
+  const overflowItems = MOBILE_OVERFLOW_TABS.filter(
+    (t) => !VISIBLE_TABS.includes(t.id) && t.id !== currentTab,
+  );
   const inOverflow = MOBILE_OVERFLOW_TABS.some((t) => t.id === currentTab);
   const { count: unreadSummaries, clear: clearUnread } = useUnreadSummaries();
   const handleChat = () => {
@@ -686,7 +705,10 @@ function MobileBottomNav({
               <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 More
               </div>
-              {MOBILE_OVERFLOW_TABS.map((t) => (
+              {overflowItems.length === 0 && (
+                <div className="px-2 py-2 text-[12px] text-muted-foreground">No more sections.</div>
+              )}
+              {overflowItems.map((t) => (
                 <button
                   key={t.id}
                   type="button"
