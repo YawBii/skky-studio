@@ -19,13 +19,7 @@ export type ProjectsResult = {
   error?: string;
 };
 
-// Match the canonical 8-4-4-4-12 hex form. Anything else (e.g. the synthetic
-// "demo-workspace" id used when signed-out) would cause Postgres to throw
-// 22P02 "invalid input syntax for type uuid" — surfacing as a 400 in the
-// console and breaking project loading on mobile, where the user has no
-// other obvious way to recover. Treat non-UUID workspace ids as "no-workspace"
-// so the empty state renders cleanly instead.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function toProject(r: {
   id: string;
@@ -47,6 +41,17 @@ function toProject(r: {
 
 export function isUuid(value: string | null | undefined): value is string {
   return !!value && UUID_RE.test(value);
+}
+
+function isDuplicateProjectSlug(error: { code?: string; message?: string; details?: string | null } | null | undefined) {
+  if (!error) return false;
+  const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return error.code === "23505" && (text.includes("projects_workspace_id_slug_key") || text.includes("workspace_id") || text.includes("slug"));
+}
+
+function withSlugSuffix(baseSlug: string, attempt: number): string {
+  const clean = (baseSlug || "project").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "project";
+  return attempt <= 1 ? clean : `${clean}-${attempt}`;
 }
 
 export async function listProjects(
@@ -212,23 +217,39 @@ export async function createProject(input: {
       return { ok: false, error: "You must be signed in to create a project.", code: "NO_SESSION" };
     }
 
-    const projectInsertPayload = {
-      workspace_id: input.workspaceId,
-      name: input.name,
-      slug: input.slug,
-      description: input.description ?? null,
-      created_by: uid,
-    };
-    setDiag({ projectInsertPayload, projectInsertError: null, projectSelectError: null });
-    log("projectInsertPayload", projectInsertPayload);
+    let insertedId: string | null = null;
+    let finalSlug = input.slug;
+    let lastDuplicate: unknown = null;
 
-    const { data: inserted, error: insertError } = await supabase
-      .from("projects")
-      .insert(projectInsertPayload)
-      .select("id")
-      .maybeSingle();
+    for (let attempt = 1; attempt <= 25; attempt += 1) {
+      finalSlug = withSlugSuffix(input.slug, attempt);
+      const projectInsertPayload = {
+        workspace_id: input.workspaceId,
+        name: input.name,
+        slug: finalSlug,
+        description: input.description ?? null,
+        created_by: uid,
+      };
+      setDiag({ projectInsertPayload, projectInsertError: null, projectSelectError: null });
+      log("projectInsertPayload", projectInsertPayload);
 
-    if (insertError) {
+      const { data: inserted, error: insertError } = await supabase
+        .from("projects")
+        .insert(projectInsertPayload)
+        .select("id")
+        .maybeSingle();
+
+      if (!insertError) {
+        insertedId = inserted?.id ?? null;
+        break;
+      }
+
+      if (isDuplicateProjectSlug(insertError)) {
+        lastDuplicate = insertError;
+        log("project.slug.duplicate.retry", { slug: finalSlug, attempt, nextSlug: withSlugSuffix(input.slug, attempt + 1) });
+        continue;
+      }
+
       setDiag({ projectInsertError: insertError });
       log("projectInsertError", insertError);
       return {
@@ -240,15 +261,19 @@ export async function createProject(input: {
       };
     }
 
-    const projectId = inserted?.id;
-    if (!projectId) {
-      return { ok: false, error: "Project insert returned no id.", code: "NO_ID" };
+    if (!insertedId) {
+      setDiag({ projectInsertError: lastDuplicate });
+      return {
+        ok: false,
+        error: `Project slug "${input.slug}" is already taken and automatic slug retry failed. Try a different project name.`,
+        code: "DUPLICATE_SLUG",
+      };
     }
 
     const { data: row, error: selectError } = await supabase
       .from("projects")
       .select("id, workspace_id, name, slug, description, created_at")
-      .eq("id", projectId)
+      .eq("id", insertedId)
       .maybeSingle();
 
     if (selectError || !row) {
@@ -264,17 +289,9 @@ export async function createProject(input: {
       };
     }
 
-    return {
-      ok: true,
-      project: {
-        id: row.id,
-        workspaceId: row.workspace_id,
-        name: row.name,
-        slug: row.slug,
-        description: row.description,
-        createdAt: row.created_at,
-      },
-    };
+    const project = toProject(row);
+    log("project.create.success", { id: project.id, slug: project.slug, requestedSlug: input.slug });
+    return { ok: true, project };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log("project.create exception", msg);
