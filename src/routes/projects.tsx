@@ -706,7 +706,8 @@ function VercelProjectsTab({
           </div>
         );
       })}
-    </ProviderListCard>
+      </ProviderListCard>
+    </div>
   );
 }
 
