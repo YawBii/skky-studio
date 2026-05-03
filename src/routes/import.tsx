@@ -8,6 +8,7 @@ import { NoProjectSelected } from "@/components/project-empty";
 import { parseRepoInput, type ParsedRepo } from "@/services/github-import";
 import { createConnection } from "@/services/project-connections";
 import { createProject } from "@/services/projects";
+import { rememberDirectProject } from "@/lib/project-selection";
 
 export const Route = createFileRoute("/import")({
   head: () => ({
@@ -59,6 +60,7 @@ function ImportPage() {
         return;
       }
       const projectId = created.project.id;
+      rememberDirectProject(created.project);
 
       const res = await createConnection({
         projectId,

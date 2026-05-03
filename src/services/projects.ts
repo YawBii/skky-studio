@@ -20,7 +20,7 @@ export type ProjectsResult = {
   error?: string;
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function toProject(r: {
   id: string;
@@ -57,11 +57,17 @@ function withSlugSuffix(baseSlug: string, attempt: number): string {
 
 function readFallbackProject(requestedProjectId: string | null | undefined): Project | null {
   const direct = readDirectProject();
-  if (direct?.id && direct.id !== requestedProjectId) return direct;
+  if (!direct?.id) return null;
+
+  // Never substitute a different project for an explicit route id. That can
+  // show stale preview files from the previously selected project after a new
+  // GitHub import (for example the old Goodhand preview).
+  if (requestedProjectId && direct.id !== requestedProjectId) return null;
+  if (direct.id === requestedProjectId) return direct;
 
   const workspaceId = readCurrentWorkspaceId();
   const currentProjectId = readCurrentProjectId(workspaceId);
-  if (currentProjectId && currentProjectId !== requestedProjectId && direct?.id === currentProjectId) {
+  if (currentProjectId && direct.id === currentProjectId) {
     return direct;
   }
   return null;
