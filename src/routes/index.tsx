@@ -77,6 +77,7 @@ function Workspace() {
             device={device}
             setDevice={setDevice}
             projectName={project?.name}
+            projectId={project?.id}
             isReal={projectIsReal}
           />
         )}
@@ -123,11 +124,13 @@ function PreviewPane({
   device,
   setDevice,
   projectName,
+  projectId,
   isReal,
 }: {
   device: Device;
   setDevice: (d: Device) => void;
   projectName?: string;
+  projectId?: string;
   isReal: boolean;
 }) {
   const widths: Record<Device, string> = { desktop: "100%", tablet: "820px", mobile: "390px" };
@@ -184,9 +187,17 @@ function PreviewPane({
                   ? "Tell yawB in the chat what to build for this project. The first build will appear here."
                   : "Create a project from the home screen to see a live preview."}
               </p>
-              <Button variant="hero" className="mt-5" disabled={!isReal}>
-                <Play className="h-3.5 w-3.5" /> Start a build
-              </Button>
+              {isReal && projectId ? (
+                <Button variant="hero" className="mt-5" asChild>
+                  <Link to="/builder/$projectId" params={{ projectId }}>
+                    <Play className="h-3.5 w-3.5" /> Start a build
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="hero" className="mt-5" disabled>
+                  <Play className="h-3.5 w-3.5" /> Start a build
+                </Button>
+              )}
             </div>
           </div>
         </div>
