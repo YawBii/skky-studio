@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TeamRouteImport } from './routes/team'
+import { Route as StatusRouteImport } from './routes/status'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ServerSetupRouteImport } from './routes/server-setup'
@@ -32,11 +33,17 @@ import { Route as VersionsProjectIdRouteImport } from './routes/versions.$projec
 import { Route as PublishProjectIdRouteImport } from './routes/publish.$projectId'
 import { Route as PreviewProjectIdRouteImport } from './routes/preview.$projectId'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBuildRunnerRouteImport } from './routes/api/public/build-runner'
 
 const TeamRoute = TeamRouteImport.update({
   id: '/team',
   path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -149,6 +156,11 @@ const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
   path: '/builder/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBuildRunnerRoute = ApiPublicBuildRunnerRouteImport.update({
   id: '/api/public/build-runner',
   path: '/api/public/build-runner',
@@ -174,12 +186,14 @@ export interface FileRoutesByFullPath {
   '/server-setup': typeof ServerSetupRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/status': typeof StatusRoute
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -200,12 +214,14 @@ export interface FileRoutesByTo {
   '/server-setup': typeof ServerSetupRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/status': typeof StatusRoute
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -227,12 +243,14 @@ export interface FileRoutesById {
   '/server-setup': typeof ServerSetupRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/status': typeof StatusRoute
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -255,12 +273,14 @@ export interface FileRouteTypes {
     | '/server-setup'
     | '/settings'
     | '/signup'
+    | '/status'
     | '/team'
     | '/builder/$projectId'
     | '/preview/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
     | '/api/public/build-runner'
+    | '/api/public/health'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -281,12 +301,14 @@ export interface FileRouteTypes {
     | '/server-setup'
     | '/settings'
     | '/signup'
+    | '/status'
     | '/team'
     | '/builder/$projectId'
     | '/preview/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
     | '/api/public/build-runner'
+    | '/api/public/health'
   id:
     | '__root__'
     | '/'
@@ -307,12 +329,14 @@ export interface FileRouteTypes {
     | '/server-setup'
     | '/settings'
     | '/signup'
+    | '/status'
     | '/team'
     | '/builder/$projectId'
     | '/preview/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
     | '/api/public/build-runner'
+    | '/api/public/health'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -334,12 +358,14 @@ export interface RootRouteChildren {
   ServerSetupRoute: typeof ServerSetupRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
+  StatusRoute: typeof StatusRoute
   TeamRoute: typeof TeamRoute
   BuilderProjectIdRoute: typeof BuilderProjectIdRoute
   PreviewProjectIdRoute: typeof PreviewProjectIdRoute
   PublishProjectIdRoute: typeof PublishProjectIdRoute
   VersionsProjectIdRoute: typeof VersionsProjectIdRoute
   ApiPublicBuildRunnerRoute: typeof ApiPublicBuildRunnerRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -349,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/team'
       fullPath: '/team'
       preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -505,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuilderProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/build-runner': {
       id: '/api/public/build-runner'
       path: '/api/public/build-runner'
@@ -534,12 +574,14 @@ const rootRouteChildren: RootRouteChildren = {
   ServerSetupRoute: ServerSetupRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
+  StatusRoute: StatusRoute,
   TeamRoute: TeamRoute,
   BuilderProjectIdRoute: BuilderProjectIdRoute,
   PreviewProjectIdRoute: PreviewProjectIdRoute,
   PublishProjectIdRoute: PublishProjectIdRoute,
   VersionsProjectIdRoute: VersionsProjectIdRoute,
   ApiPublicBuildRunnerRoute: ApiPublicBuildRunnerRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
