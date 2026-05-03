@@ -463,7 +463,7 @@ function Builder() {
             selectedPage={selectedPage}
             activeDeployUrl={activeDeployUrl}
             connections={connectionsApi.connections}
-            generated={filesApi.generated}
+            generated={mergedGenerated}
             regenerating={false}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
