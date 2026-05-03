@@ -184,6 +184,17 @@ function Builder() {
   // Per-project generated files for Local Preview.
   const filesApi = useProjectFiles(project?.id ?? null);
 
+  // For GitHub-imported projects, fetch the live index.html from the repo so
+  // we render the existing app instead of telling the user to "build" it.
+  const githubPreview = useGitHubPreview(connectionsApi.connections);
+  const mergedGenerated = useMemo(() => {
+    if (filesApi.generated && filesApi.generated.indexHtml) return filesApi.generated;
+    if (githubPreview.indexHtml) {
+      return { indexHtml: githubPreview.indexHtml, hasFiles: true };
+    }
+    return filesApi.generated;
+  }, [filesApi.generated, githubPreview.indexHtml]);
+
   const {
     open: ccOpen,
     setOpen: setCcOpen,
