@@ -105,8 +105,8 @@ export function GithubStatusPanel() {
               </Button>
             </>
           ) : (
-            <Button variant="hero" size="sm">
-              Connect GitHub
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/connectors">Connect GitHub</Link>
             </Button>
           )}
         </div>
