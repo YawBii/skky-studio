@@ -45,15 +45,25 @@ export interface MonsterGenerationResult {
     designMode: string;
     appType: string;
     previewGenerator: string;
+    generator: "monster-orchestrator-v1";
     frontendFileCount: number;
     backendFileCount: number;
     architectFileCount: number;
+    fileCount: number;
     tableCount: number;
     policyCount: number;
     previewReady: boolean;
     canDeclareDone: boolean;
-    written?: string[];
-    designCritique?: string[];
+    written: string[];
+    filesTouched: string[];
+    changedFiles: string[];
+    fileList: string[];
+    previewProof: {
+      generator: string;
+      expectedMeta: string;
+      indexPath: "index.html";
+    };
+    designCritique: string[];
   };
 }
 
@@ -78,8 +88,13 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
   const backend = generateMonsterBackendFiles(blueprint);
   const architect = generateMonsterArchitectFiles(blueprint);
   const files: MonsterGeneratedFile[] = [...frontendFiles, ...backend.files, ...architect.files];
+  const written = files.map((file) => file.path).sort();
   const previewReady = files.some((file) => file.path === "index.html");
   const blueprintSummary = summarizeMonsterBlueprint(blueprint);
+  const designCritique = [
+    "Visible preview now uses blueprint/app-type layout instead of the old design-mode template shell.",
+    ...architect.designCritique,
+  ];
 
   const proof = createMonsterProofReport({
     projectId: input.project.id,
@@ -109,18 +124,25 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
       designMode: blueprint.design.mode,
       appType: blueprint.appType,
       previewGenerator: "monster-custom-preview-v1",
+      generator: "monster-orchestrator-v1",
       frontendFileCount: frontendFiles.length,
       backendFileCount: backend.files.length,
       architectFileCount: architect.files.length,
+      fileCount: files.length,
       tableCount: backend.tableCount,
       policyCount: backend.policyCount,
       previewReady,
       canDeclareDone: proof.canDeclareDone,
-      written: files.map((file) => file.path).sort(),
-      designCritique: [
-        "Visible preview now uses blueprint/app-type layout instead of the old design-mode template shell.",
-        ...architect.designCritique,
-      ],
+      written,
+      filesTouched: written,
+      changedFiles: written,
+      fileList: written,
+      previewProof: {
+        generator: "monster-custom-preview-v1",
+        expectedMeta: "<meta name=\"yawb-generator\" content=\"monster-custom-preview-v1\" />",
+        indexPath: "index.html",
+      },
+      designCritique,
     },
   };
 }
