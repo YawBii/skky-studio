@@ -9,6 +9,7 @@ export type DiagState = {
   workspaceId: string | null;
   workspaceSource: string | null;
   projectId: string | null;
+  activeProjectId: string | null;
   projectsSource: string | null;
   projectsCount: number | null;
   workspacesCount: number | null;
