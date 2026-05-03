@@ -1,11 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { listProjects, type Project, type ProjectsResult } from "@/services/projects";
 import { setDiag } from "@/lib/diagnostics";
-import {
-  readCurrentProjectId,
-  readDirectProject,
-  writeCurrentProjectId,
-} from "@/lib/project-selection";
+import { readCurrentProjectId, writeCurrentProjectId } from "@/lib/project-selection";
 
 export function useProjects(workspaceId: string | null | undefined) {
   const [result, setResult] = useState<ProjectsResult>({ projects: [], source: "no-workspace" });
@@ -14,17 +10,7 @@ export function useProjects(workspaceId: string | null | undefined) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const r = await listProjects(workspaceId ?? null);
-    const direct = readDirectProject();
-    const canUseDirect = r.source !== "supabase";
-    const shouldInjectDirect =
-      canUseDirect &&
-      direct &&
-      direct.workspaceId === workspaceId &&
-      !r.projects.some((p) => p.id === direct.id);
-    const next = shouldInjectDirect
-      ? { projects: [direct, ...r.projects], source: "supabase" as const }
-      : r;
+    const next = await listProjects(workspaceId ?? null);
     setResult(next);
     setLoading(false);
     setDiag({
@@ -37,7 +23,7 @@ export function useProjects(workspaceId: string | null | undefined) {
         "[yawb] projects source:",
         next.source,
         `count=${next.projects.length}`,
-        r.error ?? "",
+        next.error ?? "",
       );
     }
     return next;
@@ -52,25 +38,21 @@ export function useProjects(workspaceId: string | null | undefined) {
     const onBootstrap = (e: Event) => {
       const project = (e as CustomEvent<{ project?: Project }>).detail?.project;
       if (!project || project.workspaceId !== workspaceId) return;
-      setResult((prev) => {
-        const exists = prev.projects.some((p) => p.id === project.id);
-        const projects = exists
-          ? prev.projects.map((p) => (p.id === project.id ? project : p))
-          : [project, ...prev.projects];
-        return { projects, source: "supabase" };
-      });
+
+      // Bootstrap events may come from direct builder navigation. They should
+      // update active selection, but must not inject stale localStorage projects
+      // into the canonical project list. The list must come from Supabase.
       setCurrentId(project.id);
       setLoading(false);
       setDiag({
         workspaceId: project.workspaceId,
         projectId: project.id,
-        projectsCount: 1,
-        projectsSource: "supabase",
+        projectsSource: result.source,
       });
     };
     window.addEventListener("yawb:project-bootstrap", onBootstrap as EventListener);
     return () => window.removeEventListener("yawb:project-bootstrap", onBootstrap as EventListener);
-  }, [workspaceId]);
+  }, [workspaceId, result.source]);
 
   useEffect(() => {
     const onSelectionChanged = (e: Event) => {
@@ -101,19 +83,9 @@ export function useProjects(workspaceId: string | null | undefined) {
   );
 
   const inject = useCallback((project: Project) => {
-    setResult((prev) => {
-      const exists = prev.projects.some((p) => p.id === project.id);
-      const projects = exists
-        ? prev.projects.map((p) => (p.id === project.id ? project : p))
-        : [project, ...prev.projects];
-      setDiag({
-        workspaceId: project.workspaceId,
-        projectId: project.id,
-        projectsCount: projects.length,
-        projectsSource: prev.source === "supabase" ? "supabase" : "supabase",
-      });
-      return { projects, source: "supabase" };
-    });
+    // Only update selection. Do not inject into the list, because stale
+    // remembered projects such as Goodhand can otherwise appear as if they are
+    // real Supabase projects and block switching to All Projects.
     setCurrentId(project.id);
     writeCurrentProjectId(project.workspaceId, project.id);
   }, []);
