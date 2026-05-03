@@ -693,7 +693,10 @@ function MobileBottomNav({
               <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 More
               </div>
-              {MOBILE_OVERFLOW_TABS.map((t) => (
+              {overflowItems.length === 0 && (
+                <div className="px-2 py-2 text-[12px] text-muted-foreground">No more sections.</div>
+              )}
+              {overflowItems.map((t) => (
                 <button
                   key={t.id}
                   type="button"
