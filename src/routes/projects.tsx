@@ -325,7 +325,7 @@ function GithubReposTab({
     const startedAt = new Date().toISOString();
     try {
       // Idempotency: if a connection for this repo already exists, reuse it.
-      const existing = await findConnectionByExternalId("github", String(r.id));
+      const existing = await findConnectionByExternalId("github", String(r.id), workspaceId);
       if (existing.ok && existing.connection) {
         const conn = existing.connection;
         setProofs((p) => ({
@@ -523,7 +523,7 @@ function VercelProjectsTab({
       const next: typeof health = {};
       await Promise.all(
         res.projects.map(async (p) => {
-          const r = await findConnectionByExternalId("vercel", p.id);
+          const r = await findConnectionByExternalId("vercel", p.id, workspaceId);
           if (r.ok && r.connection)
             next[p.id] = { connection: r.connection, checkedAt: new Date().toISOString() };
         }),
@@ -532,7 +532,7 @@ function VercelProjectsTab({
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
     }
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     void load();
@@ -579,6 +579,7 @@ function VercelProjectsTab({
         [p.id]: { connection: res.connection, checkedAt: new Date().toISOString() },
       }));
       toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
+      void load();
     } finally {
       setLinking(null);
     }
@@ -715,7 +716,7 @@ function ImportExistingTab({
     try {
       // Idempotency: external_id for "import existing" defaults to the
       // owner/repo string when we don't have a numeric repo id.
-      const existing = await findConnectionByExternalId("github", normalized);
+      const existing = await findConnectionByExternalId("github", normalized, workspaceId);
       if (existing.ok && existing.connection) {
         setProof({
           kind: "ok",
