@@ -535,6 +535,18 @@ export function AssistantPanel() {
       toast.error("Select a project first to enqueue a job.");
       return;
     }
+    if (isGithubLinked && (type.startsWith("ai.") || type.startsWith("build."))) {
+      toast("GitHub import is read-only in yawB");
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "This GitHub-linked project keeps its original code and design. I won't run yawB generation/build jobs that could replace it; open the repository or connect a live deployment instead.",
+        },
+      ]);
+      return;
+    }
     setEnqueuingType(type);
     const r = await enqueueJob({ projectId: project.id, workspaceId: workspace.id, type, title });
     setEnqueuingType(null);
