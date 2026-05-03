@@ -1040,6 +1040,10 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
     // Post-build hook: regenerate per-project files so Local Preview reflects
     // the latest project context. Failure here must NOT fail the build.
     if (result.status === "succeeded") {
+      if (await hasProjectConnection(sb, job.project_id, "github")) {
+        result.log = `${result.log ?? "build ok"}; skipped local file generation for GitHub-linked project`;
+        return result;
+      }
       const gen = await generateAndPersistProjectFiles(sb, job);
       const out = (result.output ?? {}) as Record<string, unknown>;
       const mergedOutput = {
