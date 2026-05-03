@@ -81,12 +81,7 @@ export async function listConnections(
       .order("created_at", { ascending: false });
     if (error) {
       if (isMissingTable(error)) {
-        return {
-          connections: [],
-          source: "table-missing",
-          error: error.message,
-          sqlFile: SQL_FILE,
-        };
+        return { connections: [], source: "table-missing", error: error.message, sqlFile: SQL_FILE };
       }
       return { connections: [], source: "error", error: error.message };
     }
@@ -133,21 +128,11 @@ export async function createConnection(input: {
     if (input.url !== undefined) payload.url = input.url;
     if (input.tokenOwnerType !== undefined) payload.token_owner_type = input.tokenOwnerType;
 
-    const { data, error } = await supabase
-      .from("project_connections")
-      .insert(payload)
-      .select("*")
-      .maybeSingle();
+    const { data, error } = await supabase.from("project_connections").insert(payload).select("*").maybeSingle();
 
     if (error) {
       if (isMissingTable(error)) {
-        return {
-          ok: false,
-          error: error.message,
-          code: error.code,
-          tableMissing: true,
-          sqlFile: SQL_FILE,
-        };
+        return { ok: false, error: error.message, code: error.code, tableMissing: true, sqlFile: SQL_FILE };
       }
       return { ok: false, error: error.message, code: error.code };
     }
@@ -159,26 +144,26 @@ export async function createConnection(input: {
 }
 
 // Find an existing connection by (provider, external_id).
-// Optional workspace scoping is important for imports: without it, importing a
-// repo in one workspace can unexpectedly open an older project from another
-// workspace (the GoodHand-style stale-project bug).
+// IMPORTANT: importing must never reuse a global provider match without a
+// workspace. That is how a current import could jump to an old Goodhand-style
+// project. Callers that want reuse must pass workspaceId explicitly.
 export async function findConnectionByExternalId(
   provider: ConnectionProvider,
   externalId: string,
   workspaceId?: string | null,
 ): Promise<{ ok: true; connection: ProjectConnection | null } | { ok: false; error: string }> {
+  if (!workspaceId) return { ok: true, connection: null };
+
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from("project_connections")
       .select("*")
       .eq("provider", provider)
       .eq("external_id", externalId)
+      .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (workspaceId) query = query.eq("workspace_id", workspaceId);
-
-    const { data, error } = await query.maybeSingle();
+      .limit(1)
+      .maybeSingle();
     if (error) {
       if (isMissingTable(error)) return { ok: false, error: error.message };
       return { ok: false, error: error.message };
@@ -214,9 +199,7 @@ export async function upsertConnection(input: {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (selErr && !isMissingTable(selErr)) {
-      return { ok: false, error: selErr.message, code: selErr.code };
-    }
+    if (selErr && !isMissingTable(selErr)) return { ok: false, error: selErr.message, code: selErr.code };
     if (existing) {
       const patch: Record<string, unknown> = {
         status: input.status,
@@ -224,20 +207,12 @@ export async function upsertConnection(input: {
         repo_full_name: input.repoFullName ?? existing.repo_full_name,
         repo_url: input.repoUrl ?? existing.repo_url,
         default_branch: input.defaultBranch ?? existing.default_branch,
-        metadata: {
-          ...((existing.metadata as Record<string, unknown>) ?? {}),
-          ...(input.metadata ?? {}),
-        },
+        metadata: { ...((existing.metadata as Record<string, unknown>) ?? {}), ...(input.metadata ?? {}) },
         updated_at: new Date().toISOString(),
       };
       if (input.workspaceId !== undefined) patch.workspace_id = input.workspaceId;
       if (input.tokenOwnerType !== undefined) patch.token_owner_type = input.tokenOwnerType;
-      const { data, error } = await supabase
-        .from("project_connections")
-        .update(patch)
-        .eq("id", existing.id)
-        .select("*")
-        .maybeSingle();
+      const { data, error } = await supabase.from("project_connections").update(patch).eq("id", existing.id).select("*").maybeSingle();
       if (error) return { ok: false, error: error.message, code: error.code };
       if (!data) return { ok: false, error: "Update returned no row", code: "NO_ROW" };
       return { ok: true, connection: rowToConnection(data) };
