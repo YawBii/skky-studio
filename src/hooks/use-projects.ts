@@ -69,6 +69,17 @@ export function useProjects(workspaceId: string | null | undefined) {
   }, [workspaceId]);
 
   useEffect(() => {
+    const onSelectionChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ workspaceId?: string | null; projectId?: string | null }>).detail;
+      if (detail?.workspaceId && detail.workspaceId !== workspaceId) return;
+      if (detail?.projectId) setCurrentId(detail.projectId);
+      void refresh();
+    };
+    window.addEventListener("yawb:selection-changed", onSelectionChanged as EventListener);
+    return () => window.removeEventListener("yawb:selection-changed", onSelectionChanged as EventListener);
+  }, [workspaceId, refresh]);
+
+  useEffect(() => {
     if (loading) return;
     const ids = new Set(result.projects.map((p) => p.id));
     if (currentId && ids.has(currentId)) return;
