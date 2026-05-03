@@ -26,7 +26,12 @@ function pascal(value: string): string {
 }
 
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "monster-app";
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "monster-app"
+  );
 }
 
 function routeFileName(path: string): string {
@@ -40,7 +45,8 @@ function routeComponentName(path: string): string {
 }
 
 function primaryNoun(blueprint: MonsterBlueprint): string {
-  if (blueprint.appType.includes("legal") || blueprint.appType.includes("professional")) return "matter";
+  if (blueprint.appType.includes("legal") || blueprint.appType.includes("professional"))
+    return "matter";
   if (blueprint.appType.includes("marketplace")) return "listing";
   if (blueprint.appType.includes("booking")) return "booking";
   if (blueprint.appType.includes("crm")) return "client";
@@ -50,7 +56,8 @@ function primaryNoun(blueprint: MonsterBlueprint): string {
 function routeSource(blueprint: MonsterBlueprint, path: string): string {
   const component = routeComponentName(path);
   const noun = primaryNoun(blueprint);
-  const title = path === "/" ? blueprint.appName : `${blueprint.appName} ${path.replace(/^\//, "")}`;
+  const title =
+    path === "/" ? blueprint.appName : `${blueprint.appName} ${path.replace(/^\//, "")}`;
   const tone = blueprint.design.mode.replace(/-/g, " ");
   return `import { createFileRoute } from "@tanstack/react-router";
 import { ${pascal(noun)}CommandCenter } from "@/components/monster/${pascal(noun)}CommandCenter";
@@ -91,7 +98,11 @@ function commandCenterSource(blueprint: MonsterBlueprint): string {
 }
 
 const workflows = ${JSON.stringify(workflows, null, 2)};
-const tables = ${JSON.stringify(tables.map((table) => ({ table: table.table, purpose: table.purpose })), null, 2)};
+const tables = ${JSON.stringify(
+    tables.map((table) => ({ table: table.table, purpose: table.purpose })),
+    null,
+    2,
+  )};
 
 export function ${name}({ appName }: ${name}Props) {
   return (

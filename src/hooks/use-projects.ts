@@ -56,13 +56,15 @@ export function useProjects(workspaceId: string | null | undefined) {
 
   useEffect(() => {
     const onSelectionChanged = (e: Event) => {
-      const detail = (e as CustomEvent<{ workspaceId?: string | null; projectId?: string | null }>).detail;
+      const detail = (e as CustomEvent<{ workspaceId?: string | null; projectId?: string | null }>)
+        .detail;
       if (detail?.workspaceId && detail.workspaceId !== workspaceId) return;
       if (detail?.projectId) setCurrentId(detail.projectId);
       void refresh();
     };
     window.addEventListener("yawb:selection-changed", onSelectionChanged as EventListener);
-    return () => window.removeEventListener("yawb:selection-changed", onSelectionChanged as EventListener);
+    return () =>
+      window.removeEventListener("yawb:selection-changed", onSelectionChanged as EventListener);
   }, [workspaceId, refresh]);
 
   useEffect(() => {

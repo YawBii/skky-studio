@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, History, Loader2, Monitor, Play, RefreshCw, Smartphone, Tablet } from "lucide-react";
+import {
+  ExternalLink,
+  History,
+  Loader2,
+  Monitor,
+  Play,
+  RefreshCw,
+  Smartphone,
+  Tablet,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -615,7 +624,11 @@ export function PreviewPane({
             disabled={!effectiveLocalAvailable}
             data-testid="preview-mode-local"
             aria-pressed={mode === "local"}
-            title={isGithubLinked ? "GitHub imports keep their original app; local yawB preview is disabled" : "Show local preview"}
+            title={
+              isGithubLinked
+                ? "GitHub imports keep their original app; local yawB preview is disabled"
+                : "Show local preview"
+            }
             className={cn(
               "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
               mode === "local"
@@ -720,7 +733,11 @@ export function PreviewPane({
         </div>
       </div>
 
-      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} githubLinked={isGithubLinked} />
+      <DesignProofPill
+        html={localSrcDoc ?? null}
+        fallbackAngle={designAngle}
+        githubLinked={isGithubLinked}
+      />
 
       <div
         className={cn(

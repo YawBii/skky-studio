@@ -253,9 +253,7 @@ export function WorkspaceTopBar({
         </Button>
 
         {/* Connection chips — collapsed icon + count, popover with grouped/filterable details */}
-        {connections.length > 0 && (
-          <IntegrationsPopover connections={connections} />
-        )}
+        {connections.length > 0 && <IntegrationsPopover connections={connections} />}
 
         <Button
           variant="ghost"
@@ -347,10 +345,23 @@ function ConnStatusPill({ status }: { status: ConnectionStatus }) {
 
 type FilterKey = "all" | "connected" | "pending" | "error";
 
-const PROVIDER_GROUPS: { key: ConnectionProvider | "other"; label: string; match: (p: ConnectionProvider) => boolean }[] = [
-  { key: "github", label: "GitHub", match: (p) => p === "github" || p === "gitlab" || p === "bitbucket" },
+const PROVIDER_GROUPS: {
+  key: ConnectionProvider | "other";
+  label: string;
+  match: (p: ConnectionProvider) => boolean;
+}[] = [
+  {
+    key: "github",
+    label: "GitHub",
+    match: (p) => p === "github" || p === "gitlab" || p === "bitbucket",
+  },
   { key: "vercel", label: "Vercel", match: (p) => p === "vercel" || p === "netlify" },
-  { key: "other", label: "Other", match: (p) => p !== "github" && p !== "gitlab" && p !== "bitbucket" && p !== "vercel" && p !== "netlify" },
+  {
+    key: "other",
+    label: "Other",
+    match: (p) =>
+      p !== "github" && p !== "gitlab" && p !== "bitbucket" && p !== "vercel" && p !== "netlify",
+  },
 ];
 
 function endpointFor(c: ProjectConnection): string | null {

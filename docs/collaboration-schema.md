@@ -9,14 +9,14 @@ SQL: [`docs/sql/2026-04-30-collaboration.sql`](./sql/2026-04-30-collaboration.sq
 
 ## Tables
 
-| Table | Purpose |
-| --- | --- |
-| `workspaces` | Team / org container. |
-| `workspace_members` | Membership + role. **Roles live here, never on `profiles`.** |
-| `workspace_invites` | Pending email invites with expiry + token. |
-| `projects` | Apps inside a workspace. |
-| `project_presence` | Live "who's here" per project (added to `supabase_realtime`). |
-| `user_preferences` | Per-user JSON blob (UI layout, theme, split sizes). Private. |
+| Table               | Purpose                                                       |
+| ------------------- | ------------------------------------------------------------- |
+| `workspaces`        | Team / org container.                                         |
+| `workspace_members` | Membership + role. **Roles live here, never on `profiles`.**  |
+| `workspace_invites` | Pending email invites with expiry + token.                    |
+| `projects`          | Apps inside a workspace.                                      |
+| `project_presence`  | Live "who's here" per project (added to `supabase_realtime`). |
+| `user_preferences`  | Per-user JSON blob (UI layout, theme, split sizes). Private.  |
 
 ## Roles (`workspace_role` enum)
 

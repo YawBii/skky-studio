@@ -21,11 +21,13 @@ export const Route = createFileRoute("/import")({
 });
 
 function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "imported-repo";
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "imported-repo"
+  );
 }
 
 function ImportPage() {
@@ -124,8 +126,8 @@ function ImportPage() {
           </div>
         )}
         <div className="mt-5 text-[11.5px] text-muted-foreground inline-flex items-start gap-2">
-          <Sparkles className="h-3 w-3 mt-0.5" />
-          A new project is created for each import — your existing projects stay untouched.
+          <Sparkles className="h-3 w-3 mt-0.5" />A new project is created for each import — your
+          existing projects stay untouched.
         </div>
       </div>
     </div>

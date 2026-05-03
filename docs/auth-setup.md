@@ -141,5 +141,6 @@ In your external Supabase project: **Authentication → Providers → Google** �
 ## Configure Site URL
 
 **Authentication → URL Configuration**:
+
 - **Site URL**: your production domain
 - **Redirect URLs**: include both production and preview URLs, plus `<origin>/reset-password`

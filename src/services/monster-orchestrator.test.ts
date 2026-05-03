@@ -20,7 +20,9 @@ describe("Monster orchestrator", () => {
     expect(result.files.some((file) => file.path.endsWith("_monster_blueprint.json"))).toBe(true);
     expect(result.files.some((file) => file.path.startsWith("supabase/migrations/"))).toBe(true);
     expect(result.files.some((file) => file.path === "src/routes/index.tsx")).toBe(true);
-    expect(result.files.some((file) => file.path === "src/components/monster/MatterCommandCenter.tsx")).toBe(true);
+    expect(
+      result.files.some((file) => file.path === "src/components/monster/MatterCommandCenter.tsx"),
+    ).toBe(true);
     expect(result.output.architectFileCount).toBeGreaterThan(3);
     expect(result.output.written).toContain("src/routes/index.tsx");
     expect(result.output.designCritique?.join(" ")).toContain("old design-mode template shell");

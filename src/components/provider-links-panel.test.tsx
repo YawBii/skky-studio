@@ -66,10 +66,9 @@ const ujob: ProjectConnection[] = [
 ];
 
 vi.mock("@/services/project-connections", async () => {
-  const actual =
-    await vi.importActual<typeof import("@/services/project-connections")>(
-      "@/services/project-connections",
-    );
+  const actual = await vi.importActual<typeof import("@/services/project-connections")>(
+    "@/services/project-connections",
+  );
   return {
     ...actual,
     listConnections: vi.fn(async () => ({ connections: ujob, source: "supabase" as const })),

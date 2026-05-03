@@ -2,17 +2,26 @@ import type { MonsterBlueprint } from "./monster-blueprint";
 import type { GeneratedProjectFile } from "./monster-brain-generator";
 
 function esc(value: unknown): string {
-  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;",
-    "'": "&#039;",
-  }[ch] ?? ch));
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (ch) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[ch] ?? ch,
+  );
 }
 
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "monster-app";
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "monster-app"
+  );
 }
 
 function domainNoun(blueprint: MonsterBlueprint): string {
@@ -26,7 +35,9 @@ function domainNoun(blueprint: MonsterBlueprint): string {
   return "operation";
 }
 
-function layoutFor(blueprint: MonsterBlueprint): "case-cockpit" | "trust-radar" | "ledger-room" | "market-map" | "ops-studio" {
+function layoutFor(
+  blueprint: MonsterBlueprint,
+): "case-cockpit" | "trust-radar" | "ledger-room" | "market-map" | "ops-studio" {
   const text = `${blueprint.appType} ${blueprint.prompt} ${blueprint.summary}`.toLowerCase();
   if (/law|legal|firm|case|client|contract/.test(text)) return "case-cockpit";
   if (/identity|verify|trust|profile|kyc|compliance/.test(text)) return "trust-radar";
@@ -37,11 +48,51 @@ function layoutFor(blueprint: MonsterBlueprint): "case-cockpit" | "trust-radar" 
 
 function paletteFor(layout: ReturnType<typeof layoutFor>) {
   switch (layout) {
-    case "case-cockpit": return { bg: "#120f0a", paper: "#f4ebd8", ink: "#211814", muted: "#745f4f", accent: "#9b2f19", accent2: "#d7a84d" };
-    case "trust-radar": return { bg: "#06131e", paper: "#e9f7ff", ink: "#06131e", muted: "#557083", accent: "#0ea5b7", accent2: "#6ee7b7" };
-    case "ledger-room": return { bg: "#07110d", paper: "#ecfff6", ink: "#07110d", muted: "#4d6d5c", accent: "#0f9f6e", accent2: "#d7ff62" };
-    case "market-map": return { bg: "#130d1d", paper: "#fff4e7", ink: "#281529", muted: "#7d5c78", accent: "#f97316", accent2: "#8b5cf6" };
-    default: return { bg: "#080b12", paper: "#edf2ff", ink: "#0b1020", muted: "#5e6b86", accent: "#4f46e5", accent2: "#06b6d4" };
+    case "case-cockpit":
+      return {
+        bg: "#120f0a",
+        paper: "#f4ebd8",
+        ink: "#211814",
+        muted: "#745f4f",
+        accent: "#9b2f19",
+        accent2: "#d7a84d",
+      };
+    case "trust-radar":
+      return {
+        bg: "#06131e",
+        paper: "#e9f7ff",
+        ink: "#06131e",
+        muted: "#557083",
+        accent: "#0ea5b7",
+        accent2: "#6ee7b7",
+      };
+    case "ledger-room":
+      return {
+        bg: "#07110d",
+        paper: "#ecfff6",
+        ink: "#07110d",
+        muted: "#4d6d5c",
+        accent: "#0f9f6e",
+        accent2: "#d7ff62",
+      };
+    case "market-map":
+      return {
+        bg: "#130d1d",
+        paper: "#fff4e7",
+        ink: "#281529",
+        muted: "#7d5c78",
+        accent: "#f97316",
+        accent2: "#8b5cf6",
+      };
+    default:
+      return {
+        bg: "#080b12",
+        paper: "#edf2ff",
+        ink: "#0b1020",
+        muted: "#5e6b86",
+        accent: "#4f46e5",
+        accent2: "#06b6d4",
+      };
   }
 }
 
@@ -62,8 +113,15 @@ function html(blueprint: MonsterBlueprint): string {
   const s = sections(blueprint);
   const app = esc(blueprint.appName);
   const prompt = esc(blueprint.prompt || blueprint.summary);
-  const tableCards = s.tables.map((table, index) => `<article class="data-card" style="--i:${index}"><span>${esc(table.table)}</span><strong>${esc(table.purpose)}</strong><small>${table.rlsPolicies.length} RLS drafts</small></article>`).join("");
-  const routeRail = s.routes.map((route) => `<li><b>${esc(route.path)}</b><span>${esc(route.purpose)}</span></li>`).join("");
+  const tableCards = s.tables
+    .map(
+      (table, index) =>
+        `<article class="data-card" style="--i:${index}"><span>${esc(table.table)}</span><strong>${esc(table.purpose)}</strong><small>${table.rlsPolicies.length} RLS drafts</small></article>`,
+    )
+    .join("");
+  const routeRail = s.routes
+    .map((route) => `<li><b>${esc(route.path)}</b><span>${esc(route.purpose)}</span></li>`)
+    .join("");
   const workflowList = s.workflows.map((workflow) => `<li>${esc(workflow)}</li>`).join("");
   const tests = s.tests.map((test) => `<li>${esc(test)}</li>`).join("");
 
@@ -119,21 +177,31 @@ function html(blueprint: MonsterBlueprint): string {
 function headline(blueprint: MonsterBlueprint, layout: ReturnType<typeof layoutFor>): string {
   const app = esc(blueprint.appName);
   switch (layout) {
-    case "case-cockpit": return `${app} — legal operations with a case cockpit, not a brochure.`;
-    case "trust-radar": return `${app} — verification radar for every profile and risk signal.`;
-    case "ledger-room": return `${app} — a living ledger room for money, invoices, and proof.`;
-    case "market-map": return `${app} — marketplace command map for supply, demand, and trust.`;
-    default: return `${app} — custom product OS generated from the blueprint.`;
+    case "case-cockpit":
+      return `${app} — legal operations with a case cockpit, not a brochure.`;
+    case "trust-radar":
+      return `${app} — verification radar for every profile and risk signal.`;
+    case "ledger-room":
+      return `${app} — a living ledger room for money, invoices, and proof.`;
+    case "market-map":
+      return `${app} — marketplace command map for supply, demand, and trust.`;
+    default:
+      return `${app} — custom product OS generated from the blueprint.`;
   }
 }
 
 function primaryCta(layout: ReturnType<typeof layoutFor>): string {
   switch (layout) {
-    case "case-cockpit": return "Open case cockpit";
-    case "trust-radar": return "Run verification";
-    case "ledger-room": return "Open ledger";
-    case "market-map": return "Map listings";
-    default: return "Open dashboard";
+    case "case-cockpit":
+      return "Open case cockpit";
+    case "trust-radar":
+      return "Run verification";
+    case "ledger-room":
+      return "Open ledger";
+    case "market-map":
+      return "Map listings";
+    default:
+      return "Open dashboard";
   }
 }
 
@@ -147,7 +215,9 @@ function js(blueprint: MonsterBlueprint): string {
   return `window.__YAWB_MONSTER_PREVIEW__=${JSON.stringify({ generator: "monster-custom-preview-v1", appType: blueprint.appType, designMode: blueprint.design.mode, routes: blueprint.routes.map((r) => r.path), tables: blueprint.backend.tables.map((t) => t.table) }, null, 2)};`;
 }
 
-export function generateMonsterCustomPreviewFiles(blueprint: MonsterBlueprint): GeneratedProjectFile[] {
+export function generateMonsterCustomPreviewFiles(
+  blueprint: MonsterBlueprint,
+): GeneratedProjectFile[] {
   return [
     { path: "index.html", content: html(blueprint), language: "html", kind: "source" },
     { path: "styles.css", content: css(blueprint), language: "css", kind: "source" },

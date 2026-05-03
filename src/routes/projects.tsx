@@ -714,101 +714,101 @@ function VercelProjectsTab({
         empty={state.projects.length === 0 && !state.loading && !state.error}
         emptyMessage="No Vercel projects visible to this token."
       >
-      {!currentProjectId && (
-        <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">
-          <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
-          <span>
-            Open a yawB project first to enable linking. Use{" "}
-            <Link to="/projects" search={{ tab: "projects" } as never} className="text-primary">
-              My Projects
-            </Link>
-            .
-          </span>
-        </div>
-      )}
-      {state.projects.map((p) => {
-        const h = health[p.id];
-        // Strict definition of "linked to current project":
-        //   connection exists AND projectId matches AND status="connected"
-        //   AND externalId matches this row's Vercel project id.
-        const linkedToCurrent =
-          !!h?.connection &&
-          h.connection.projectId === currentProjectId &&
-          h.connection.status === "connected" &&
-          h.connection.externalId === p.id;
-        const linkedElsewhere =
-          !!h?.connection &&
-          h.connection.status === "connected" &&
-          h.connection.projectId !== currentProjectId;
-        return (
-          <div key={p.id} className="border-b border-white/5 last:border-b-0">
-            <div className="flex items-center gap-3 px-5 py-3">
-              <Triangle className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">{p.name}</div>
-                <div className="text-[11.5px] text-muted-foreground truncate">
-                  {p.framework ?? "—"}
-                  {p.link?.repo ? ` · ${p.link.repo}` : ""}
-                  {p.updatedAt ? ` · updated ${formatDate(p.updatedAt)}` : ""}
-                </div>
-              </div>
-              {p.productionUrl && (
-                <a
-                  href={p.productionUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1"
-                >
-                  Live <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-              <Button
-                variant="soft"
-                size="sm"
-                onClick={() => linkToCurrent(p)}
-                disabled={linking === p.id || !currentProjectId}
-                title={
-                  currentProjectId ? `Link to ${currentProjectName}` : "Open a yawB project first"
-                }
-              >
-                {linking === p.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <LinkIcon className="h-3.5 w-3.5" />
-                )}
-                {linkedToCurrent ? "Re-link" : "Link to current"}
-              </Button>
-            </div>
-            {h && (
-              <div
-                className={cn(
-                  "px-5 pb-3 text-[11.5px] flex items-center gap-2",
-                  h.error
-                    ? "text-destructive"
-                    : linkedToCurrent
-                      ? "text-success"
-                      : "text-muted-foreground",
-                )}
-              >
-                {h.error ? (
-                  <X className="h-3 w-3" />
-                ) : linkedToCurrent ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <AlertCircle className="h-3 w-3" />
-                )}
-                {h.error
-                  ? `Failed: ${h.error}`
-                  : linkedToCurrent
-                    ? `Linked to current project · ${h.connection?.url ? "deployed" : "no deployment URL"} · last synced ${new Date(h.checkedAt).toLocaleTimeString()}`
-                    : linkedElsewhere
-                      ? `Linked to another yawB project (${h.connection?.projectId.slice(0, 8)}…)`
-                      : "Not linked"}
-              </div>
-            )}
+        {!currentProjectId && (
+          <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">
+            <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
+            <span>
+              Open a yawB project first to enable linking. Use{" "}
+              <Link to="/projects" search={{ tab: "projects" } as never} className="text-primary">
+                My Projects
+              </Link>
+              .
+            </span>
           </div>
-        );
-      })}
+        )}
+        {state.projects.map((p) => {
+          const h = health[p.id];
+          // Strict definition of "linked to current project":
+          //   connection exists AND projectId matches AND status="connected"
+          //   AND externalId matches this row's Vercel project id.
+          const linkedToCurrent =
+            !!h?.connection &&
+            h.connection.projectId === currentProjectId &&
+            h.connection.status === "connected" &&
+            h.connection.externalId === p.id;
+          const linkedElsewhere =
+            !!h?.connection &&
+            h.connection.status === "connected" &&
+            h.connection.projectId !== currentProjectId;
+          return (
+            <div key={p.id} className="border-b border-white/5 last:border-b-0">
+              <div className="flex items-center gap-3 px-5 py-3">
+                <Triangle className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{p.name}</div>
+                  <div className="text-[11.5px] text-muted-foreground truncate">
+                    {p.framework ?? "—"}
+                    {p.link?.repo ? ` · ${p.link.repo}` : ""}
+                    {p.updatedAt ? ` · updated ${formatDate(p.updatedAt)}` : ""}
+                  </div>
+                </div>
+                {p.productionUrl && (
+                  <a
+                    href={p.productionUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted-foreground hover:text-foreground text-[11px] inline-flex items-center gap-1"
+                  >
+                    Live <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                <Button
+                  variant="soft"
+                  size="sm"
+                  onClick={() => linkToCurrent(p)}
+                  disabled={linking === p.id || !currentProjectId}
+                  title={
+                    currentProjectId ? `Link to ${currentProjectName}` : "Open a yawB project first"
+                  }
+                >
+                  {linking === p.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <LinkIcon className="h-3.5 w-3.5" />
+                  )}
+                  {linkedToCurrent ? "Re-link" : "Link to current"}
+                </Button>
+              </div>
+              {h && (
+                <div
+                  className={cn(
+                    "px-5 pb-3 text-[11.5px] flex items-center gap-2",
+                    h.error
+                      ? "text-destructive"
+                      : linkedToCurrent
+                        ? "text-success"
+                        : "text-muted-foreground",
+                  )}
+                >
+                  {h.error ? (
+                    <X className="h-3 w-3" />
+                  ) : linkedToCurrent ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <AlertCircle className="h-3 w-3" />
+                  )}
+                  {h.error
+                    ? `Failed: ${h.error}`
+                    : linkedToCurrent
+                      ? `Linked to current project · ${h.connection?.url ? "deployed" : "no deployment URL"} · last synced ${new Date(h.checkedAt).toLocaleTimeString()}`
+                      : linkedElsewhere
+                        ? `Linked to another yawB project (${h.connection?.projectId.slice(0, 8)}…)`
+                        : "Not linked"}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </ProviderListCard>
 
       <Dialog open={!!confirmReplace} onOpenChange={(o) => !o && setConfirmReplace(null)}>

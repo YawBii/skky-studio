@@ -1,7 +1,11 @@
 // Projects service — Supabase only. No demo fallback in the authenticated app.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
-import { readCurrentProjectId, readCurrentWorkspaceId, readDirectProject } from "@/lib/project-selection";
+import {
+  readCurrentProjectId,
+  readCurrentWorkspaceId,
+  readDirectProject,
+} from "@/lib/project-selection";
 
 export interface Project {
   id: string;
@@ -44,14 +48,25 @@ export function isUuid(value: string | null | undefined): value is string {
   return !!value && UUID_RE.test(value);
 }
 
-function isDuplicateProjectSlug(error: { code?: string; message?: string; details?: string | null } | null | undefined) {
+function isDuplicateProjectSlug(
+  error: { code?: string; message?: string; details?: string | null } | null | undefined,
+) {
   if (!error) return false;
   const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
-  return error.code === "23505" && (text.includes("projects_workspace_id_slug_key") || text.includes("workspace_id") || text.includes("slug"));
+  return (
+    error.code === "23505" &&
+    (text.includes("projects_workspace_id_slug_key") ||
+      text.includes("workspace_id") ||
+      text.includes("slug"))
+  );
 }
 
 function withSlugSuffix(baseSlug: string, attempt: number): string {
-  const clean = (baseSlug || "project").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "project";
+  const clean =
+    (baseSlug || "project")
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "project";
   return attempt <= 1 ? clean : `${clean}-${attempt}`;
 }
 
@@ -163,7 +178,11 @@ export async function getProjectById(
   if (!isUuid(projectId)) {
     const fallback = readFallbackProject(projectId);
     if (fallback) {
-      pushDiag("project.byId.fallback", { reason: "non-uuid-route", requestedProjectId: projectId, fallbackProjectId: fallback.id });
+      pushDiag("project.byId.fallback", {
+        reason: "non-uuid-route",
+        requestedProjectId: projectId,
+        fallbackProjectId: fallback.id,
+      });
       return { project: fallback, error: "Route project id was invalid; using active project." };
     }
     pushDiag("project.byId.skipped", { reason: "non-uuid-project", projectId });
@@ -181,9 +200,22 @@ export async function getProjectById(
     if (error) {
       const fallback = readFallbackProject(projectId);
       if (fallback) {
-        setDiag({ projectId, activeProjectId: fallback.id, projectSelectError: error, projectsQueryError: error });
-        pushDiag("project.byId.fallback", { reason: "query-error", requestedProjectId: projectId, fallbackProjectId: fallback.id, message: error.message });
-        return { project: fallback, error: "Requested project failed to load; using active project." };
+        setDiag({
+          projectId,
+          activeProjectId: fallback.id,
+          projectSelectError: error,
+          projectsQueryError: error,
+        });
+        pushDiag("project.byId.fallback", {
+          reason: "query-error",
+          requestedProjectId: projectId,
+          fallbackProjectId: fallback.id,
+          message: error.message,
+        });
+        return {
+          project: fallback,
+          error: "Requested project failed to load; using active project.",
+        };
       }
       setDiag({ projectId, projectSelectError: error, projectsQueryError: error });
       pushDiag("project.byId.error", {
@@ -198,8 +230,16 @@ export async function getProjectById(
     if (!data) {
       const fallback = readFallbackProject(projectId);
       if (fallback) {
-        setDiag({ projectId, activeProjectId: fallback.id, projectSelectError: "Route project not found; using active project" });
-        pushDiag("project.byId.fallback", { reason: "route-project-not-found", requestedProjectId: projectId, fallbackProjectId: fallback.id });
+        setDiag({
+          projectId,
+          activeProjectId: fallback.id,
+          projectSelectError: "Route project not found; using active project",
+        });
+        pushDiag("project.byId.fallback", {
+          reason: "route-project-not-found",
+          requestedProjectId: projectId,
+          fallbackProjectId: fallback.id,
+        });
         return { project: fallback, error: "Requested project not found; using active project." };
       }
       setDiag({ projectId, projectSelectError: "Project not found by route id" });
@@ -223,9 +263,22 @@ export async function getProjectById(
     const fallback = readFallbackProject(projectId);
     if (fallback) {
       const message = e instanceof Error ? e.message : String(e);
-      setDiag({ projectId, activeProjectId: fallback.id, projectSelectError: message, projectsQueryError: message });
-      pushDiag("project.byId.fallback", { reason: "exception", requestedProjectId: projectId, fallbackProjectId: fallback.id, message });
-      return { project: fallback, error: "Requested project threw while loading; using active project." };
+      setDiag({
+        projectId,
+        activeProjectId: fallback.id,
+        projectSelectError: message,
+        projectsQueryError: message,
+      });
+      pushDiag("project.byId.fallback", {
+        reason: "exception",
+        requestedProjectId: projectId,
+        fallbackProjectId: fallback.id,
+        message,
+      });
+      return {
+        project: fallback,
+        error: "Requested project threw while loading; using active project.",
+      };
     }
     const message = e instanceof Error ? e.message : String(e);
     setDiag({ projectId, projectSelectError: message, projectsQueryError: message });
@@ -289,7 +342,11 @@ export async function createProject(input: {
 
       if (isDuplicateProjectSlug(insertError)) {
         lastDuplicate = insertError;
-        log("project.slug.duplicate.retry", { slug: finalSlug, attempt, nextSlug: withSlugSuffix(input.slug, attempt + 1) });
+        log("project.slug.duplicate.retry", {
+          slug: finalSlug,
+          attempt,
+          nextSlug: withSlugSuffix(input.slug, attempt + 1),
+        });
         continue;
       }
 
@@ -333,7 +390,11 @@ export async function createProject(input: {
     }
 
     const project = toProject(row);
-    log("project.create.success", { id: project.id, slug: project.slug, requestedSlug: input.slug });
+    log("project.create.success", {
+      id: project.id,
+      slug: project.slug,
+      requestedSlug: input.slug,
+    });
     return { ok: true, project };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
