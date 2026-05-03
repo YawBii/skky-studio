@@ -529,10 +529,10 @@ export function PreviewPane({
           data-testid="preview-revert-version"
           title="Revert to an earlier version"
         >
-          <Link to="/versions/$projectId" params={{ projectId: project.id }}>
+          <a href={`/versions/${project.id}`}>
             <History className="h-3 w-3" />
             Revert
-          </Link>
+          </a>
         </Button>
         {onRegenerateDesign && !isGithubLinked && (
           <>
