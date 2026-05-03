@@ -27,6 +27,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 import { Button } from "@/components/ui/button";
 import { BodyPointerEventsGuard } from "@/components/body-pointer-events-guard";
+import { initClientTelemetry } from "@/lib/client-telemetry";
 
 const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
@@ -121,6 +122,9 @@ function RootComponent() {
   // Use matched route ids — works correctly during SSR. `location.pathname`
   // can be "/" on the SSR pass for nested routes in some TanStack versions,
   // which caused the preview iframe to render the full yawB workspace shell.
+  useEffect(() => {
+    initClientTelemetry();
+  }, []);
   const { pathname, routeIds } = useRouterState({
     select: (s) => ({
       pathname: s.location.pathname,
