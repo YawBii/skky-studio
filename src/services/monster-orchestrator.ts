@@ -13,6 +13,7 @@ import {
   type MonsterProofReport,
   type MonsterQualityGate,
 } from "./monster-quality-gates";
+import { generateMonsterArchitectFiles, type MonsterArchitectResult } from "./monster-project-architect";
 import { summarizeMonsterBlueprint, type MonsterBlueprint } from "./monster-blueprint";
 
 export interface MonsterOrchestratorInput {
@@ -38,6 +39,7 @@ export interface MonsterGenerationResult {
   blueprint: MonsterBlueprint;
   frontendFiles: MonsterGeneratedFile[];
   backend: MonsterBackendGenerationResult;
+  architect: MonsterArchitectResult;
   files: MonsterGeneratedFile[];
   proof: MonsterProofReport;
   output: {
@@ -46,10 +48,13 @@ export interface MonsterGenerationResult {
     appType: string;
     frontendFileCount: number;
     backendFileCount: number;
+    architectFileCount: number;
     tableCount: number;
     policyCount: number;
     previewReady: boolean;
     canDeclareDone: boolean;
+    written?: string[];
+    designCritique?: string[];
   };
 }
 
@@ -80,7 +85,8 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
   });
 
   const backend = generateMonsterBackendFiles(blueprint);
-  const files: MonsterGeneratedFile[] = [...frontendFiles, ...backend.files];
+  const architect = generateMonsterArchitectFiles(blueprint);
+  const files: MonsterGeneratedFile[] = [...frontendFiles, ...backend.files, ...architect.files];
   const previewReady = files.some((file) => file.path === "index.html");
   const blueprintSummary = summarizeMonsterBlueprint(blueprint);
 
@@ -89,16 +95,9 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
     blueprintSummary,
     gates: [
       passed("blueprint", "Monster Blueprint produced", blueprintSummary),
-      passed(
-        "design",
-        "Beautiful first design generated",
-        `${blueprint.design.mode}: ${blueprint.design.reason}`,
-      ),
-      passed(
-        "backend",
-        "Backend/schema/RLS plan generated",
-        `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`,
-      ),
+      passed("design", "Beautiful first design generated", `${blueprint.design.mode}: ${blueprint.design.reason}`),
+      passed("architect", "Project architecture files generated", `${architect.files.length} route/component/lib/style/doc files`),
+      passed("backend", "Backend/schema/RLS plan generated", `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`),
       pending("typecheck", "TypeScript check", "npm run typecheck"),
       pending("lint", "Lint", "npm run lint"),
       pending("build", "Production build", "npm run build"),
@@ -111,6 +110,7 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
     blueprint,
     frontendFiles,
     backend,
+    architect,
     files,
     proof,
     output: {
@@ -119,10 +119,13 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
       appType: blueprint.appType,
       frontendFileCount: frontendFiles.length,
       backendFileCount: backend.files.length,
+      architectFileCount: architect.files.length,
       tableCount: backend.tableCount,
       policyCount: backend.policyCount,
       previewReady,
       canDeclareDone: proof.canDeclareDone,
+      written: files.map((file) => file.path).sort(),
+      designCritique: architect.designCritique,
     },
   };
 }
