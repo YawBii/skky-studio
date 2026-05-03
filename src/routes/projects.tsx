@@ -29,8 +29,10 @@ import { createProject } from "@/services/projects";
 import {
   upsertConnection,
   findConnectionByExternalId,
+  listConnections,
   type ProjectConnection,
 } from "@/services/project-connections";
+import { ProviderLinksPanel } from "@/components/provider-links-panel";
 import { cn } from "@/lib/utils";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
@@ -574,9 +576,29 @@ function VercelProjectsTab({
         toast.error(res.error);
         return;
       }
+      // Verify the row was actually persisted at the project scope before
+      // claiming the link is durable. This guards against optimistic UI lying
+      // when the insert succeeded but the row landed in a different project.
+      const verify = await listConnections(currentProjectId);
+      const persisted = verify.connections.find(
+        (c) => c.provider === "vercel" && c.externalId === p.id && c.projectId === currentProjectId,
+      );
+      if (!persisted) {
+        setHealth((h) => ({
+          ...h,
+          [p.id]: {
+            error: "Link saved but not visible on project — try Refresh links",
+            checkedAt: new Date().toISOString(),
+          },
+        }));
+        toast.warning(
+          `Linked ${p.name}, but verification couldn't find the row. Use Refresh links.`,
+        );
+        return;
+      }
       setHealth((h) => ({
         ...h,
-        [p.id]: { connection: res.connection, checkedAt: new Date().toISOString() },
+        [p.id]: { connection: persisted, checkedAt: new Date().toISOString() },
       }));
       toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
       void load();
@@ -586,16 +608,24 @@ function VercelProjectsTab({
   }
 
   return (
-    <ProviderListCard
-      title="Vercel Projects"
-      onRefresh={load}
-      loading={state.loading}
-      error={state.error}
-      missing={state.missing}
-      providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
-      empty={state.projects.length === 0 && !state.loading && !state.error}
-      emptyMessage="No Vercel projects visible to this token."
-    >
+    <div className="space-y-4">
+      {currentProjectId && (
+        <ProviderLinksPanel
+          projectId={currentProjectId}
+          workspaceId={workspaceId || null}
+          compact
+        />
+      )}
+      <ProviderListCard
+        title="Vercel Projects"
+        onRefresh={load}
+        loading={state.loading}
+        error={state.error}
+        missing={state.missing}
+        providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
+        empty={state.projects.length === 0 && !state.loading && !state.error}
+        emptyMessage="No Vercel projects visible to this token."
+      >
       {!currentProjectId && (
         <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
@@ -676,7 +706,8 @@ function VercelProjectsTab({
           </div>
         );
       })}
-    </ProviderListCard>
+      </ProviderListCard>
+    </div>
   );
 }
 
