@@ -16,8 +16,12 @@ export function useProjects(workspaceId: string | null | undefined) {
     setLoading(true);
     const r = await listProjects(workspaceId ?? null);
     const direct = readDirectProject();
+    const canUseDirect = r.source !== "supabase";
     const shouldInjectDirect =
-      direct && direct.workspaceId === workspaceId && !r.projects.some((p) => p.id === direct.id);
+      canUseDirect &&
+      direct &&
+      direct.workspaceId === workspaceId &&
+      !r.projects.some((p) => p.id === direct.id);
     const next = shouldInjectDirect
       ? { projects: [direct, ...r.projects], source: "supabase" as const }
       : r;
