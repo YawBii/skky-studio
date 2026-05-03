@@ -255,6 +255,7 @@ export function PreviewPane({
     [effectiveConnections],
   );
   const isGithubLinked = !!githubConnection;
+  const effectiveLocalAvailable = isGithubLinked ? false : localAvailable;
 
   // Persisted toggle. If live is unavailable, default to local. If local is
   // unavailable, default to live.
@@ -262,7 +263,7 @@ export function PreviewPane({
     try {
       const stored = window.localStorage.getItem(TOGGLE_KEY(project.id)) as PreviewMode | null;
       if (stored === "live" && liveAvailable) return "live";
-      if (stored === "local" && localAvailable) return "local";
+      if (stored === "local" && effectiveLocalAvailable) return "local";
     } catch {
       /* ignore */
     }
@@ -292,8 +293,9 @@ export function PreviewPane({
   // Auto-switch when availability changes (e.g. preview deploy lands).
   useEffect(() => {
     if (mode === "live" && !liveAvailable) setMode("local");
-    if (mode === "local" && !localAvailable && liveAvailable) setMode("live");
-  }, [mode, liveAvailable, localAvailable]);
+    if (isGithubLinked && mode === "local" && liveAvailable) setMode("live");
+    if (mode === "local" && !effectiveLocalAvailable && liveAvailable) setMode("live");
+  }, [mode, liveAvailable, effectiveLocalAvailable, isGithubLinked]);
 
   useEffect(() => {
     try {
@@ -494,6 +496,7 @@ export function PreviewPane({
   const onModeChange = (next: PreviewMode) => {
     if (next === mode) return;
     if (next === "live" && !liveAvailable) return;
+    if (next === "local" && !effectiveLocalAvailable) return;
     console.info("[yawb] preview.mode.toggled", { from: mode, to: next });
     setMode(next);
   };
