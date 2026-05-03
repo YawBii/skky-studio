@@ -291,8 +291,69 @@ async function runMonsterGenerateChanges(input: {
   const requestedDesignMode =
     typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
 
-  try {
-    const generation = generateMonsterProject({
+  // Prefer the LLM-driven agentic build loop when configured. This produces a
+  // custom plan + files + checks + critique + proof. Falls back to the
+  // deterministic monster generator on any failure.
+  if (isAgenticLoopConfigured()) {
+    try {
+      const agentic = await runAgenticBuild({
+        sb: input.sb,
+        projectId: input.job.project_id,
+        workspaceId: input.job.workspace_id ?? null,
+        jobId: input.job.id,
+        projectName: String(project.name ?? ""),
+        userRequest: chatRequest || input.job.title || "Build the requested product.",
+      });
+      if (agentic.ok) {
+        const output = {
+          generator: "agentic-loop-v1",
+          appType: agentic.plan.appType,
+          designDirection: agentic.plan.designDirection,
+          previewReady: agentic.previewSource !== null,
+          written: agentic.written,
+          fileCount: agentic.files.length,
+          plan: agentic.plan,
+          checks: agentic.checks,
+          repairs: agentic.repairs,
+          critique: agentic.critique,
+          limitations: agentic.limitations,
+          handledJobType: input.job.type,
+          handledStepKey: input.step.step_key,
+          previewProof: {
+            generator: "agentic-loop-v1",
+            expectedMeta: '<meta name="yawb-generator" content="agentic-loop-v1" />',
+            indexPath: "index.html",
+          },
+        };
+        await markJobAndStep({
+          sb: input.sb,
+          jobId: input.job.id,
+          stepId: input.step.id,
+          status: "succeeded",
+          output,
+          error: null,
+          log: `Agentic loop generated ${agentic.written.length} files (critique ${agentic.critique.score}/100${agentic.critique.redesigned ? ", redesigned once" : ""}).`,
+        });
+        return {
+          advanced: true,
+          jobId: input.job.id,
+          stepKey: input.step.step_key,
+          status: "succeeded",
+        };
+      }
+      console.warn(
+        "[yawb] agentic-loop.failed_falling_back",
+        agentic.error ?? agentic.critique.summary,
+      );
+    } catch (e) {
+      console.warn(
+        "[yawb] agentic-loop.threw_falling_back",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  }
+
+
       project: {
         id: String(project.id),
         name: String(project.name ?? ""),
