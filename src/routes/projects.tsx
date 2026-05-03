@@ -30,6 +30,8 @@ import {
   upsertConnection,
   findConnectionByExternalId,
   listConnections,
+  setConnectionStatus,
+  findActiveVercelConnection,
   type ProjectConnection,
 } from "@/services/project-connections";
 import { ProviderLinksPanel } from "@/components/provider-links-panel";
