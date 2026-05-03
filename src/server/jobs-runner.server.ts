@@ -163,7 +163,7 @@ async function checkConnection(
 }
 
 async function hasProjectConnection(
-  sb: SupabaseClient,
+  sb: ProjectFilesSupabaseLike,
   projectId: string,
   provider: "github" | "vercel" | "supabase",
 ): Promise<boolean> {
@@ -748,7 +748,7 @@ export async function generateAndPersistProjectFiles(
   typography?: string;
   shapeLanguage?: string;
 }> {
-  if (await hasProjectConnection(sb as SupabaseClient, job.project_id, "github")) {
+  if (await hasProjectConnection(sb, job.project_id, "github")) {
     return {
       ok: false,
       written: [],
