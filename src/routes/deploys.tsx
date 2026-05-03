@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Rocket } from "lucide-react";
 import { useSelectedProject } from "@/hooks/use-selected-project";
 import { useProjectConnections } from "@/hooks/use-project-connections";
+import { ProviderLinksPanel } from "@/components/provider-links-panel";
 import {
   ProjectScopedEmpty,
   ProjectSurfaceError,
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/deploys")({
 });
 
 function DeploysPage() {
-  const { project, projectIsReal, workspaceIsReal } = useSelectedProject();
+  const { project, projectIsReal, workspaceIsReal, workspace } = useSelectedProject();
   const { connections, isError, error, isTableMissing, sqlFile, loading } = useProjectConnections(
     project?.id ?? null,
   );
@@ -33,13 +34,16 @@ function DeploysPage() {
   const vercel = connections.find((c) => c.provider === "vercel" && c.status === "connected");
   if (!vercel) {
     return (
-      <ProjectScopedEmpty
-        icon={Rocket}
-        eyebrow={project.name}
-        title="No deploys yet"
-        hint="Connect Vercel for this project to see real deploy logs and history."
-        cta={{ label: "Open Integrations", to: "/connectors" }}
-      />
+      <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto space-y-6">
+        <ProjectScopedEmpty
+          icon={Rocket}
+          eyebrow={project.name}
+          title="No deploys yet"
+          hint="Connect Vercel for this project to see real deploy logs and history."
+          cta={{ label: "Open Integrations", to: "/connectors" }}
+        />
+        <ProviderLinksPanel projectId={project.id} workspaceId={workspace?.id ?? null} />
+      </div>
     );
   }
 
@@ -62,6 +66,9 @@ function DeploysPage() {
             Manage Vercel connection →
           </Link>
         </div>
+      </div>
+      <div className="mt-6">
+        <ProviderLinksPanel projectId={project.id} workspaceId={workspace?.id ?? null} />
       </div>
     </div>
   );
