@@ -34,7 +34,7 @@ import {
 } from "@/components/command-center";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
-import { useGitHubPreview } from "@/hooks/use-github-preview";
+
 import { resolveDeployUrl } from "@/lib/deploy-url";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 
