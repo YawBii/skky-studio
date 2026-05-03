@@ -13,6 +13,7 @@ import {
   BarChart3,
   Check,
   FolderKanban,
+  Plug,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
