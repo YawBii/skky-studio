@@ -388,6 +388,27 @@ function BuildDot({ status }: { status: "passing" | "failing" | "building" }) {
   return <span className={cn("h-1.5 w-1.5 rounded-full", cls)} />;
 }
 
+function ConnStatusPill({ status }: { status: ConnectionStatus }) {
+  const cls =
+    status === "connected"
+      ? "bg-success/15 text-success"
+      : status === "pending"
+        ? "bg-warning/15 text-warning"
+        : status === "error"
+          ? "bg-destructive/15 text-destructive"
+          : "bg-white/5 text-muted-foreground";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider",
+        cls,
+      )}
+    >
+      {status}
+    </span>
+  );
+}
+
 function ConnDot({
   icon: Icon,
   status,
