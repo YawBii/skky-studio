@@ -1,6 +1,7 @@
 // Projects service — Supabase only. No demo fallback in the authenticated app.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
+import { readCurrentProjectId, readCurrentWorkspaceId, readDirectProject } from "@/lib/project-selection";
 
 export interface Project {
   id: string;
@@ -52,6 +53,18 @@ function isDuplicateProjectSlug(error: { code?: string; message?: string; detail
 function withSlugSuffix(baseSlug: string, attempt: number): string {
   const clean = (baseSlug || "project").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "project";
   return attempt <= 1 ? clean : `${clean}-${attempt}`;
+}
+
+function readFallbackProject(requestedProjectId: string | null | undefined): Project | null {
+  const direct = readDirectProject();
+  if (direct?.id && direct.id !== requestedProjectId) return direct;
+
+  const workspaceId = readCurrentWorkspaceId();
+  const currentProjectId = readCurrentProjectId(workspaceId);
+  if (currentProjectId && currentProjectId !== requestedProjectId && direct?.id === currentProjectId) {
+    return direct;
+  }
+  return null;
 }
 
 export async function listProjects(
@@ -142,6 +155,11 @@ export async function getProjectById(
   projectId: string | null | undefined,
 ): Promise<{ project: Project | null; error?: string }> {
   if (!isUuid(projectId)) {
+    const fallback = readFallbackProject(projectId);
+    if (fallback) {
+      pushDiag("project.byId.fallback", { reason: "non-uuid-route", requestedProjectId: projectId, fallbackProjectId: fallback.id });
+      return { project: fallback, error: "Route project id was invalid; using active project." };
+    }
     pushDiag("project.byId.skipped", { reason: "non-uuid-project", projectId });
     return { project: null, error: "Project id is not a UUID." };
   }
@@ -155,6 +173,12 @@ export async function getProjectById(
       .maybeSingle();
 
     if (error) {
+      const fallback = readFallbackProject(projectId);
+      if (fallback) {
+        setDiag({ projectId, activeProjectId: fallback.id, projectSelectError: error, projectsQueryError: error });
+        pushDiag("project.byId.fallback", { reason: "query-error", requestedProjectId: projectId, fallbackProjectId: fallback.id, message: error.message });
+        return { project: fallback, error: "Requested project failed to load; using active project." };
+      }
       setDiag({ projectId, projectSelectError: error, projectsQueryError: error });
       pushDiag("project.byId.error", {
         projectId,
@@ -166,6 +190,12 @@ export async function getProjectById(
       return { project: null, error: error.message };
     }
     if (!data) {
+      const fallback = readFallbackProject(projectId);
+      if (fallback) {
+        setDiag({ projectId, activeProjectId: fallback.id, projectSelectError: "Route project not found; using active project" });
+        pushDiag("project.byId.fallback", { reason: "route-project-not-found", requestedProjectId: projectId, fallbackProjectId: fallback.id });
+        return { project: fallback, error: "Requested project not found; using active project." };
+      }
       setDiag({ projectId, projectSelectError: "Project not found by route id" });
       pushDiag("project.byId.empty", { projectId });
       return { project: null };
@@ -184,6 +214,13 @@ export async function getProjectById(
     });
     return { project };
   } catch (e) {
+    const fallback = readFallbackProject(projectId);
+    if (fallback) {
+      const message = e instanceof Error ? e.message : String(e);
+      setDiag({ projectId, activeProjectId: fallback.id, projectSelectError: message, projectsQueryError: message });
+      pushDiag("project.byId.fallback", { reason: "exception", requestedProjectId: projectId, fallbackProjectId: fallback.id, message });
+      return { project: fallback, error: "Requested project threw while loading; using active project." };
+    }
     const message = e instanceof Error ? e.message : String(e);
     setDiag({ projectId, projectSelectError: message, projectsQueryError: message });
     pushDiag("project.byId.exception", { projectId, message });
