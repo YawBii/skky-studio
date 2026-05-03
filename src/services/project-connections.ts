@@ -2,6 +2,7 @@
 // If the table is missing we surface that to the caller so the UI can show
 // a clear "run the SQL" notice instead of pretending connections exist.
 import { supabase } from "@/integrations/supabase/client";
+import { readCurrentWorkspaceId } from "@/lib/project-selection";
 
 export type ConnectionProvider = "github" | "gitlab" | "bitbucket" | "vercel" | "netlify";
 export type ConnectionStatus = "pending" | "connected" | "error" | "disconnected";
@@ -18,7 +19,6 @@ export interface ProjectConnection {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
-  // additive (2026-05-01)
   workspaceId: string | null;
   externalId: string | null;
   url: string | null;
@@ -40,12 +40,7 @@ const SQL_FILE = "docs/sql/2026-04-30-project-connections.sql";
 function isMissingTable(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false;
   const msg = (error.message ?? "").toLowerCase();
-  return (
-    error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    msg.includes("does not exist") ||
-    msg.includes("could not find the table")
-  );
+  return error.code === "42P01" || error.code === "PGRST205" || msg.includes("does not exist") || msg.includes("could not find the table");
 }
 
 function rowToConnection(r: Record<string, unknown>): ProjectConnection {
@@ -69,20 +64,12 @@ function rowToConnection(r: Record<string, unknown>): ProjectConnection {
   };
 }
 
-export async function listConnections(
-  projectId: string | null | undefined,
-): Promise<ConnectionsResult> {
+export async function listConnections(projectId: string | null | undefined): Promise<ConnectionsResult> {
   if (!projectId) return { connections: [], source: "no-project" };
   try {
-    const { data, error } = await supabase
-      .from("project_connections")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("project_connections").select("*").eq("project_id", projectId).order("created_at", { ascending: false });
     if (error) {
-      if (isMissingTable(error)) {
-        return { connections: [], source: "table-missing", error: error.message, sqlFile: SQL_FILE };
-      }
+      if (isMissingTable(error)) return { connections: [], source: "table-missing", error: error.message, sqlFile: SQL_FILE };
       return { connections: [], source: "error", error: error.message };
     }
     if (!data || data.length === 0) return { connections: [], source: "empty" };
@@ -112,7 +99,6 @@ export async function createConnection(input: {
   try {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return { ok: false, error: "Not signed in", code: "NO_SESSION" };
-
     const payload: Record<string, unknown> = {
       project_id: input.projectId,
       provider: input.provider,
@@ -127,13 +113,9 @@ export async function createConnection(input: {
     if (input.externalId !== undefined) payload.external_id = input.externalId;
     if (input.url !== undefined) payload.url = input.url;
     if (input.tokenOwnerType !== undefined) payload.token_owner_type = input.tokenOwnerType;
-
     const { data, error } = await supabase.from("project_connections").insert(payload).select("*").maybeSingle();
-
     if (error) {
-      if (isMissingTable(error)) {
-        return { ok: false, error: error.message, code: error.code, tableMissing: true, sqlFile: SQL_FILE };
-      }
+      if (isMissingTable(error)) return { ok: false, error: error.message, code: error.code, tableMissing: true, sqlFile: SQL_FILE };
       return { ok: false, error: error.message, code: error.code };
     }
     if (!data) return { ok: false, error: "Insert returned no row", code: "NO_ROW" };
@@ -143,24 +125,24 @@ export async function createConnection(input: {
   }
 }
 
-// Find an existing connection by (provider, external_id).
-// IMPORTANT: importing must never reuse a global provider match without a
-// workspace. That is how a current import could jump to an old Goodhand-style
-// project. Callers that want reuse must pass workspaceId explicitly.
+function effectiveWorkspaceId(workspaceId?: string | null): string | null {
+  return workspaceId ?? readCurrentWorkspaceId() ?? null;
+}
+
 export async function findConnectionByExternalId(
   provider: ConnectionProvider,
   externalId: string,
   workspaceId?: string | null,
 ): Promise<{ ok: true; connection: ProjectConnection | null } | { ok: false; error: string }> {
-  if (!workspaceId) return { ok: true, connection: null };
-
+  const ws = effectiveWorkspaceId(workspaceId);
+  if (!ws) return { ok: true, connection: null };
   try {
     const { data, error } = await supabase
       .from("project_connections")
       .select("*")
       .eq("provider", provider)
       .eq("external_id", externalId)
-      .eq("workspace_id", workspaceId)
+      .eq("workspace_id", ws)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -174,8 +156,6 @@ export async function findConnectionByExternalId(
   }
 }
 
-// Upsert a connection for a (project_id, provider, external_id) tuple.
-// Updates status / url / metadata if a row already exists for this project.
 export async function upsertConnection(input: {
   projectId: string;
   provider: ConnectionProvider;
