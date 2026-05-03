@@ -513,6 +513,28 @@ function VercelProjectsTab({
   const [health, setHealth] = useState<
     Record<string, { connection?: ProjectConnection; error?: string; checkedAt: string }>
   >({});
+  // The single active Vercel connection bound to the *current* yawB project.
+  const [activeForCurrent, setActiveForCurrent] = useState<ProjectConnection | null>(null);
+  const [duplicates, setDuplicates] = useState<ProjectConnection[]>([]);
+  // Pending replacement confirmation: incoming vercel project id.
+  const [confirmReplace, setConfirmReplace] = useState<VercelP | null>(null);
+  // GitHub repo bound to the current yawB project (used to warn about repo mismatches).
+  const [currentGithubRepo, setCurrentGithubRepo] = useState<string | null>(null);
+
+  const refreshActive = useCallback(async () => {
+    if (!currentProjectId) {
+      setActiveForCurrent(null);
+      setDuplicates([]);
+      setCurrentGithubRepo(null);
+      return;
+    }
+    const r = await findActiveVercelConnection(currentProjectId);
+    setActiveForCurrent(r.active);
+    setDuplicates(r.duplicates);
+    const all = await listConnections(currentProjectId);
+    const gh = all.connections.find((c) => c.provider === "github" && c.status === "connected");
+    setCurrentGithubRepo(gh?.repoFullName ?? null);
+  }, [currentProjectId]);
 
   const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true, error: undefined }));
@@ -523,7 +545,6 @@ function VercelProjectsTab({
         return;
       }
       setState({ loading: false, projects: res.projects });
-      // Hydrate sync health for each visible project.
       const next: typeof health = {};
       await Promise.all(
         res.projects.map(async (p) => {
@@ -533,32 +554,44 @@ function VercelProjectsTab({
         }),
       );
       setHealth(next);
+      await refreshActive();
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
     }
-  }, [workspaceId]);
+  }, [workspaceId, refreshActive]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  async function linkToCurrent(p: VercelP) {
-    if (!workspaceId) {
-      toast.error("Select a workspace first");
-      return;
-    }
-    if (!currentProjectId) {
-      toast.error("Open a yawB project first (My Projects → click a project)");
-      return;
-    }
+  async function performLink(p: VercelP) {
+    if (!workspaceId || !currentProjectId) return;
     setLinking(p.id);
     try {
+      // 1) Demote any existing active Vercel rows on the current project that
+      //    are NOT this external id. Enforces one-active-link invariant.
+      const before = await findActiveVercelConnection(currentProjectId);
+      const stale = [
+        ...(before.active && before.active.externalId !== p.id ? [before.active] : []),
+        ...before.duplicates.filter((c) => c.externalId !== p.id),
+      ];
+      for (const old of stale) {
+        const r = await setConnectionStatus(old.id, "disconnected");
+        if (!r.ok) toast.warning(`Couldn't disconnect old link: ${r.error}`);
+      }
+      const sameExtraDup = before.duplicates.filter((c) => c.externalId === p.id);
+      for (const dup of sameExtraDup) {
+        await setConnectionStatus(dup.id, "disconnected");
+      }
+
+      const url = p.productionUrl ?? null;
+
       const res = await upsertConnection({
         projectId: currentProjectId,
         provider: "vercel",
         externalId: p.id,
         status: "connected",
-        url: p.productionUrl,
+        url,
         repoFullName: p.link?.repo ?? null,
         repoUrl: p.link?.repo ? `https://github.com/${p.link.repo}` : null,
         workspaceId,
@@ -578,12 +611,13 @@ function VercelProjectsTab({
         toast.error(res.error);
         return;
       }
-      // Verify the row was actually persisted at the project scope before
-      // claiming the link is durable. This guards against optimistic UI lying
-      // when the insert succeeded but the row landed in a different project.
       const verify = await listConnections(currentProjectId);
       const persisted = verify.connections.find(
-        (c) => c.provider === "vercel" && c.externalId === p.id && c.projectId === currentProjectId,
+        (c) =>
+          c.provider === "vercel" &&
+          c.externalId === p.id &&
+          c.projectId === currentProjectId &&
+          c.status === "connected",
       );
       if (!persisted) {
         setHealth((h) => ({
@@ -602,11 +636,42 @@ function VercelProjectsTab({
         ...h,
         [p.id]: { connection: persisted, checkedAt: new Date().toISOString() },
       }));
-      toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
+      if (!url) {
+        toast.warning(`Linked ${p.name} — no deployment URL yet, Preview will be unavailable.`);
+      } else {
+        toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
+      }
+      await refreshActive();
       void load();
     } finally {
       setLinking(null);
     }
+  }
+
+  async function linkToCurrent(p: VercelP) {
+    if (!workspaceId) {
+      toast.error("Select a workspace first");
+      return;
+    }
+    if (!currentProjectId) {
+      toast.error("Open a yawB project first (My Projects → click a project)");
+      return;
+    }
+    if (currentGithubRepo && p.link?.repo) {
+      const a = currentGithubRepo.toLowerCase();
+      const b = p.link.repo.toLowerCase();
+      if (a !== b) {
+        const ok = window.confirm(
+          `This Vercel project is linked to ${p.link.repo}, but the current yawB project's GitHub repo is ${currentGithubRepo}. Link anyway?`,
+        );
+        if (!ok) return;
+      }
+    }
+    if (activeForCurrent && activeForCurrent.externalId !== p.id) {
+      setConfirmReplace(p);
+      return;
+    }
+    await performLink(p);
   }
 
   return (
@@ -617,6 +682,27 @@ function VercelProjectsTab({
           workspaceId={workspaceId || null}
           compact
         />
+      )}
+      {duplicates.length > 0 && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-destructive flex items-start gap-2">
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5" />
+          <div className="flex-1">
+            {duplicates.length} extra active Vercel connection(s) found on this project. Repair to
+            keep only one active link.
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              for (const d of duplicates) await setConnectionStatus(d.id, "disconnected");
+              toast.success("Disconnected duplicate Vercel links");
+              await refreshActive();
+              void load();
+            }}
+          >
+            Repair
+          </Button>
+        </div>
       )}
       <ProviderListCard
         title="Vercel Projects"
@@ -642,7 +728,18 @@ function VercelProjectsTab({
       )}
       {state.projects.map((p) => {
         const h = health[p.id];
-        const linked = h?.connection && h.connection.projectId === currentProjectId;
+        // Strict definition of "linked to current project":
+        //   connection exists AND projectId matches AND status="connected"
+        //   AND externalId matches this row's Vercel project id.
+        const linkedToCurrent =
+          !!h?.connection &&
+          h.connection.projectId === currentProjectId &&
+          h.connection.status === "connected" &&
+          h.connection.externalId === p.id;
+        const linkedElsewhere =
+          !!h?.connection &&
+          h.connection.status === "connected" &&
+          h.connection.projectId !== currentProjectId;
         return (
           <div key={p.id} className="border-b border-white/5 last:border-b-0">
             <div className="flex items-center gap-3 px-5 py-3">
@@ -679,29 +776,33 @@ function VercelProjectsTab({
                 ) : (
                   <LinkIcon className="h-3.5 w-3.5" />
                 )}
-                {linked ? "Re-link" : "Link to current"}
+                {linkedToCurrent ? "Re-link" : "Link to current"}
               </Button>
             </div>
             {h && (
               <div
                 className={cn(
                   "px-5 pb-3 text-[11.5px] flex items-center gap-2",
-                  h.error ? "text-destructive" : linked ? "text-success" : "text-muted-foreground",
+                  h.error
+                    ? "text-destructive"
+                    : linkedToCurrent
+                      ? "text-success"
+                      : "text-muted-foreground",
                 )}
               >
                 {h.error ? (
                   <X className="h-3 w-3" />
-                ) : linked ? (
+                ) : linkedToCurrent ? (
                   <Check className="h-3 w-3" />
                 ) : (
                   <AlertCircle className="h-3 w-3" />
                 )}
                 {h.error
                   ? `Failed: ${h.error}`
-                  : linked
-                    ? `Linked to current project · last synced ${new Date(h.checkedAt).toLocaleTimeString()}`
-                    : h.connection
-                      ? `Linked to a different yawB project (${h.connection.projectId.slice(0, 8)}…)`
+                  : linkedToCurrent
+                    ? `Linked to current project · ${h.connection?.url ? "deployed" : "no deployment URL"} · last synced ${new Date(h.checkedAt).toLocaleTimeString()}`
+                    : linkedElsewhere
+                      ? `Linked to another yawB project (${h.connection?.projectId.slice(0, 8)}…)`
                       : "Not linked"}
               </div>
             )}
@@ -709,6 +810,45 @@ function VercelProjectsTab({
         );
       })}
       </ProviderListCard>
+
+      <Dialog open={!!confirmReplace} onOpenChange={(o) => !o && setConfirmReplace(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Replace Vercel link?</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>
+              <span className="font-medium text-foreground">
+                {currentProjectName ?? "Current project"}
+              </span>{" "}
+              is already linked to Vercel project{" "}
+              <span className="font-mono text-foreground">
+                {activeForCurrent?.externalId ?? ""}
+              </span>
+              .
+            </p>
+            <p>
+              Linking <span className="font-medium text-foreground">{confirmReplace?.name}</span>{" "}
+              will disconnect the existing link so only one remains.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="ghost" onClick={() => setConfirmReplace(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="hero"
+              onClick={async () => {
+                const p = confirmReplace;
+                setConfirmReplace(null);
+                if (p) await performLink(p);
+              }}
+            >
+              Replace link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
