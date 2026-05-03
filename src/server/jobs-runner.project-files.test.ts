@@ -80,11 +80,7 @@ function job(type: "build.production" | "ai.generate_changes"): JobRow {
 // Hard-blocked, user-visible preset strings. The internal design-mode tokens
 // ("editorial-luxury", "minimal-light") are allowed because they are emitted
 // only as <meta name="yawb-design-mode"> identifiers — not visible preset copy.
-const BANNED_PRESET_STRINGS = [
-  "Luxury Editorial",
-  "Clean Minimal",
-  "Money operations",
-];
+const BANNED_PRESET_STRINGS = ["Luxury Editorial", "Clean Minimal", "Money operations"];
 
 describe("jobs-runner project_files persistence (Monster orchestrator)", () => {
   it("build.production writes files via monster-orchestrator-v1", async () => {

@@ -40,7 +40,12 @@ const SQL_FILE = "docs/sql/2026-04-30-project-connections.sql";
 function isMissingTable(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false;
   const msg = (error.message ?? "").toLowerCase();
-  return error.code === "42P01" || error.code === "PGRST205" || msg.includes("does not exist") || msg.includes("could not find the table");
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    msg.includes("does not exist") ||
+    msg.includes("could not find the table")
+  );
 }
 
 function rowToConnection(r: Record<string, unknown>): ProjectConnection {
@@ -64,12 +69,24 @@ function rowToConnection(r: Record<string, unknown>): ProjectConnection {
   };
 }
 
-export async function listConnections(projectId: string | null | undefined): Promise<ConnectionsResult> {
+export async function listConnections(
+  projectId: string | null | undefined,
+): Promise<ConnectionsResult> {
   if (!projectId) return { connections: [], source: "no-project" };
   try {
-    const { data, error } = await supabase.from("project_connections").select("*").eq("project_id", projectId).order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("project_connections")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
     if (error) {
-      if (isMissingTable(error)) return { connections: [], source: "table-missing", error: error.message, sqlFile: SQL_FILE };
+      if (isMissingTable(error))
+        return {
+          connections: [],
+          source: "table-missing",
+          error: error.message,
+          sqlFile: SQL_FILE,
+        };
       return { connections: [], source: "error", error: error.message };
     }
     if (!data || data.length === 0) return { connections: [], source: "empty" };
@@ -113,9 +130,20 @@ export async function createConnection(input: {
     if (input.externalId !== undefined) payload.external_id = input.externalId;
     if (input.url !== undefined) payload.url = input.url;
     if (input.tokenOwnerType !== undefined) payload.token_owner_type = input.tokenOwnerType;
-    const { data, error } = await supabase.from("project_connections").insert(payload).select("*").maybeSingle();
+    const { data, error } = await supabase
+      .from("project_connections")
+      .insert(payload)
+      .select("*")
+      .maybeSingle();
     if (error) {
-      if (isMissingTable(error)) return { ok: false, error: error.message, code: error.code, tableMissing: true, sqlFile: SQL_FILE };
+      if (isMissingTable(error))
+        return {
+          ok: false,
+          error: error.message,
+          code: error.code,
+          tableMissing: true,
+          sqlFile: SQL_FILE,
+        };
       return { ok: false, error: error.message, code: error.code };
     }
     if (!data) return { ok: false, error: "Insert returned no row", code: "NO_ROW" };
@@ -179,7 +207,8 @@ export async function upsertConnection(input: {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (selErr && !isMissingTable(selErr)) return { ok: false, error: selErr.message, code: selErr.code };
+    if (selErr && !isMissingTable(selErr))
+      return { ok: false, error: selErr.message, code: selErr.code };
     if (existing) {
       const patch: Record<string, unknown> = {
         status: input.status,
@@ -187,12 +216,20 @@ export async function upsertConnection(input: {
         repo_full_name: input.repoFullName ?? existing.repo_full_name,
         repo_url: input.repoUrl ?? existing.repo_url,
         default_branch: input.defaultBranch ?? existing.default_branch,
-        metadata: { ...((existing.metadata as Record<string, unknown>) ?? {}), ...(input.metadata ?? {}) },
+        metadata: {
+          ...((existing.metadata as Record<string, unknown>) ?? {}),
+          ...(input.metadata ?? {}),
+        },
         updated_at: new Date().toISOString(),
       };
       if (input.workspaceId !== undefined) patch.workspace_id = input.workspaceId;
       if (input.tokenOwnerType !== undefined) patch.token_owner_type = input.tokenOwnerType;
-      const { data, error } = await supabase.from("project_connections").update(patch).eq("id", existing.id).select("*").maybeSingle();
+      const { data, error } = await supabase
+        .from("project_connections")
+        .update(patch)
+        .eq("id", existing.id)
+        .select("*")
+        .maybeSingle();
       if (error) return { ok: false, error: error.message, code: error.code };
       if (!data) return { ok: false, error: "Update returned no row", code: "NO_ROW" };
       return { ok: true, connection: rowToConnection(data) };
@@ -247,9 +284,7 @@ export async function setConnectionStatus(
  * if any. If multiple are connected (which violates the invariant), returns the most recent
  * and exposes the duplicates in `duplicates` so callers can repair.
  */
-export async function findActiveVercelConnection(
-  projectId: string,
-): Promise<{
+export async function findActiveVercelConnection(projectId: string): Promise<{
   active: ProjectConnection | null;
   duplicates: ProjectConnection[];
 }> {

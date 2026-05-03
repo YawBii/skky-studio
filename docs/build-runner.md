@@ -21,7 +21,7 @@ Authorization: Bearer {BUILD_RUNNER_TOKEN}   # required if BUILD_RUNNER_TOKEN is
 ```json
 {
   "command": "npm run build",
-  "kind": "build",            // "build" | "typecheck"
+  "kind": "build", // "build" | "typecheck"
   "jobId": "uuid",
   "stepId": "uuid",
   "projectId": "uuid"
@@ -34,10 +34,10 @@ Authorization: Bearer {BUILD_RUNNER_TOKEN}   # required if BUILD_RUNNER_TOKEN is
 {
   "ok": true,
   "exitCode": 0,
-  "stdout": "...",            // trimmed to a tail; safe to truncate to ~4KB
+  "stdout": "...", // trimmed to a tail; safe to truncate to ~4KB
   "stderr": "...",
   "durationMs": 1234,
-  "error": null               // string when ok=false
+  "error": null // string when ok=false
 }
 ```
 
@@ -48,13 +48,13 @@ mock fallback.
 
 Set these env vars on the yawB Lovable project (server-side):
 
-| Variable             | Required | Description                                         |
-| -------------------- | -------- | --------------------------------------------------- |
-| `BUILD_RUNNER_URL`   | yes      | Full URL of your build runner worker                |
-| `BUILD_RUNNER_TOKEN` | strongly recommended | Shared bearer token; the runner sends `Authorization: Bearer <token>` |
-| `BUILD_COMMAND`      | optional | Override the default `npm run build`                |
-| `TYPECHECK_COMMAND`  | optional | Override the default `npm run typecheck`            |
-| `BUILD_PREVIEW_COMMAND` | optional | Override the default preview/start command       |
+| Variable                | Required             | Description                                                           |
+| ----------------------- | -------------------- | --------------------------------------------------------------------- |
+| `BUILD_RUNNER_URL`      | yes                  | Full URL of your build runner worker                                  |
+| `BUILD_RUNNER_TOKEN`    | strongly recommended | Shared bearer token; the runner sends `Authorization: Bearer <token>` |
+| `BUILD_COMMAND`         | optional             | Override the default `npm run build`                                  |
+| `TYPECHECK_COMMAND`     | optional             | Override the default `npm run typecheck`                              |
+| `BUILD_PREVIEW_COMMAND` | optional             | Override the default preview/start command                            |
 
 The runner diagnostics block in the Jobs panel surfaces presence-only flags:
 `hasBuildRunnerUrl`, `hasBuildRunnerToken`, `mode` (`external` | `local` | `none`).
@@ -81,55 +81,89 @@ import { spawn } from "node:child_process";
 const PORT = process.env.PORT ?? 8787;
 const TOKEN = process.env.BUILD_RUNNER_TOKEN ?? "";
 
-function tail(s, n = 4000) { return s.length <= n ? s : s.slice(s.length - n); }
+function tail(s, n = 4000) {
+  return s.length <= n ? s : s.slice(s.length - n);
+}
 
 function runCommand(command, cwd) {
   return new Promise((resolve) => {
     const startedAt = Date.now();
     const child = spawn(command, { shell: true, cwd });
-    let stdout = "", stderr = "";
-    child.stdout.on("data", (d) => { stdout += d.toString(); });
-    child.stderr.on("data", (d) => { stderr += d.toString(); });
-    child.on("error", (err) => resolve({
-      ok: false, exitCode: null, stdout: tail(stdout), stderr: tail(stderr),
-      durationMs: Date.now() - startedAt, error: err.message,
-    }));
-    child.on("close", (code) => resolve({
-      ok: code === 0, exitCode: code, stdout: tail(stdout), stderr: tail(stderr),
-      durationMs: Date.now() - startedAt,
-      error: code === 0 ? null : `command exited with code ${code}`,
-    }));
+    let stdout = "",
+      stderr = "";
+    child.stdout.on("data", (d) => {
+      stdout += d.toString();
+    });
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("error", (err) =>
+      resolve({
+        ok: false,
+        exitCode: null,
+        stdout: tail(stdout),
+        stderr: tail(stderr),
+        durationMs: Date.now() - startedAt,
+        error: err.message,
+      }),
+    );
+    child.on("close", (code) =>
+      resolve({
+        ok: code === 0,
+        exitCode: code,
+        stdout: tail(stdout),
+        stderr: tail(stderr),
+        durationMs: Date.now() - startedAt,
+        error: code === 0 ? null : `command exited with code ${code}`,
+      }),
+    );
   });
 }
 
-http.createServer(async (req, res) => {
-  if (req.method !== "POST") { res.writeHead(405).end(); return; }
-  if (TOKEN) {
-    const auth = req.headers["authorization"] ?? "";
-    const t = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-    if (t !== TOKEN) { res.writeHead(401, { "content-type": "application/json" })
-      .end(JSON.stringify({ ok: false, error: "invalid bearer token" })); return; }
-  }
-  let body = "";
-  for await (const chunk of req) body += chunk;
-  let payload;
-  try { payload = JSON.parse(body); }
-  catch { res.writeHead(400, { "content-type": "application/json" })
-    .end(JSON.stringify({ ok: false, error: "invalid JSON body" })); return; }
-
-  const required = ["command", "kind", "jobId", "stepId", "projectId"];
-  for (const k of required) {
-    if (typeof payload[k] !== "string" || !payload[k]) {
-      res.writeHead(400, { "content-type": "application/json" })
-        .end(JSON.stringify({ ok: false, error: `field "${k}" is required` }));
+http
+  .createServer(async (req, res) => {
+    if (req.method !== "POST") {
+      res.writeHead(405).end();
       return;
     }
-  }
+    if (TOKEN) {
+      const auth = req.headers["authorization"] ?? "";
+      const t = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+      if (t !== TOKEN) {
+        res
+          .writeHead(401, { "content-type": "application/json" })
+          .end(JSON.stringify({ ok: false, error: "invalid bearer token" }));
+        return;
+      }
+    }
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    let payload;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      res
+        .writeHead(400, { "content-type": "application/json" })
+        .end(JSON.stringify({ ok: false, error: "invalid JSON body" }));
+      return;
+    }
 
-  const result = await runCommand(payload.command, process.env.BUILD_CWD);
-  res.writeHead(result.ok ? 200 : 502, { "content-type": "application/json" })
-    .end(JSON.stringify(result));
-}).listen(PORT, () => console.log(`build-runner listening on :${PORT}`));
+    const required = ["command", "kind", "jobId", "stepId", "projectId"];
+    for (const k of required) {
+      if (typeof payload[k] !== "string" || !payload[k]) {
+        res
+          .writeHead(400, { "content-type": "application/json" })
+          .end(JSON.stringify({ ok: false, error: `field "${k}" is required` }));
+        return;
+      }
+    }
+
+    const result = await runCommand(payload.command, process.env.BUILD_CWD);
+    res
+      .writeHead(result.ok ? 200 : 502, { "content-type": "application/json" })
+      .end(JSON.stringify(result));
+  })
+  .listen(PORT, () => console.log(`build-runner listening on :${PORT}`));
 ```
 
 Run it:

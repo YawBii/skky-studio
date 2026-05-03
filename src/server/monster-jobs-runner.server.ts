@@ -106,26 +106,43 @@ function jobPrompt(job: JobRow): string {
     typeof input.prompt === "string" ? input.prompt : "",
     typeof input.message === "string" ? input.message : "",
     typeof input.request === "string" ? input.request : "",
-  ].join(" ").trim();
+  ]
+    .join(" ")
+    .trim();
 }
 
 function isExplicitMonsterBuildIntent(job: JobRow): boolean {
   const text = jobPrompt(job).toLowerCase();
   if (!text) return false;
 
-  if (/\b(rollout plan|migration strategy|implementation plan|project plan|go[- ]to[- ]market plan|roadmap|strategy|proposal|spec|prd|requirements|architecture review|explain|summari[sz]e|compare|audit|review)\b/.test(text)) {
+  if (
+    /\b(rollout plan|migration strategy|implementation plan|project plan|go[- ]to[- ]market plan|roadmap|strategy|proposal|spec|prd|requirements|architecture review|explain|summari[sz]e|compare|audit|review)\b/.test(
+      text,
+    )
+  ) {
     return false;
   }
 
-  if (/\b(build|create|make|ship|scaffold|implement)\b.{0,80}\b(app|site|website|web app|dashboard|admin panel|portal|landing page|saas|marketplace|crm|tool|backend|frontend|full first version|first version)\b/.test(text)) {
+  if (
+    /\b(build|create|make|ship|scaffold|implement)\b.{0,80}\b(app|site|website|web app|dashboard|admin panel|portal|landing page|saas|marketplace|crm|tool|backend|frontend|full first version|first version)\b/.test(
+      text,
+    )
+  ) {
     return true;
   }
 
-  if (/\b(build this as|generate the full first version|generate first version|build the first screen|build first screen)\b/.test(text)) {
+  if (
+    /\b(build this as|generate the full first version|generate first version|build the first screen|build first screen)\b/.test(
+      text,
+    )
+  ) {
     return true;
   }
 
-  if (/\b(auth|supabase|backend|database|admin panel|payments?)\b/.test(text) && /\b(app|site|website|dashboard|portal|platform|saas|marketplace)\b/.test(text)) {
+  if (
+    /\b(auth|supabase|backend|database|admin panel|payments?)\b/.test(text) &&
+    /\b(app|site|website|dashboard|portal|platform|saas|marketplace)\b/.test(text)
+  ) {
     return true;
   }
 
@@ -160,7 +177,10 @@ async function hasGithubConnection(sb: SupabaseClient, projectId: string): Promi
   return Boolean(data?.id);
 }
 
-async function readPreviousIndexHtml(sb: SupabaseClient, projectId: string): Promise<string | null> {
+async function readPreviousIndexHtml(
+  sb: SupabaseClient,
+  projectId: string,
+): Promise<string | null> {
   const { data } = await sb
     .from("project_files")
     .select("content")
@@ -212,9 +232,22 @@ async function runMonsterGenerateChanges(input: {
   });
 
   if (await hasGithubConnection(input.sb, input.job.project_id)) {
-    const error = "This project is linked to GitHub, so yawB will not redesign or regenerate it as a new project.";
-    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+    const error =
+      "This project is linked to GitHub, so yawB will not redesign or regenerate it as a new project.";
+    await markJobAndStep({
+      sb: input.sb,
+      jobId: input.job.id,
+      stepId: input.step.id,
+      status: "failed",
+      error,
+    });
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "failed",
+      error,
+    };
   }
 
   const { data: project, error: projectErr } = await input.sb
@@ -224,20 +257,38 @@ async function runMonsterGenerateChanges(input: {
     .maybeSingle();
   if (projectErr || !project) {
     const error = projectErr?.message ?? "project not found";
-    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+    await markJobAndStep({
+      sb: input.sb,
+      jobId: input.job.id,
+      stepId: input.step.id,
+      status: "failed",
+      error,
+    });
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "failed",
+      error,
+    };
   }
 
   const jobInput = (input.job.input ?? {}) as Record<string, unknown>;
   const chatRequest =
-    typeof jobInput.chatRequest === "string" ? jobInput.chatRequest
-      : typeof jobInput.prompt === "string" ? jobInput.prompt
-        : typeof jobInput.message === "string" ? jobInput.message
-          : typeof jobInput.request === "string" ? jobInput.request
+    typeof jobInput.chatRequest === "string"
+      ? jobInput.chatRequest
+      : typeof jobInput.prompt === "string"
+        ? jobInput.prompt
+        : typeof jobInput.message === "string"
+          ? jobInput.message
+          : typeof jobInput.request === "string"
+            ? jobInput.request
             : input.job.title;
-  const regenerationSeed = typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
+  const regenerationSeed =
+    typeof jobInput.regenerationSeed === "string" ? jobInput.regenerationSeed : null;
   const forceVariant = jobInput.forceVariant === true || Boolean(regenerationSeed);
-  const requestedDesignMode = typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
+  const requestedDesignMode =
+    typeof jobInput.designMode === "string" ? (jobInput.designMode as DesignMode) : null;
 
   try {
     const generation = generateMonsterProject({
@@ -271,7 +322,13 @@ async function runMonsterGenerateChanges(input: {
         error,
         output: { written: persisted.written },
       });
-      return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+      return {
+        advanced: true,
+        jobId: input.job.id,
+        stepKey: input.step.step_key,
+        status: "failed",
+        error,
+      };
     }
 
     const output = {
@@ -289,11 +346,28 @@ async function runMonsterGenerateChanges(input: {
       error: null,
       log: `Monster generated ${persisted.written.length} files: ${generation.output.blueprintSummary}`,
     });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "succeeded" };
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "succeeded",
+    };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
-    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+    await markJobAndStep({
+      sb: input.sb,
+      jobId: input.job.id,
+      stepId: input.step.id,
+      status: "failed",
+      error,
+    });
+    return {
+      advanced: true,
+      jobId: input.job.id,
+      stepKey: input.step.step_key,
+      status: "failed",
+      error,
+    };
   }
 }
 

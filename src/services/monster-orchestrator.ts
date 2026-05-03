@@ -10,7 +10,10 @@ import {
   type MonsterProofReport,
   type MonsterQualityGate,
 } from "./monster-quality-gates";
-import { generateMonsterArchitectFiles, type MonsterArchitectResult } from "./monster-project-architect";
+import {
+  generateMonsterArchitectFiles,
+  type MonsterArchitectResult,
+} from "./monster-project-architect";
 import { generateMonsterCustomPreviewFiles } from "./monster-custom-preview-generator";
 import { summarizeMonsterBlueprint, type MonsterBlueprint } from "./monster-blueprint";
 
@@ -101,9 +104,21 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
     blueprintSummary,
     gates: [
       passed("blueprint", "Monster Blueprint produced", blueprintSummary),
-      passed("design", "Custom blueprint-driven preview generated", `${blueprint.design.mode}: custom preview from ${blueprint.appType}`),
-      passed("architect", "Project architecture files generated", `${architect.files.length} route/component/lib/style/doc files`),
-      passed("backend", "Backend/schema/RLS plan generated", `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`),
+      passed(
+        "design",
+        "Custom blueprint-driven preview generated",
+        `${blueprint.design.mode}: custom preview from ${blueprint.appType}`,
+      ),
+      passed(
+        "architect",
+        "Project architecture files generated",
+        `${architect.files.length} route/component/lib/style/doc files`,
+      ),
+      passed(
+        "backend",
+        "Backend/schema/RLS plan generated",
+        `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`,
+      ),
       pending("typecheck", "TypeScript check", "npm run typecheck"),
       pending("lint", "Lint", "npm run lint"),
       pending("build", "Production build", "npm run build"),
@@ -139,7 +154,7 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
       fileList: written,
       previewProof: {
         generator: "monster-custom-preview-v1",
-        expectedMeta: "<meta name=\"yawb-generator\" content=\"monster-custom-preview-v1\" />",
+        expectedMeta: '<meta name="yawb-generator" content="monster-custom-preview-v1" />',
         indexPath: "index.html",
       },
       designCritique,
