@@ -715,23 +715,24 @@ import {
   isAiPlannerConfigured,
   AI_PLANNER_NOT_CONFIGURED_ERROR,
 } from "./ai-planner.server";
-import {
-  generateProjectFiles as monsterGenerate,
-  inferProjectArchetype,
-  designSignature as monsterSignature,
-  computeVisualFingerprint,
-  fingerprintToString,
-  type Archetype,
-  type VisualFingerprint,
-} from "../services/monster-brain-generator";
+import { generateMonsterProject } from "../services/monster-orchestrator";
+import { persistMonsterGeneratedFiles } from "../services/monster-persistence";
+import type { DesignMode } from "../services/monster-brain-generator";
 
 /**
- * Persist Monster Brain v1 project files to the project_files table. Used by
- * `ai.generate_changes` and as a post-success hook for `build.production`.
+ * Persist generated project files via the Monster orchestrator.
  *
- * NOTE: When a real AI generator is wired (Lovable AI Gateway), swap the
- * `monsterGenerate` call for an async generator with the same return shape —
- * PreviewPane/project_files do not need to change.
+ * CANONICAL generation path for visible new-project builds:
+ *   ai.generate_changes / build.production
+ *     -> generateAndPersistProjectFiles
+ *     -> generateMonsterProject  (generator: monster-orchestrator-v1)
+ *     -> previewGenerator: monster-custom-preview-v1
+ *
+ * The legacy preset/template generator (`monster-brain-generator`'s
+ * `generateProjectFiles` / design-mode shells) is NOT invoked from this
+ * path anymore. It remains in the repo only as an internal helper for the
+ * orchestrator's own composition; never call it directly for visible
+ * project files.
  */
 export async function generateAndPersistProjectFiles(
   sb: ProjectFilesSupabaseLike,
@@ -740,9 +741,9 @@ export async function generateAndPersistProjectFiles(
   ok: boolean;
   written: string[];
   error?: string;
-  archetype?: Archetype;
+  archetype?: string;
   designSignature?: string;
-  generator: "monster-brain-v1";
+  generator: "monster-orchestrator-v1";
   previewReady: boolean;
   regenerationSeed?: string | null;
   visualFingerprint?: string;
@@ -756,8 +757,9 @@ export async function generateAndPersistProjectFiles(
     return {
       ok: false,
       written: [],
-      error: "This project is linked to GitHub, so yawB will not regenerate local template files over the imported app.",
-      generator: "monster-brain-v1",
+      error:
+        "This project is linked to GitHub, so yawB will not regenerate over the imported repo. Ask the user to explicitly confirm a redesign/convert before regenerating.",
+      generator: "monster-orchestrator-v1",
       previewReady: false,
     };
   }
@@ -769,7 +771,13 @@ export async function generateAndPersistProjectFiles(
   if (pErr || !proj) {
     const error = pErr?.message ?? "project not found";
     console.error("[yawb] monster.generate.error", { projectId: job.project_id, error });
-    return { ok: false, written: [], error, generator: "monster-brain-v1", previewReady: false };
+    return {
+      ok: false,
+      written: [],
+      error,
+      generator: "monster-orchestrator-v1",
+      previewReady: false,
+    };
   }
   const input = (job.input ?? {}) as Record<string, unknown>;
   const chatRequest =
@@ -783,33 +791,10 @@ export async function generateAndPersistProjectFiles(
       ? input.regenerationSeed
       : null;
   const forceVariant = input.forceVariant === true || regenerationSeed !== null;
-  const VALID_DESIGN_MODES = new Set([
-    "editorial-luxury",
-    "glass-dashboard",
-    "civic-map",
-    "neon-command",
-    "magazine-cards",
-    "minimal-light",
-    "brutalist-data",
-  ]);
-  const designMode =
-    typeof input.designMode === "string" && VALID_DESIGN_MODES.has(input.designMode)
-      ? (input.designMode as
-          | "editorial-luxury"
-          | "glass-dashboard"
-          | "civic-map"
-          | "neon-command"
-          | "magazine-cards"
-          | "minimal-light"
-          | "brutalist-data")
-      : null;
-  const projectInput = {
-    id: proj.id,
-    name: proj.name ?? "",
-    description: proj.description ?? null,
-  };
+  const requestedDesignMode =
+    typeof input.designMode === "string" ? (input.designMode as DesignMode) : null;
 
-  // Read previous index.html so the new fingerprint can avoid matching it.
+  // Read previous index.html so the orchestrator can avoid producing identical output.
   let previousIndexHtml: string | null = null;
   try {
     const { data: prevRow } = await sb
@@ -823,74 +808,96 @@ export async function generateAndPersistProjectFiles(
     /* table may not exist yet */
   }
 
-  console.log("[yawb] monster.generate.start", {
+  console.log("[yawb] monster-orchestrator.generate.start", {
     projectId: job.project_id,
-    name: projectInput.name,
+    name: proj.name,
     regenerationSeed,
     forceVariant,
-    designMode,
+    requestedDesignMode,
     hasPrevious: Boolean(previousIndexHtml),
   });
-  const ctx = { chatRequest, regenerationSeed, forceVariant, designMode, previousIndexHtml };
-  const archetype = inferProjectArchetype(projectInput, ctx);
-  const fp: VisualFingerprint = computeVisualFingerprint(projectInput, ctx);
-  const files = monsterGenerate(projectInput, ctx);
-  const sig = monsterSignature(projectInput, archetype, ctx);
-  console.log("[yawb] monster.generate.done", {
-    archetype,
-    designSignature: sig,
-    regenerationSeed,
-    designMode: fp.designMode,
-    heroLayout: fp.heroLayout,
-    palette: fp.palette,
-    paths: files.map((f) => f.path),
-  });
-  const written: string[] = [];
-  for (const f of files) {
-    const { error } = await sb.from("project_files").upsert(
-      {
-        project_id: job.project_id,
-        path: f.path,
-        content: f.content,
-        language: f.language,
-        kind: f.kind,
+
+  let generation;
+  try {
+    generation = generateMonsterProject({
+      project: {
+        id: String(proj.id),
+        name: String(proj.name ?? ""),
+        description: (proj.description as string | null) ?? null,
       },
-      { onConflict: "project_id,path" },
-    );
-    if (error) {
-      console.error("[yawb] project_files.upsert.error", {
-        projectId: job.project_id,
-        path: f.path,
-        error: error.message,
-      });
+      chatRequest,
+      requestedDesignMode,
+      previousIndexHtml,
+      regenerationSeed,
+      forceVariant,
+      production: true,
+    });
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e);
+    return {
+      ok: false,
+      written: [],
+      error: `monster orchestrator failed: ${error}`,
+      generator: "monster-orchestrator-v1",
+      previewReady: false,
+    };
+  }
+
+  // Hard guard: visible preview must never contain old preset strings.
+  const indexFile = generation.files.find((f) => f.path === "index.html");
+  if (indexFile) {
+    const banned = ["Luxury Editorial", "Clean Minimal", "Money operations"];
+    const hit = banned.find((s) => indexFile.content.includes(s));
+    if (hit) {
+      const error = `monster orchestrator emitted banned preset string "${hit}"`;
+      console.error("[yawb] monster-orchestrator.preset-leak", { hit, projectId: job.project_id });
       return {
         ok: false,
-        written,
-        error: `project_files upsert failed for ${f.path}: ${error.message}`,
-        archetype,
-        designSignature: sig,
-        generator: "monster-brain-v1",
+        written: [],
+        error,
+        generator: "monster-orchestrator-v1",
         previewReady: false,
-        regenerationSeed,
       };
     }
-    written.push(f.path);
   }
-  const sortedWritten = [...written].sort();
+
+  const persisted = await persistMonsterGeneratedFiles({
+    sb,
+    projectId: job.project_id,
+    generation,
+  });
+  if (!persisted.ok) {
+    return {
+      ok: false,
+      written: persisted.written,
+      error: persisted.error,
+      generator: "monster-orchestrator-v1",
+      previewReady: false,
+      regenerationSeed,
+    };
+  }
+
+  console.log("[yawb] monster-orchestrator.generate.done", {
+    projectId: job.project_id,
+    appType: generation.blueprint.appType,
+    designMode: generation.blueprint.design.mode,
+    written: persisted.written,
+  });
+
   return {
     ok: true,
-    written: sortedWritten,
-    archetype,
-    designSignature: sig,
-    generator: "monster-brain-v1",
-    previewReady: sortedWritten.includes("index.html"),
+    written: persisted.written,
+    archetype: generation.blueprint.appType,
+    designSignature: `monster-orchestrator-v1:${generation.blueprint.appType}:${generation.blueprint.design.mode}${regenerationSeed ? `:seed-${regenerationSeed}` : ""}`,
+    generator: "monster-orchestrator-v1",
+    previewReady: persisted.written.includes("index.html"),
     regenerationSeed,
-    visualFingerprint: fingerprintToString(fp),
-    designMode: fp.designMode,
-    heroLayout: fp.heroLayout,
-    palette: fp.palette,
-    typography: fp.typography,
-    shapeLanguage: fp.shapeLanguage,
+    visualFingerprint: `${generation.blueprint.appType}/${generation.blueprint.design.mode}`,
+    designMode: generation.blueprint.design.mode,
+    heroLayout: generation.output.previewGenerator,
+    palette: generation.blueprint.design.mode,
+    typography: generation.blueprint.design.mode,
+    shapeLanguage: generation.blueprint.design.mode,
   };
 }
 
