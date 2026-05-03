@@ -354,6 +354,8 @@ async function runMonsterGenerateChanges(input: {
   }
 
 
+  try {
+    const generation = generateMonsterProject({
       project: {
         id: String(project.id),
         name: String(project.name ?? ""),
