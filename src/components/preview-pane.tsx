@@ -521,6 +521,20 @@ export function PreviewPane({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
+        <Button
+          asChild
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation gap-1"
+          data-testid="preview-revert-version"
+          title="Revert to an earlier version"
+        >
+          <Link to="/versions/$projectId" params={{ projectId: project.id }}>
+            <History className="h-3 w-3" />
+            Revert
+          </Link>
+        </Button>
         {onRegenerateDesign && !isGithubLinked && (
           <>
             <select
