@@ -187,13 +187,23 @@ function Builder() {
   // For GitHub-imported projects, fetch the live index.html from the repo so
   // we render the existing app instead of telling the user to "build" it.
   const githubPreview = useGitHubPreview(connectionsApi.connections);
+  const hasGithubConnection = useMemo(
+    () => (connectionsApi.connections ?? []).some((c) => c.provider === "github"),
+    [connectionsApi.connections],
+  );
   const mergedGenerated = useMemo(() => {
+    // When a GitHub connection exists, the repo is the source of truth.
+    // Prefer the live repo HTML over any stale locally-generated template
+    // (e.g. an old Goodhand build sitting in project_files for this project).
+    if (hasGithubConnection && githubPreview.indexHtml) {
+      return { indexHtml: githubPreview.indexHtml, hasFiles: true };
+    }
     if (filesApi.generated && filesApi.generated.indexHtml) return filesApi.generated;
     if (githubPreview.indexHtml) {
       return { indexHtml: githubPreview.indexHtml, hasFiles: true };
     }
     return filesApi.generated;
-  }, [filesApi.generated, githubPreview.indexHtml]);
+  }, [filesApi.generated, githubPreview.indexHtml, hasGithubConnection]);
 
   const {
     open: ccOpen,

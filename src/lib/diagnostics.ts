@@ -9,6 +9,7 @@ export type DiagState = {
   workspaceId: string | null;
   workspaceSource: string | null;
   projectId: string | null;
+  activeProjectId: string | null;
   projectsSource: string | null;
   projectsCount: number | null;
   workspacesCount: number | null;
@@ -44,6 +45,7 @@ const initialState: DiagState = {
   workspaceId: null,
   workspaceSource: null,
   projectId: null,
+  activeProjectId: null,
   projectsSource: null,
   projectsCount: null,
   workspacesCount: null,
