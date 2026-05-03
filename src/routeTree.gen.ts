@@ -31,6 +31,7 @@ import { Route as BillingRouteImport } from './routes/billing'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VersionsProjectIdRouteImport } from './routes/versions.$projectId'
 import { Route as PublishProjectIdRouteImport } from './routes/publish.$projectId'
+import { Route as ProofProjectIdRouteImport } from './routes/proof.$projectId'
 import { Route as PreviewProjectIdRouteImport } from './routes/preview.$projectId'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
@@ -146,6 +147,11 @@ const PublishProjectIdRoute = PublishProjectIdRouteImport.update({
   path: '/publish/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProofProjectIdRoute = ProofProjectIdRouteImport.update({
+  id: '/proof/$projectId',
+  path: '/proof/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PreviewProjectIdRoute = PreviewProjectIdRouteImport.update({
   id: '/preview/$projectId',
   path: '/preview/$projectId',
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
+  '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
+  '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
+  '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
@@ -277,6 +286,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/builder/$projectId'
     | '/preview/$projectId'
+    | '/proof/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
     | '/api/public/build-runner'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/builder/$projectId'
     | '/preview/$projectId'
+    | '/proof/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
     | '/api/public/build-runner'
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/builder/$projectId'
     | '/preview/$projectId'
+    | '/proof/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
     | '/api/public/build-runner'
@@ -362,6 +374,7 @@ export interface RootRouteChildren {
   TeamRoute: typeof TeamRoute
   BuilderProjectIdRoute: typeof BuilderProjectIdRoute
   PreviewProjectIdRoute: typeof PreviewProjectIdRoute
+  ProofProjectIdRoute: typeof ProofProjectIdRoute
   PublishProjectIdRoute: typeof PublishProjectIdRoute
   VersionsProjectIdRoute: typeof VersionsProjectIdRoute
   ApiPublicBuildRunnerRoute: typeof ApiPublicBuildRunnerRoute
@@ -524,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublishProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proof/$projectId': {
+      id: '/proof/$projectId'
+      path: '/proof/$projectId'
+      fullPath: '/proof/$projectId'
+      preLoaderRoute: typeof ProofProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/preview/$projectId': {
       id: '/preview/$projectId'
       path: '/preview/$projectId'
@@ -578,6 +598,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeamRoute: TeamRoute,
   BuilderProjectIdRoute: BuilderProjectIdRoute,
   PreviewProjectIdRoute: PreviewProjectIdRoute,
+  ProofProjectIdRoute: ProofProjectIdRoute,
   PublishProjectIdRoute: PublishProjectIdRoute,
   VersionsProjectIdRoute: VersionsProjectIdRoute,
   ApiPublicBuildRunnerRoute: ApiPublicBuildRunnerRoute,
