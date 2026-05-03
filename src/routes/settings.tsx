@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Trash2, Save, Database, AlertCircle, Server, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useWorkspaces } from "@/hooks/use-workspaces";
@@ -90,10 +91,10 @@ function ProfilePane() {
           AR
         </div>
         <div className="flex gap-2">
-          <Button variant="soft" size="sm">
+          <Button variant="soft" size="sm" onClick={() => toast("Avatar upload coming soon")}>
             Upload
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={() => toast("Avatar removed")}>
             Remove
           </Button>
         </div>
@@ -107,7 +108,7 @@ function ProfilePane() {
       <Field label="Job title">
         <Input defaultValue="Head of Engineering" />
       </Field>
-      <Button variant="hero">
+      <Button variant="hero" onClick={() => toast.success("Profile saved")}>
         <Save className="h-4 w-4" /> Save changes
       </Button>
     </div>
@@ -196,7 +197,7 @@ function WorkspacePane() {
           <option>ap-south-1 (Mumbai)</option>
         </select>
       </Field>
-      <Button variant="hero" disabled={!isReal}>
+      <Button variant="hero" disabled={!isReal} onClick={() => toast.success("Workspace saved")}>
         <Save className="h-4 w-4" /> Save changes
       </Button>
 
@@ -290,7 +291,7 @@ function SecurityPane() {
             Add an extra layer of security to your account.
           </div>
         </div>
-        <Button variant="soft" size="sm">
+        <Button variant="soft" size="sm" onClick={() => toast("2FA setup coming soon")}>
           Enable
         </Button>
       </div>
@@ -299,7 +300,7 @@ function SecurityPane() {
           <div className="text-sm font-medium">Active sessions</div>
           <div className="text-xs text-muted-foreground">2 devices currently signed in.</div>
         </div>
-        <Button variant="soft" size="sm">
+        <Button variant="soft" size="sm" onClick={() => toast("Session management coming soon")}>
           Manage
         </Button>
       </div>
@@ -308,7 +309,7 @@ function SecurityPane() {
           <div className="text-sm font-medium">Personal access tokens</div>
           <div className="text-xs text-muted-foreground">Use tokens for CLI and API access.</div>
         </div>
-        <Button variant="soft" size="sm">
+        <Button variant="soft" size="sm" onClick={() => toast("Token generation coming soon")}>
           Generate
         </Button>
       </div>
@@ -326,7 +327,15 @@ function DangerPane() {
             This permanently deletes the current workspace and all its projects.
           </div>
         </div>
-        <Button variant="destructive" size="sm">
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => {
+            if (confirm("Permanently delete this workspace and all projects?")) {
+              toast.error("Workspace deletion is not enabled yet");
+            }
+          }}
+        >
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
       </div>
