@@ -13,6 +13,7 @@ import {
   BarChart3,
   Check,
   FolderKanban,
+  Plug,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -248,25 +249,76 @@ export function WorkspaceTopBar({
           <UserPlus className="h-3.5 w-3.5" /> Share
         </Button>
 
-        {/* Connection chips — only render when there are real rows */}
+        {/* Connection chips — collapsed into a single icon + count with a popover of details */}
         {connections.length > 0 && (
-          <Link
-            to="/connectors"
-            title="Integrations"
-            className="hidden sm:inline-flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-white/[0.04] transition"
-          >
-            {connections.map((c) => {
-              const Icon = PROVIDER_ICONS[c.provider] ?? Database;
-              return (
-                <ConnDot
-                  key={c.id}
-                  icon={Icon}
-                  status={c.status}
-                  title={`${c.provider}: ${c.status}`}
-                />
-              );
-            })}
-          </Link>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title={`${connections.length} integration${connections.length === 1 ? "" : "s"}`}
+                aria-label={`${connections.length} integrations`}
+                className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2 rounded-lg hover:bg-white/[0.04] transition"
+              >
+                <span className="relative inline-flex">
+                  <Plug className="h-3.5 w-3.5 text-foreground/80" />
+                  <span
+                    className={cn(
+                      "absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-background",
+                      connections.some((c) => c.status === "error")
+                        ? "bg-destructive"
+                        : connections.every((c) => c.status === "connected")
+                          ? "bg-success"
+                          : connections.some((c) => c.status === "pending")
+                            ? "bg-warning animate-pulse"
+                            : "bg-muted-foreground/40",
+                    )}
+                  />
+                </span>
+                <span className="text-[11.5px] tabular-nums text-muted-foreground">
+                  {connections.length}
+                </span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              className="w-72 p-1 bg-background/95 backdrop-blur-xl border-white/10 z-50"
+            >
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Integrations
+              </div>
+              <div className="max-h-72 overflow-y-auto scrollbar-thin">
+                {connections.map((c) => {
+                  const Icon = PROVIDER_ICONS[c.provider] ?? Database;
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex items-center gap-2 px-2 py-2 text-[12.5px] rounded-md hover:bg-white/[0.04]"
+                    >
+                      <Icon className="h-3.5 w-3.5 text-foreground/80 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="capitalize truncate">{c.provider}</div>
+                        {c.repoFullName && (
+                          <div className="text-[11px] text-muted-foreground truncate">
+                            {c.repoFullName}
+                          </div>
+                        )}
+                      </div>
+                      <ConnStatusPill status={c.status} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="border-t border-white/5 mt-1 pt-1">
+                <Link
+                  to="/connectors"
+                  className="flex items-center gap-2 rounded-md px-2 py-2 text-[12.5px] text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+                >
+                  <Plug className="h-3.5 w-3.5" /> Manage integrations
+                </Link>
+              </div>
+            </PopoverContent>
+          </Popover>
         )}
 
         <Button
@@ -334,6 +386,27 @@ function BuildDot({ status }: { status: "passing" | "failing" | "building" }) {
         ? "bg-destructive"
         : "bg-warning animate-pulse";
   return <span className={cn("h-1.5 w-1.5 rounded-full", cls)} />;
+}
+
+function ConnStatusPill({ status }: { status: ConnectionStatus }) {
+  const cls =
+    status === "connected"
+      ? "bg-success/15 text-success"
+      : status === "pending"
+        ? "bg-warning/15 text-warning"
+        : status === "error"
+          ? "bg-destructive/15 text-destructive"
+          : "bg-white/5 text-muted-foreground";
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider",
+        cls,
+      )}
+    >
+      {status}
+    </span>
+  );
 }
 
 function ConnDot({
