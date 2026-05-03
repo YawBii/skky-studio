@@ -14,12 +14,15 @@ import {
   Check,
   FolderKanban,
   Plug,
+  ExternalLink,
+  Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useSelectedProject } from "@/hooks/use-selected-project";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
