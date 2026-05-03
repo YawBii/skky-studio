@@ -610,15 +610,16 @@ export function PreviewPane({
           <button
             type="button"
             onClick={() => onModeChange("local")}
-            disabled={!localAvailable}
+            disabled={!effectiveLocalAvailable}
             data-testid="preview-mode-local"
             aria-pressed={mode === "local"}
+            title={isGithubLinked ? "GitHub imports keep their original app; local yawB preview is disabled" : "Show local preview"}
             className={cn(
               "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
               mode === "local"
                 ? "bg-white/10 text-foreground"
                 : "text-muted-foreground hover:text-foreground",
-              !localAvailable && "opacity-40 cursor-not-allowed",
+              !effectiveLocalAvailable && "opacity-40 cursor-not-allowed",
             )}
           >
             Local
@@ -875,8 +876,8 @@ export function PreviewPane({
                       <span className="font-mono text-foreground">
                         {githubConnection?.repoFullName ?? "a GitHub repository"}
                       </span>
-                      . yawB will not regenerate it from scratch — open the live preview or your
-                      repo to see the existing app.
+                      . yawB will not redesign or regenerate imported projects — connect/open a live
+                      deployment to see the original app exactly as it was built.
                     </>
                   ) : resolved.kind === "local" ? (
                     "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
