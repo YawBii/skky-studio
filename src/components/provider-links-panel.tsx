@@ -1,10 +1,12 @@
 // Provider links proof / consistency panel + Refresh links button.
 // Mounted in the Deploy and Projects surfaces so users have a durable
 // way to verify project_connections are intact after refresh / nav.
-import { RefreshCw, Check, AlertCircle, Triangle, Github } from "lucide-react";
+import { useState } from "react";
+import { RefreshCw, Check, AlertCircle, Triangle, Github, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useProjectProviderLinks } from "@/hooks/use-project-provider-links";
+import type { ConsistencyProofEntry } from "@/lib/connection-consistency";
 
 interface Props {
   projectId: string | null | undefined;
