@@ -948,9 +948,11 @@ export function PreviewPane({
 function DesignProofPill({
   html,
   fallbackAngle,
+  githubLinked,
 }: {
   html: string | null;
   fallbackAngle: DesignAngle;
+  githubLinked?: boolean;
 }) {
   const proof = useMemo(() => parseDesignProof(html), [html]);
   const angleId = (proof.designMode as DesignAngle | null) ?? fallbackAngle;
@@ -966,11 +968,11 @@ function DesignProofPill({
       className="px-3 py-1.5 border-b border-white/5 bg-white/[0.02] text-[11px] text-muted-foreground flex items-center gap-2 overflow-x-auto scrollbar-thin"
     >
       <span className="text-foreground font-medium">Design:</span>
-      <span className="text-foreground">{angleLabel}</span>
+      <span className="text-foreground">{githubLinked ? "Original GitHub app" : angleLabel}</span>
       <span className="opacity-50">·</span>
-      <span className="font-mono">{hero}</span>
+      <span className="font-mono">{githubLinked ? "no yawB template" : hero}</span>
       <span className="opacity-50">·</span>
-      <span className="font-mono">{palette}</span>
+      <span className="font-mono">{githubLinked ? "read-only import" : palette}</span>
     </div>
   );
 }
