@@ -312,12 +312,13 @@ export function PreviewPane({
     const handler = (ev: Event) => {
       const detail = (ev as CustomEvent).detail as { projectId?: string } | undefined;
       if (!detail || detail.projectId !== project.id) return;
+      if (isGithubLinked) return;
       console.info("[yawb] preview.forceReload.received", { projectId: project.id });
       setMode("local");
     };
     window.addEventListener("yawb:preview-force-reload", handler);
     return () => window.removeEventListener("yawb:preview-force-reload", handler);
-  }, [project.id]);
+  }, [project.id, isGithubLinked]);
 
   const resolved: ResolvedPreviewSource = useMemo(
     () =>
@@ -586,7 +587,7 @@ export function PreviewPane({
             </Button>
           </>
         )}
-        {onRefreshLocalPreview && (
+        {onRefreshLocalPreview && !isGithubLinked && (
           <Button
             type="button"
             variant="ghost"
@@ -719,7 +720,7 @@ export function PreviewPane({
         </div>
       </div>
 
-      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} />
+      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} githubLinked={isGithubLinked} />
 
       <div
         className={cn(
