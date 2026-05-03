@@ -255,6 +255,7 @@ export function PreviewPane({
     [effectiveConnections],
   );
   const isGithubLinked = !!githubConnection;
+  const effectiveLocalAvailable = isGithubLinked ? false : localAvailable;
 
   // Persisted toggle. If live is unavailable, default to local. If local is
   // unavailable, default to live.
@@ -262,7 +263,7 @@ export function PreviewPane({
     try {
       const stored = window.localStorage.getItem(TOGGLE_KEY(project.id)) as PreviewMode | null;
       if (stored === "live" && liveAvailable) return "live";
-      if (stored === "local" && localAvailable) return "local";
+      if (stored === "local" && effectiveLocalAvailable) return "local";
     } catch {
       /* ignore */
     }
@@ -292,8 +293,9 @@ export function PreviewPane({
   // Auto-switch when availability changes (e.g. preview deploy lands).
   useEffect(() => {
     if (mode === "live" && !liveAvailable) setMode("local");
-    if (mode === "local" && !localAvailable && liveAvailable) setMode("live");
-  }, [mode, liveAvailable, localAvailable]);
+    if (isGithubLinked && mode === "local" && liveAvailable) setMode("live");
+    if (mode === "local" && !effectiveLocalAvailable && liveAvailable) setMode("live");
+  }, [mode, liveAvailable, effectiveLocalAvailable, isGithubLinked]);
 
   useEffect(() => {
     try {
@@ -310,12 +312,13 @@ export function PreviewPane({
     const handler = (ev: Event) => {
       const detail = (ev as CustomEvent).detail as { projectId?: string } | undefined;
       if (!detail || detail.projectId !== project.id) return;
+      if (isGithubLinked) return;
       console.info("[yawb] preview.forceReload.received", { projectId: project.id });
       setMode("local");
     };
     window.addEventListener("yawb:preview-force-reload", handler);
     return () => window.removeEventListener("yawb:preview-force-reload", handler);
-  }, [project.id]);
+  }, [project.id, isGithubLinked]);
 
   const resolved: ResolvedPreviewSource = useMemo(
     () =>
@@ -324,8 +327,9 @@ export function PreviewPane({
         connections: effectiveConnections,
         generated: generated ?? null,
         preferred: mode,
+        localAvailable: effectiveLocalAvailable,
       }),
-    [project, effectiveConnections, generated, mode],
+    [project, effectiveConnections, generated, mode, effectiveLocalAvailable],
   );
 
   const localSrcDoc = useMemo(() => {
@@ -494,6 +498,7 @@ export function PreviewPane({
   const onModeChange = (next: PreviewMode) => {
     if (next === mode) return;
     if (next === "live" && !liveAvailable) return;
+    if (next === "local" && !effectiveLocalAvailable) return;
     console.info("[yawb] preview.mode.toggled", { from: mode, to: next });
     setMode(next);
   };
@@ -582,7 +587,7 @@ export function PreviewPane({
             </Button>
           </>
         )}
-        {onRefreshLocalPreview && (
+        {onRefreshLocalPreview && !isGithubLinked && (
           <Button
             type="button"
             variant="ghost"
@@ -607,15 +612,16 @@ export function PreviewPane({
           <button
             type="button"
             onClick={() => onModeChange("local")}
-            disabled={!localAvailable}
+            disabled={!effectiveLocalAvailable}
             data-testid="preview-mode-local"
             aria-pressed={mode === "local"}
+            title={isGithubLinked ? "GitHub imports keep their original app; local yawB preview is disabled" : "Show local preview"}
             className={cn(
               "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
               mode === "local"
                 ? "bg-white/10 text-foreground"
                 : "text-muted-foreground hover:text-foreground",
-              !localAvailable && "opacity-40 cursor-not-allowed",
+              !effectiveLocalAvailable && "opacity-40 cursor-not-allowed",
             )}
           >
             Local
@@ -714,7 +720,7 @@ export function PreviewPane({
         </div>
       </div>
 
-      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} />
+      <DesignProofPill html={localSrcDoc ?? null} fallbackAngle={designAngle} githubLinked={isGithubLinked} />
 
       <div
         className={cn(
@@ -872,8 +878,8 @@ export function PreviewPane({
                       <span className="font-mono text-foreground">
                         {githubConnection?.repoFullName ?? "a GitHub repository"}
                       </span>
-                      . yawB will not regenerate it from scratch — open the live preview or your
-                      repo to see the existing app.
+                      . yawB will not redesign or regenerate imported projects — connect/open a live
+                      deployment to see the original app exactly as it was built.
                     </>
                   ) : resolved.kind === "local" ? (
                     "Ask yawB in the chat to build the first screen — it will render here without needing a deploy."
@@ -942,9 +948,11 @@ export function PreviewPane({
 function DesignProofPill({
   html,
   fallbackAngle,
+  githubLinked,
 }: {
   html: string | null;
   fallbackAngle: DesignAngle;
+  githubLinked?: boolean;
 }) {
   const proof = useMemo(() => parseDesignProof(html), [html]);
   const angleId = (proof.designMode as DesignAngle | null) ?? fallbackAngle;
@@ -960,11 +968,11 @@ function DesignProofPill({
       className="px-3 py-1.5 border-b border-white/5 bg-white/[0.02] text-[11px] text-muted-foreground flex items-center gap-2 overflow-x-auto scrollbar-thin"
     >
       <span className="text-foreground font-medium">Design:</span>
-      <span className="text-foreground">{angleLabel}</span>
+      <span className="text-foreground">{githubLinked ? "Original GitHub app" : angleLabel}</span>
       <span className="opacity-50">·</span>
-      <span className="font-mono">{hero}</span>
+      <span className="font-mono">{githubLinked ? "no yawB template" : hero}</span>
       <span className="opacity-50">·</span>
-      <span className="font-mono">{palette}</span>
+      <span className="font-mono">{githubLinked ? "read-only import" : palette}</span>
     </div>
   );
 }

@@ -149,6 +149,17 @@ async function listConnectedProviders(sb: SupabaseClient, projectId: string): Pr
     .filter(Boolean);
 }
 
+async function hasGithubConnection(sb: SupabaseClient, projectId: string): Promise<boolean> {
+  const { data } = await sb
+    .from("project_connections")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("provider", "github")
+    .limit(1)
+    .maybeSingle();
+  return Boolean(data?.id);
+}
+
 async function readPreviousIndexHtml(sb: SupabaseClient, projectId: string): Promise<string | null> {
   const { data } = await sb
     .from("project_files")
@@ -199,6 +210,12 @@ async function runMonsterGenerateChanges(input: {
     status: "running",
     log: `Monster generation started from ${input.job.type}.`,
   });
+
+  if (await hasGithubConnection(input.sb, input.job.project_id)) {
+    const error = "This project is linked to GitHub, so yawB will not redesign or regenerate it as a new project.";
+    await markJobAndStep({ sb: input.sb, jobId: input.job.id, stepId: input.step.id, status: "failed", error });
+    return { advanced: true, jobId: input.job.id, stepKey: input.step.step_key, status: "failed", error };
+  }
 
   const { data: project, error: projectErr } = await input.sb
     .from("projects")

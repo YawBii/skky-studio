@@ -39,6 +39,8 @@ export interface PreviewResolverInput {
   generated?: GeneratedFiles | null;
   /** Force a particular kind when both are available (user toggle). */
   preferred?: "live" | "local";
+  /** Allows imported/external projects to disable yawB's synthesized local fallback. */
+  localAvailable?: boolean;
 }
 
 /** True if the project has any locally renderable preview content. */
@@ -49,13 +51,13 @@ export function hasLocalPreview(generated: GeneratedFiles | null | undefined): b
 }
 
 export function resolvePreviewSource(input: PreviewResolverInput): ResolvedPreviewSource {
-  const { project, connections, generated, preferred } = input;
+  const { project, connections, generated, preferred, localAvailable = true } = input;
   const live = resolveDeployUrl(connections);
   const liveUrl = live.url;
-  const local = hasLocalPreview(generated);
+  const local = localAvailable && hasLocalPreview(generated);
 
   // User explicitly picked local but it's not available -> fall through.
-  if (preferred === "local" && (local || project)) {
+  if (preferred === "local" && localAvailable && (local || project)) {
     return buildLocal(project, generated);
   }
 
@@ -80,7 +82,7 @@ export function resolvePreviewSource(input: PreviewResolverInput): ResolvedPrevi
     };
   }
 
-  if (local || project) {
+  if (localAvailable && (local || project)) {
     return buildLocal(project, generated);
   }
 

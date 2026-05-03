@@ -141,6 +141,10 @@ export function AssistantPanel() {
   const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null);
   const connState = useProjectConnections(project?.id ?? null);
   const diag = useDiagnostics();
+  const isGithubLinked = useMemo(
+    () => connState.connections.some((c) => c.provider === "github"),
+    [connState.connections],
+  );
 
   // Track which jobs have already been summarized in chat (per-project, persisted).
   const summarizedRef = useRef<Set<string>>(new Set());
@@ -303,6 +307,18 @@ export function AssistantPanel() {
         case "enqueue_job": {
           if (!project || !workspace) {
             toast.error("Select a project first.");
+            return;
+          }
+          if (isGithubLinked && (a.jobType.startsWith("ai.") || a.jobType.startsWith("build."))) {
+            toast("GitHub import is read-only in yawB");
+            setMessages((m) => [
+              ...m,
+              {
+                role: "assistant",
+                content:
+                  "This imported GitHub project should keep its original code and look. I won't queue yawB generation/build jobs for it; use the repository or connect a live deployment to preview it.",
+              },
+            ]);
             return;
           }
           const r = await enqueueJob({
@@ -474,6 +490,23 @@ export function AssistantPanel() {
       ]);
       return;
     }
+    if (
+      isGithubLinked &&
+      /\b(build|create|make|ship|scaffold|implement|design|redesign|fix|update|change|add|generate|regenerate)\b/i.test(
+        text,
+      )
+    ) {
+      const repo = connState.connections.find((c) => c.provider === "github")?.repoFullName;
+      toast("GitHub import is read-only in yawB");
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: `This is linked to ${repo ?? "a GitHub repository"}, so I won't redesign or regenerate it as a new yawB project. Open the repository or connect a live deployment to see and edit the original app.`,
+        },
+      ]);
+      return;
+    }
     const r = await enqueueJob({
       projectId: project.id,
       workspaceId: workspace.id,
@@ -512,6 +545,18 @@ export function AssistantPanel() {
     console.info("[yawb] chat.runJob.clicked", { type, title, projectId: project?.id });
     if (!project || !workspace) {
       toast.error("Select a project first to enqueue a job.");
+      return;
+    }
+    if (isGithubLinked && (type.startsWith("ai.") || type.startsWith("build."))) {
+      toast("GitHub import is read-only in yawB");
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "This GitHub-linked project keeps its original code and design. I won't run yawB generation/build jobs that could replace it; open the repository or connect a live deployment instead.",
+        },
+      ]);
       return;
     }
     setEnqueuingType(type);

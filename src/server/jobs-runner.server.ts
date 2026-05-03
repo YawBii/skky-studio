@@ -162,6 +162,25 @@ async function checkConnection(
   return { ok: true };
 }
 
+async function hasProjectConnection(
+  sb: ProjectFilesSupabaseLike,
+  projectId: string,
+  provider: "github" | "vercel" | "supabase",
+): Promise<boolean> {
+  try {
+    const { data } = await sb
+      .from("project_connections")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("provider", provider)
+      .limit(1)
+      .maybeSingle();
+    return Boolean(data?.id);
+  } catch {
+    return false;
+  }
+}
+
 // ---------- Provider adapters ----------
 //
 // Each adapter exposes a uniform shape:
@@ -733,6 +752,15 @@ export async function generateAndPersistProjectFiles(
   typography?: string;
   shapeLanguage?: string;
 }> {
+  if (await hasProjectConnection(sb, job.project_id, "github")) {
+    return {
+      ok: false,
+      written: [],
+      error: "This project is linked to GitHub, so yawB will not regenerate local template files over the imported app.",
+      generator: "monster-brain-v1",
+      previewReady: false,
+    };
+  }
   const { data: proj, error: pErr } = await sb
     .from("projects")
     .select("id, name, description")
@@ -1016,6 +1044,10 @@ async function runStep(sb: SupabaseClient, job: JobRow, step: StepRow): Promise<
     // Post-build hook: regenerate per-project files so Local Preview reflects
     // the latest project context. Failure here must NOT fail the build.
     if (result.status === "succeeded") {
+      if (await hasProjectConnection(sb, job.project_id, "github")) {
+        result.log = `${result.log ?? "build ok"}; skipped local file generation for GitHub-linked project`;
+        return result;
+      }
       const gen = await generateAndPersistProjectFiles(sb, job);
       const out = (result.output ?? {}) as Record<string, unknown>;
       const mergedOutput = {
