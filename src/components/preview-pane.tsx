@@ -326,8 +326,9 @@ export function PreviewPane({
         connections: effectiveConnections,
         generated: generated ?? null,
         preferred: mode,
+        localAvailable: effectiveLocalAvailable,
       }),
-    [project, effectiveConnections, generated, mode],
+    [project, effectiveConnections, generated, mode, effectiveLocalAvailable],
   );
 
   const localSrcDoc = useMemo(() => {
