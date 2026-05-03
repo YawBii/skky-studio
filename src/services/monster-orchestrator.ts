@@ -1,8 +1,5 @@
 import type { Project } from "@/services/projects";
-import {
-  generateProjectFiles as generateMonsterFrontendFiles,
-  type DesignMode,
-} from "./monster-brain-generator";
+import type { DesignMode } from "./monster-brain-generator";
 import { createMonsterBlueprint } from "./monster-director";
 import {
   generateMonsterBackendFiles,
@@ -14,6 +11,7 @@ import {
   type MonsterQualityGate,
 } from "./monster-quality-gates";
 import { generateMonsterArchitectFiles, type MonsterArchitectResult } from "./monster-project-architect";
+import { generateMonsterCustomPreviewFiles } from "./monster-custom-preview-generator";
 import { summarizeMonsterBlueprint, type MonsterBlueprint } from "./monster-blueprint";
 
 export interface MonsterOrchestratorInput {
@@ -46,6 +44,7 @@ export interface MonsterGenerationResult {
     blueprintSummary: string;
     designMode: string;
     appType: string;
+    previewGenerator: string;
     frontendFileCount: number;
     backendFileCount: number;
     architectFileCount: number;
@@ -75,15 +74,7 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
     production: input.production,
   });
 
-  const frontendFiles = generateMonsterFrontendFiles(input.project, {
-    chatRequest: input.chatRequest,
-    connectedProviders: input.connectedProviders,
-    previousIndexHtml: input.previousIndexHtml,
-    regenerationSeed: input.regenerationSeed,
-    forceVariant: input.forceVariant,
-    designMode: blueprint.design.mode,
-  });
-
+  const frontendFiles = generateMonsterCustomPreviewFiles(blueprint);
   const backend = generateMonsterBackendFiles(blueprint);
   const architect = generateMonsterArchitectFiles(blueprint);
   const files: MonsterGeneratedFile[] = [...frontendFiles, ...backend.files, ...architect.files];
@@ -95,7 +86,7 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
     blueprintSummary,
     gates: [
       passed("blueprint", "Monster Blueprint produced", blueprintSummary),
-      passed("design", "Beautiful first design generated", `${blueprint.design.mode}: ${blueprint.design.reason}`),
+      passed("design", "Custom blueprint-driven preview generated", `${blueprint.design.mode}: custom preview from ${blueprint.appType}`),
       passed("architect", "Project architecture files generated", `${architect.files.length} route/component/lib/style/doc files`),
       passed("backend", "Backend/schema/RLS plan generated", `${backend.tableCount} tables, ${backend.policyCount} RLS policy drafts`),
       pending("typecheck", "TypeScript check", "npm run typecheck"),
@@ -117,6 +108,7 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
       blueprintSummary,
       designMode: blueprint.design.mode,
       appType: blueprint.appType,
+      previewGenerator: "monster-custom-preview-v1",
       frontendFileCount: frontendFiles.length,
       backendFileCount: backend.files.length,
       architectFileCount: architect.files.length,
@@ -125,7 +117,10 @@ export function generateMonsterProject(input: MonsterOrchestratorInput): Monster
       previewReady,
       canDeclareDone: proof.canDeclareDone,
       written: files.map((file) => file.path).sort(),
-      designCritique: architect.designCritique,
+      designCritique: [
+        "Visible preview now uses blueprint/app-type layout instead of the old design-mode template shell.",
+        ...architect.designCritique,
+      ],
     },
   };
 }
