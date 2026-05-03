@@ -89,6 +89,18 @@ describe("resolvePreviewSource", () => {
     expect(r.kind).toBe("local");
   });
 
+  it("can disable local fallback for imported external projects", () => {
+    const r = resolvePreviewSource({
+      project,
+      connections: [],
+      preferred: "local",
+      generated: { indexHtml: "<!doctype html><title>yawB template</title>", hasFiles: true },
+      localAvailable: false,
+    });
+    expect(r.kind).toBe("empty");
+    expect(r.srcDoc).toBeUndefined();
+  });
+
   it("hasLocalPreview reports true only with content", () => {
     expect(hasLocalPreview(null)).toBe(false);
     expect(hasLocalPreview({})).toBe(false);
