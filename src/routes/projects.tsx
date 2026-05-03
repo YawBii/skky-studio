@@ -579,6 +579,7 @@ function VercelProjectsTab({
         [p.id]: { connection: res.connection, checkedAt: new Date().toISOString() },
       }));
       toast.success(`Linked ${p.name} to ${currentProjectName ?? "current project"}`);
+      void load();
     } finally {
       setLinking(null);
     }
