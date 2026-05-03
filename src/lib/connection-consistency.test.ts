@@ -59,8 +59,7 @@ describe("checkProjectConnectionConsistency", () => {
 
   it("ignores unsupported providers", () => {
     const r = checkProjectConnectionConsistency("p1", "w1", [
-      // @ts-expect-error testing filter
-      conn({ provider: "bitbucket" }),
+      conn({ provider: "bitbucket" as ProjectConnection["provider"] }),
     ]);
     expect(r.proof).toHaveLength(0);
     expect(r.ok).toBe(true);
