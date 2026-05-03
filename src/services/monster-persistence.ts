@@ -43,14 +43,20 @@ export async function persistMonsterGeneratedFiles(input: {
     written.push(file.path);
   }
 
+  const sorted = [...written].sort();
   return {
     ok: true,
-    written: [...written].sort(),
+    written: sorted,
     output: {
       ...input.generation.output,
       generator: input.generation.generator,
       proof: input.generation.proof,
       blueprint: input.generation.blueprint,
+      written: sorted,
+      filesTouched: sorted,
+      changedFiles: sorted,
+      fileList: sorted,
+      fileCount: sorted.length,
     },
   };
 }
