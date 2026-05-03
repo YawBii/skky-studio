@@ -9,6 +9,7 @@ import { runNextJobStepServer as runLegacyNextJobStepServer } from "./jobs-runne
 import { generateMonsterProject } from "../services/monster-orchestrator";
 import { persistMonsterGeneratedFiles } from "../services/monster-persistence";
 import type { DesignMode } from "../services/monster-brain-generator";
+import { isAgenticLoopConfigured, runAgenticBuild } from "./agentic-loop.server";
 
 export interface MonsterRunnerTickResult {
   advanced: boolean;
