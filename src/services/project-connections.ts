@@ -158,21 +158,27 @@ export async function createConnection(input: {
   }
 }
 
-// Find an existing connection by (provider, external_id) — used to avoid
-// duplicate imports when a yawB project already exists for a repo/Vercel project.
+// Find an existing connection by (provider, external_id).
+// Optional workspace scoping is important for imports: without it, importing a
+// repo in one workspace can unexpectedly open an older project from another
+// workspace (the GoodHand-style stale-project bug).
 export async function findConnectionByExternalId(
   provider: ConnectionProvider,
   externalId: string,
+  workspaceId?: string | null,
 ): Promise<{ ok: true; connection: ProjectConnection | null } | { ok: false; error: string }> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("project_connections")
       .select("*")
       .eq("provider", provider)
       .eq("external_id", externalId)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (workspaceId) query = query.eq("workspace_id", workspaceId);
+
+    const { data, error } = await query.maybeSingle();
     if (error) {
       if (isMissingTable(error)) return { ok: false, error: error.message };
       return { ok: false, error: error.message };
