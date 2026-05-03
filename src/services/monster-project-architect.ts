@@ -386,7 +386,7 @@ export function generateMonsterArchitectFiles(blueprint: MonsterBlueprint): Mons
     components: files.filter((file) => file.role === "component").map((file) => file.path),
     backendArtifacts: blueprint.backend.tables.map((table) => table.table),
     designCritique: [
-      "Generated app-specific route files instead of only a static index.html.",
+      "Generated app-specific route files instead of only a static index.html; this is not a recolored template.",
       "Generated reusable components tied to the inferred domain noun.",
       "Generated a backend-aware data model surface from the blueprint.",
       "Still deterministic v1: next step is model-authored file plans and repair loops.",

@@ -748,8 +748,8 @@ function copyFor(archetype: Archetype, project: ProjectLike): Copy {
       };
     case "fintech":
       return {
-        eyebrow: "Money operations",
-        title: `${name} — money operations on autopilot.`,
+        eyebrow: `${name} · finance OS`,
+        title: `${name} — reconcile, ledger, and report in one place.`,
         lede:
           desc ||
           "A finance OS that ingests transactions, reconciles them, and gives you a single, audit-ready ledger.",
