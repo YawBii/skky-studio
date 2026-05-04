@@ -10,6 +10,7 @@ import {
 
 export function useWorkspaces() {
   const { session, loading: authLoading } = useAuth();
+  const userId = session?.userId ?? null;
   const [result, setResult] = useState<WorkspacesResult>({ workspaces: [], source: "demo-empty" });
   const [loading, setLoading] = useState(true);
   const [currentId, setCurrentId] = useState<string | null>(readCurrentWorkspaceId());
@@ -20,8 +21,8 @@ export function useWorkspaces() {
     setResult(r);
     setLoading(false);
     setDiag({
-      hasSession: !!session,
-      userId: session?.userId ?? null,
+      hasSession: !!userId,
+      userId,
       workspacesCount: r.workspaces.length,
       workspaceSource: r.source,
     });
@@ -34,12 +35,20 @@ export function useWorkspaces() {
       );
     }
     return r;
-  }, [session]);
+  }, [userId]);
 
   useEffect(() => {
     if (authLoading) return;
-    void refresh();
-  }, [authLoading, session?.userId, refresh]);
+    let cancelled = false;
+    void (async () => {
+      const r = await refresh();
+      void r;
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, userId, refresh]);
 
   useEffect(() => {
     const onSelection = () => setCurrentId(readCurrentWorkspaceId());
