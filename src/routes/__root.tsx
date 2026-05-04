@@ -161,10 +161,27 @@ function RootComponent() {
   return (
     <AuthProvider>
       <BodyPointerEventsGuard />
-      <WorkspaceShell />
+      <AuthGate />
       <Toaster />
     </AuthProvider>
   );
+}
+
+function AuthGate() {
+  const { session, loading: authLoading } = useAuth();
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+  if (!session) {
+    // Hard gate: render the signed-out shell only. Do NOT mount WorkspaceTopBar,
+    // Chat, project lists, ProviderLinksPanel, or any provider hooks.
+    return <MobileSignedOutEmpty />;
+  }
+  return <WorkspaceShell />;
 }
 
 function WorkspaceShell() {
