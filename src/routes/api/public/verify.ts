@@ -86,9 +86,9 @@ export const Route = createFileRoute("/api/public/verify")({
             exitCode: (parsed.exitCode as number | null) ?? null,
             stdout: String(parsed.stdout ?? ""),
             stderr: String(parsed.stderr ?? ""),
-            durationMs:
-              (parsed.durationMs as number | undefined) ?? Date.now() - startedAt,
-            error: (parsed.error as string | null) ?? (upstream.ok ? null : `runner ${upstream.status}`),
+            durationMs: (parsed.durationMs as number | undefined) ?? Date.now() - startedAt,
+            error:
+              (parsed.error as string | null) ?? (upstream.ok ? null : `runner ${upstream.status}`),
           });
         } catch (err) {
           return json(502, {

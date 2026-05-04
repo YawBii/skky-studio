@@ -67,7 +67,11 @@ function ProofPage() {
           <FileText className="h-5 w-5" />
           <h1 className="text-lg font-semibold">Build proof</h1>
         </div>
-        <Link to="/builder/$projectId" params={{ projectId }} className="text-sm text-primary hover:underline">
+        <Link
+          to="/builder/$projectId"
+          params={{ projectId }}
+          className="text-sm text-primary hover:underline"
+        >
           ← Back to builder
         </Link>
       </header>
@@ -78,7 +82,8 @@ function ProofPage() {
         </div>
       ) : proofs.length === 0 ? (
         <div className="p-12 text-muted-foreground">
-          No proofs yet. Run an agentic build (chat: "build the first version") and the proof will appear here.
+          No proofs yet. Run an agentic build (chat: "build the first version") and the proof will
+          appear here.
         </div>
       ) : (
         <div className="grid grid-cols-12 gap-0 min-h-[calc(100vh-65px)]">
@@ -97,9 +102,13 @@ function ProofPage() {
                   ) : (
                     <XCircle className="h-4 w-4 text-red-500" />
                   )}
-                  <span className="font-mono text-xs">{new Date(p.created_at).toLocaleString()}</span>
+                  <span className="font-mono text-xs">
+                    {new Date(p.created_at).toLocaleString()}
+                  </span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-1 truncate">{p.user_request ?? p.generator}</div>
+                <div className="text-xs text-muted-foreground mt-1 truncate">
+                  {p.user_request ?? p.generator}
+                </div>
                 <div className="text-xs mt-1">
                   Score: <span className="font-semibold">{p.critique?.score ?? "—"}/100</span>
                 </div>
@@ -146,7 +155,8 @@ function ProofDetail({ proof }: { proof: ProofRow }) {
           <ul className="text-sm space-y-1">
             {(plan.pages ?? []).map((p) => (
               <li key={p.path}>
-                <span className="font-mono text-xs">{p.path}</span> — <strong>{p.name}</strong>: {p.purpose}
+                <span className="font-mono text-xs">{p.path}</span> — <strong>{p.name}</strong>:{" "}
+                {p.purpose}
               </li>
             ))}
           </ul>
@@ -156,7 +166,8 @@ function ProofDetail({ proof }: { proof: ProofRow }) {
           <ul className="text-sm space-y-1">
             {(plan.dataModel ?? []).map((t) => (
               <li key={t.table}>
-                <span className="font-mono text-xs">{t.table}</span> ({t.columns.join(", ")}) — {t.purpose}
+                <span className="font-mono text-xs">{t.table}</span> ({t.columns.join(", ")}) —{" "}
+                {t.purpose}
               </li>
             ))}
           </ul>
@@ -171,7 +182,9 @@ function ProofDetail({ proof }: { proof: ProofRow }) {
         </ul>
       </Section>
 
-      <Section title={`Checks (${proof.checks?.filter((c) => c.ok).length ?? 0}/${proof.checks?.length ?? 0} passed)`}>
+      <Section
+        title={`Checks (${proof.checks?.filter((c) => c.ok).length ?? 0}/${proof.checks?.length ?? 0} passed)`}
+      >
         <ul className="text-sm space-y-1">
           {(proof.checks ?? []).map((c, i) => (
             <li key={i} className="flex items-start gap-2">
@@ -194,7 +207,9 @@ function ProofDetail({ proof }: { proof: ProofRow }) {
           <ul className="text-sm space-y-2">
             {proof.repairs.map((r, i) => (
               <li key={i} className="border border-border rounded p-2">
-                <div className="font-mono text-xs">{r.path} (attempt {r.attempt}, {r.ok ? "fixed" : "failed"})</div>
+                <div className="font-mono text-xs">
+                  {r.path} (attempt {r.attempt}, {r.ok ? "fixed" : "failed"})
+                </div>
                 <div className="text-xs text-muted-foreground mt-1">{r.reason}</div>
               </li>
             ))}
@@ -202,7 +217,9 @@ function ProofDetail({ proof }: { proof: ProofRow }) {
         </Section>
       )}
 
-      <Section title={`Critique — ${proof.critique?.score ?? "—"}/100${proof.critique?.redesigned ? " (redesigned)" : ""}`}>
+      <Section
+        title={`Critique — ${proof.critique?.score ?? "—"}/100${proof.critique?.redesigned ? " (redesigned)" : ""}`}
+      >
         <p className="text-sm mb-2">{proof.critique?.summary}</p>
         {proof.critique?.issues && proof.critique.issues.length > 0 && (
           <ul className="text-sm list-disc pl-5 text-muted-foreground">
@@ -216,7 +233,9 @@ function ProofDetail({ proof }: { proof: ProofRow }) {
       <Section title="Preview source (index.html)">
         {proof.preview_source ? (
           <details>
-            <summary className="cursor-pointer text-sm text-primary">Show source ({proof.preview_source.length} chars)</summary>
+            <summary className="cursor-pointer text-sm text-primary">
+              Show source ({proof.preview_source.length} chars)
+            </summary>
             <pre className="text-xs bg-muted p-3 rounded mt-2 overflow-auto max-h-96">
               {proof.preview_source}
             </pre>

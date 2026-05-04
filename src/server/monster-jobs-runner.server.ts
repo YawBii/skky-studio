@@ -353,7 +353,6 @@ async function runMonsterGenerateChanges(input: {
     }
   }
 
-
   try {
     const generation = generateMonsterProject({
       project: {

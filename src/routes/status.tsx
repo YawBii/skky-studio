@@ -79,7 +79,11 @@ async function probe(target: { label: string; url: string }): Promise<CheckResul
         ok: false,
         ms: Math.round(performance.now() - started),
         failedStep: step,
-        error: msg + " (also possibly: " + (corsErr instanceof Error ? corsErr.message : String(corsErr)) + ")",
+        error:
+          msg +
+          " (also possibly: " +
+          (corsErr instanceof Error ? corsErr.message : String(corsErr)) +
+          ")",
       };
     }
   }
@@ -197,11 +201,7 @@ function StatusPage() {
                 {r.failedStep && (
                   <div className="mt-1 text-xs">
                     <span className="font-mono text-muted-foreground">step: </span>
-                    <span
-                      className={
-                        r.ok ? "text-warning" : "text-destructive"
-                      }
-                    >
+                    <span className={r.ok ? "text-warning" : "text-destructive"}>
                       {r.failedStep}
                     </span>
                     {r.status && (
@@ -215,9 +215,7 @@ function StatusPage() {
               </div>
             </li>
           ))}
-          {results.length === 0 && (
-            <li className="text-sm text-muted-foreground">Running…</li>
-          )}
+          {results.length === 0 && <li className="text-sm text-muted-foreground">Running…</li>}
         </ul>
       </section>
 
@@ -243,9 +241,7 @@ function StatusPage() {
           {recentFailures.map((e, i) => (
             <li key={i} className="rounded border border-white/5 p-2">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">
-                  {new Date(e.t).toLocaleTimeString()}
-                </span>
+                <span className="text-muted-foreground">{new Date(e.t).toLocaleTimeString()}</span>
                 <span className="text-warning uppercase">{e.kind}</span>
               </div>
               <div className="mt-1 break-all">
