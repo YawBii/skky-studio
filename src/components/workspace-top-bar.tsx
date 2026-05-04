@@ -56,6 +56,10 @@ interface WorkspaceTopBarProps {
   presenceLive?: boolean;
   onDeploy?: () => void;
   onShare?: () => void;
+  /** Presentational props — parent must supply. */
+  projects: Project[];
+  currentProject: Project | null;
+  selectProject: (id: string) => void;
 }
 
 const PROVIDER_ICONS: Partial<
@@ -78,13 +82,16 @@ export function WorkspaceTopBar({
   presenceLive = false,
   onDeploy,
   onShare,
+  projects,
+  currentProject,
+  selectProject,
 }: WorkspaceTopBarProps) {
   const visible = collaborators.slice(0, 3);
   const extra = Math.max(0, collaborators.length - visible.length);
-  const { projects, project: currentProject, selectProject } = useSelectedProject();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
+  const safe = isSafeMode();
 
   const onPickProject = (id: string) => {
     console.info("[yawb] topbar.projectSwitcher.pick", { id });
