@@ -145,11 +145,7 @@ function ProofRow({ p }: { p: ConsistencyProofEntry }) {
 function InactiveHistory({ rows }: { rows: ConsistencyProofEntry[] }) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const visible = open
-    ? showAll
-      ? rows
-      : rows.slice(0, INACTIVE_DEFAULT_LIMIT)
-    : [];
+  const visible = open ? (showAll ? rows : rows.slice(0, INACTIVE_DEFAULT_LIMIT)) : [];
   const hidden = Math.max(0, rows.length - INACTIVE_DEFAULT_LIMIT);
   return (
     <div className="rounded-lg border border-white/5 bg-background/20">

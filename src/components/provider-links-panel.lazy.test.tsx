@@ -13,7 +13,10 @@ vi.mock("@/services/project-connections", async () => {
   const actual = await vi.importActual<typeof import("@/services/project-connections")>(
     "@/services/project-connections",
   );
-  return { ...actual, listConnections: (...args: unknown[]) => listConnectionsMock(...(args as [])) };
+  return {
+    ...actual,
+    listConnections: (...args: unknown[]) => listConnectionsMock(...(args as [])),
+  };
 });
 
 let root: Root | null = null;

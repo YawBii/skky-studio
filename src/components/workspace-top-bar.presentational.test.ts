@@ -6,10 +6,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("WorkspaceTopBar — presentational refactor", () => {
-  const src = readFileSync(
-    resolve(process.cwd(), "src/components/workspace-top-bar.tsx"),
-    "utf8",
-  );
+  const src = readFileSync(resolve(process.cwd(), "src/components/workspace-top-bar.tsx"), "utf8");
 
   it("does not import useSelectedProject", () => {
     expect(src).not.toMatch(/useSelectedProject/);
