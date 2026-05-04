@@ -203,16 +203,38 @@ async function buildPlan(
     files: Array.isArray(v.files) ? (v.files as AgenticPlan["files"]) : [],
     designDirection: String(v.designDirection ?? ""),
   };
-  // Ensure index.html + styles.css are in the file list.
+  // Ensure essential files are in the file list.
   const have = new Set(plan.files.map((f) => f.path));
   if (!have.has("index.html"))
     plan.files.unshift({ path: "index.html", purpose: "Landing/preview", language: "html" });
   if (!have.has("styles.css"))
+    plan.files.push({ path: "styles.css", purpose: "Global design system", language: "css" });
+  if (!have.has("README.md"))
+    plan.files.push({ path: "README.md", purpose: "Build summary", language: "markdown" });
+  if (plan.dataModel.length > 0 && !have.has("supabase/migrations/001_init.sql"))
     plan.files.push({
-      path: "styles.css",
-      purpose: "Global design system",
-      language: "css",
+      path: "supabase/migrations/001_init.sql",
+      purpose: "Initial schema + RLS policies",
+      language: "sql",
     });
+  // Parallel TanStack Start scaffold for export.
+  if (!have.has("src/routes/index.tsx"))
+    plan.files.push({
+      path: "src/routes/index.tsx",
+      purpose: "TanStack Start home route (export scaffold)",
+      language: "typescript",
+    });
+  for (const p of plan.pages) {
+    if (p.path === "/" || p.path === "/index") continue;
+    const slug = p.path.replace(/^\//, "").replace(/\//g, ".") || "page";
+    const tsx = `src/routes/${slug}.tsx`;
+    if (!have.has(tsx))
+      plan.files.push({
+        path: tsx,
+        purpose: `TanStack Start route for ${p.name} (export scaffold)`,
+        language: "typescript",
+      });
+  }
   return { ok: true, plan };
 }
 
