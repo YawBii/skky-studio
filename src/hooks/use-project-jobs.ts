@@ -20,14 +20,21 @@ import {
   type JobType,
   type StepAttempt,
 } from "@/services/jobs";
+import { isSafeMode, noteFetchCall } from "@/lib/perf-mode";
 
 const TICK_MS = 1500;
 const IDLE_REFRESH_MS = 2500;
 
+interface UseProjectJobsOptions {
+  enabled?: boolean;
+}
+
 export function useProjectJobs(
   projectId: string | null | undefined,
   workspaceId: string | null | undefined,
+  options: UseProjectJobsOptions = {},
 ) {
+  const enabled = (options.enabled ?? true) && !isSafeMode();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [source, setSource] = useState<JobsSource>("no-project");
   const [error, setError] = useState<string | null>(null);
@@ -49,20 +56,22 @@ export function useProjectJobs(
   const tickingRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (!projectId) {
+    if (!enabled || !projectId) {
       setJobs([]);
       setSource("no-project");
       return;
     }
     setLoading(true);
+    noteFetchCall(`useProjectJobs:list:${projectId}`);
     const r = await listJobs(projectId);
     setJobs(r.jobs);
     setSource(r.source);
     setError(r.error ?? null);
     setSqlFile(r.sqlFile ?? null);
     setLoading(false);
+    noteFetchCall(`useProjectJobs:reportProviders:${projectId}`);
     void reportProviderConnections(projectId);
-  }, [projectId]);
+  }, [enabled, projectId]);
 
   const refreshSteps = useCallback(async (jobId: string) => {
     const r = await listJobSteps(jobId);
@@ -85,7 +94,7 @@ export function useProjectJobs(
   // hook has refreshed. The idle refresh catches those newly queued jobs and
   // the next loop triggers the server runner.
   useEffect(() => {
-    if (!projectId) return;
+    if (!enabled || !projectId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -96,12 +105,14 @@ export function useProjectJobs(
 
     const loop = async () => {
       if (cancelled || !projectId) return;
+      noteFetchCall(`useProjectJobs:poll:${projectId}`);
       const latest = await listJobs(projectId);
       if (cancelled) return;
       setJobs(latest.jobs);
       setSource(latest.source);
       setError(latest.error ?? null);
       setSqlFile(latest.sqlFile ?? null);
+      noteFetchCall(`useProjectJobs:reportProviders:${projectId}`);
       void reportProviderConnections(projectId);
 
       const hasActive = latest.jobs.some((j) => j.status === "queued" || j.status === "running");
@@ -134,7 +145,7 @@ export function useProjectJobs(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [projectId, refreshSteps, refreshQuestions, refreshAttempts]);
+  }, [enabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
   useEffect(() => {
