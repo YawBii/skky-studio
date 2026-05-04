@@ -157,6 +157,10 @@ describe("agentic build loop — law firm acceptance", () => {
         "Build a premium AI law firm app with auth, client intake, case cockpit, invoices, payments, admin panel, and Supabase backend.",
     });
 
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.log("DEBUG", JSON.stringify({ error: res.error, written: res.written, failedChecks: res.checks.filter((c) => !c.ok), repairs: res.repairs }, null, 2));
+    }
     expect(res.ok).toBe(true);
     expect(res.plan.appType.toLowerCase()).toContain("law");
     // Static preview files
