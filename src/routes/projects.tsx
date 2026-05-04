@@ -501,20 +501,24 @@ function VercelProjectsTab({
   workspaceId,
   currentProjectId,
   currentProjectName,
+  enabled,
 }: {
   workspaceId: string;
   currentProjectId: string | null;
   currentProjectName: string | null;
+  enabled: boolean;
 }) {
+  noteRender("VercelProjectsTab");
   const [state, setState] = useState<{
     loading: boolean;
     error?: string;
     missing?: string[];
     projects: VercelP[];
   }>({
-    loading: true,
+    loading: false,
     projects: [],
   });
+  const [loaded, setLoaded] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
   // Sync health per Vercel project id.
   const [health, setHealth] = useState<
@@ -529,26 +533,31 @@ function VercelProjectsTab({
   const [currentGithubRepo, setCurrentGithubRepo] = useState<string | null>(null);
 
   const refreshActive = useCallback(async () => {
+    if (!enabled || isSafeMode()) return;
     if (!currentProjectId) {
       setActiveForCurrent(null);
       setDuplicates([]);
       setCurrentGithubRepo(null);
       return;
     }
+    noteFetchCall("VercelProjectsTab:refreshActive");
     const r = await findActiveVercelConnection(currentProjectId);
     setActiveForCurrent(r.active);
     setDuplicates(r.duplicates);
     const all = await listConnections(currentProjectId);
     const gh = all.connections.find((c) => c.provider === "github" && c.status === "connected");
     setCurrentGithubRepo(gh?.repoFullName ?? null);
-  }, [currentProjectId]);
+  }, [enabled, currentProjectId]);
 
   const load = useCallback(async () => {
+    if (!enabled || isSafeMode()) return;
     setState((s) => ({ ...s, loading: true, error: undefined }));
     try {
+      noteFetchCall("VercelProjectsTab:listVercelProjects");
       const res = await listVercelProjectsFn({ data: { limit: 50 } });
       if (!res.ok) {
         setState({ loading: false, error: res.error, missing: res.missing, projects: [] });
+        setLoaded(true);
         return;
       }
       setState({ loading: false, projects: res.projects });
@@ -562,14 +571,12 @@ function VercelProjectsTab({
       );
       setHealth(next);
       await refreshActive();
+      setLoaded(true);
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
+      setLoaded(true);
     }
   }, [workspaceId, refreshActive]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function performLink(p: VercelP) {
     if (!workspaceId || !currentProjectId) return;
