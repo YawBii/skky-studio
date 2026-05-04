@@ -17,7 +17,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { useSelectedProject } from "@/hooks/use-selected-project";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
@@ -31,6 +30,9 @@ import {
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
 import { TaskSummaryCard } from "@/components/task-summary-card";
+import { isSafeMode, noteRender } from "@/lib/perf-mode";
+import type { Project } from "@/services/projects";
+import type { Workspace } from "@/services/workspaces";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -126,20 +128,31 @@ const INITIAL: Msg[] = [
   },
 ];
 
-export function AssistantPanel() {
+export function AssistantPanel({
+  project,
+  workspace,
+  enabled = true,
+}: {
+  project: Project | null;
+  workspace: Workspace | null;
+  enabled?: boolean;
+}) {
+  noteRender("AssistantPanel");
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Msg[]>(INITIAL);
   const [queuedSummaryJobs, setQueuedSummaryJobs] = useState<Record<string, Job>>({});
   const [checklist, setChecklist] = useState(loadChecklist);
   const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
-  const { project, workspace } = useSelectedProject();
+  const effectiveEnabled = enabled && !isSafeMode() && !!project?.id && !!workspace?.id;
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Pull live state for smart suggestions. These hooks are no-ops when
   // there is no project (jobs/connections return empty + a "no-project" source).
-  const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null);
-  const connState = useProjectConnections(project?.id ?? null);
+  const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null, {
+    enabled: effectiveEnabled,
+  });
+  const connState = useProjectConnections(project?.id ?? null, { enabled: effectiveEnabled });
   const diag = useDiagnostics();
   const isGithubLinked = useMemo(
     () => connState.connections.some((c) => c.provider === "github"),
@@ -406,7 +419,7 @@ export function AssistantPanel() {
     };
     window.addEventListener("yawb:focus-summary", handler as EventListener);
     return () => window.removeEventListener("yawb:focus-summary", handler as EventListener);
-  }, [project, jobsState]);
+  }, [project?.id, jobsState.jobs, jobsState.refreshSteps]);
 
   const persistChecklist = (next: typeof checklist) => {
     setChecklist(next);
