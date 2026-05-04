@@ -1,13 +1,15 @@
 // Reads project-level provider connections (GitHub/Vercel) and runs the
-// consistency checker. The result is the canonical "is this project linked?"
-// source for builder/deploy UIs — provider-list lookups are supplemental only.
-import { useCallback, useEffect, useMemo, useState } from "react";
+// consistency checker. Lazy by default: only fetches when explicitly enabled
+// AND a real projectId/workspaceId is present. This stops freeze-causing
+// background polling from mounted-but-hidden surfaces.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { listConnections, type ProjectConnection } from "@/services/project-connections";
 import {
   checkProjectConnectionConsistency,
   type ConsistencyResult,
 } from "@/lib/connection-consistency";
+import { isSafeMode, noteFetchCall } from "@/lib/perf-mode";
 
 export interface ProviderLinksState {
   connections: ProjectConnection[];
@@ -29,18 +31,33 @@ const empty: ProviderLinksState = {
   error: null,
 };
 
+export interface UseProjectProviderLinksOptions {
+  /** Only fetch when true. Defaults to true for back-compat, but callers
+   * (panels, popovers) should pass an explicit visibility flag. */
+  enabled?: boolean;
+}
+
 export function useProjectProviderLinks(
   projectId: string | null | undefined,
   workspaceId: string | null | undefined,
+  options: UseProjectProviderLinksOptions = {},
 ) {
+  const enabled = options.enabled ?? true;
   const [state, setState] = useState<ProviderLinksState>(empty);
+  // Stable workspaceId capture so refresh's identity does not flip every render
+  // when callers pass a freshly-derived value.
+  const workspaceIdRef = useRef(workspaceId);
+  workspaceIdRef.current = workspaceId;
+
+  const active = enabled && !isSafeMode() && !!projectId;
 
   const refresh = useCallback(
     async (opts?: { silent?: boolean; toastOnComplete?: boolean }) => {
-      if (!projectId) {
+      if (!active || !projectId) {
         setState(empty);
         return { ok: false as const, error: "No current project" };
       }
+      noteFetchCall(`useProjectProviderLinks:${projectId}`);
       if (!opts?.silent) setState((s) => ({ ...s, loading: true, error: null }));
       const r = await listConnections(projectId);
       if (r.source === "error" || r.source === "table-missing") {
@@ -49,7 +66,11 @@ export function useProjectProviderLinks(
         if (opts?.toastOnComplete) toast.error(`Links refresh failed — ${err}`);
         return { ok: false as const, error: err };
       }
-      const consistency = checkProjectConnectionConsistency(projectId, workspaceId, r.connections);
+      const consistency = checkProjectConnectionConsistency(
+        projectId,
+        workspaceIdRef.current,
+        r.connections,
+      );
       const github = r.connections.find((c) => c.provider === "github") ?? null;
       const vercel = r.connections.find((c) => c.provider === "vercel") ?? null;
       const lastRefreshAt = new Date().toISOString();
@@ -78,12 +99,28 @@ export function useProjectProviderLinks(
       }
       return { ok: true as const, connections: r.connections, consistency };
     },
-    [projectId, workspaceId],
+    [active, projectId],
   );
 
   useEffect(() => {
-    void refresh({ silent: false });
-  }, [refresh]);
+    if (!active) {
+      // Reset to idle whenever we become disabled.
+      setState((s) => (s === empty ? s : empty));
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const before = await refresh({ silent: false });
+      if (cancelled) {
+        // Ignore late state set — refresh already wrote, but parent may have
+        // unmounted. Nothing actionable here, kept for clarity.
+        void before;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [active, refresh]);
 
   const isGithubLinked = useMemo(
     () => !!state.github && state.github.status === "connected",
@@ -94,5 +131,5 @@ export function useProjectProviderLinks(
     [state.vercel],
   );
 
-  return { ...state, isGithubLinked, isVercelLinked, refresh };
+  return { ...state, isGithubLinked, isVercelLinked, refresh, enabled: active };
 }
