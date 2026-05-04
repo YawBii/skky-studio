@@ -14,6 +14,7 @@ export interface SelectedProjectState {
   projectIsReal: boolean;
   projectsEmpty: boolean;
   projectsError: boolean;
+  projectsErrorMessage?: string;
   projectsLoading: boolean;
   projectsSource: ProjectsResult["source"];
   refreshProjects: () => Promise<ProjectsResult>;
@@ -29,6 +30,7 @@ const empty: SelectedProjectState = {
   projectIsReal: false,
   projectsEmpty: true,
   projectsError: false,
+  projectsErrorMessage: undefined,
   projectsLoading: false,
   projectsSource: "no-workspace",
   refreshProjects: async () => ({ projects: [], source: "no-workspace" }),
