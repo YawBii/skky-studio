@@ -335,6 +335,28 @@ function checkFile(file: { path: string; content: string }): CheckResult[] {
       name: `${file.path}: contains create table`,
       ok: /create\s+table/i.test(file.content),
     });
+    out.push({
+      name: `${file.path}: enables RLS`,
+      ok: /enable\s+row\s+level\s+security/i.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: has policy`,
+      ok: /create\s+policy/i.test(file.content),
+    });
+  }
+  if (file.path.endsWith(".tsx") && file.path.startsWith("src/routes/")) {
+    out.push({
+      name: `${file.path}: uses createFileRoute`,
+      ok: /createFileRoute\s*\(/.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: no react-router-dom`,
+      ok: !/from\s+["']react-router-dom["']/.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: balanced braces`,
+      ok: countChar(file.content, "{") === countChar(file.content, "}"),
+    });
   }
   return out;
 }
