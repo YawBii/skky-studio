@@ -144,7 +144,8 @@ export function AssistantPanel({
   const [checklist, setChecklist] = useState(loadChecklist);
   const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
   const [liveEnabled, setLiveEnabled] = useState(false);
-  const effectiveEnabled = enabled && liveEnabled && !isSafeMode() && !!project?.id && !!workspace?.id;
+  const effectiveEnabled =
+    enabled && liveEnabled && !isSafeMode() && !!project?.id && !!workspace?.id;
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -421,7 +422,7 @@ export function AssistantPanel({
     };
     window.addEventListener("yawb:focus-summary", handler as EventListener);
     return () => window.removeEventListener("yawb:focus-summary", handler as EventListener);
-  }, [project?.id, jobsState.jobs, jobsState.refreshSteps]);
+  }, [project, jobsState]);
 
   const persistChecklist = (next: typeof checklist) => {
     setChecklist(next);
