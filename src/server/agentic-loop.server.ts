@@ -259,12 +259,24 @@ async function generateFile(input: {
   repairHint?: string;
 }): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
   const isIndex = input.file.path === "index.html";
-  const designConstraints = isIndex
-    ? "MUST include <meta name=\"yawb-generator\" content=\"agentic-loop-v1\" />. MUST be a real, content-rich page tailored to the user's product (not a template). Hero, primary workflow surface, navigation to other pages, and clear CTAs. Use semantic HTML and link to ./styles.css."
-    : "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
+  const isTsxRoute = input.file.path.startsWith("src/routes/") && input.file.path.endsWith(".tsx");
+  const isSql = input.file.path.endsWith(".sql");
+  let designConstraints: string;
+  if (isIndex) {
+    designConstraints =
+      'MUST include <meta name="yawb-generator" content="agentic-loop-v1" />. MUST be a real, content-rich page tailored to the user\'s product (not a template). Hero, primary workflow surface, navigation to other pages, and clear CTAs. Use semantic HTML and link to ./styles.css.';
+  } else if (isTsxRoute) {
+    designConstraints =
+      "Use TanStack Start file-based routing: `import { createFileRoute } from \"@tanstack/react-router\"; export const Route = createFileRoute(\"<path>\")({ component: Page }); function Page() { ... }`. No default export. No React Router imports. Match the plan's design direction.";
+  } else if (isSql) {
+    designConstraints =
+      "Emit Postgres SQL: CREATE TABLE for every plan.dataModel entry, ALTER TABLE ... ENABLE ROW LEVEL SECURITY, and at least one CREATE POLICY per table. Use auth.uid() where appropriate. No DROP statements.";
+  } else {
+    designConstraints = "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
+  }
   const r = await callGateway({
     model: CODE_MODEL,
-    system: `You are yawB's code generator. Write a single complete file. ${designConstraints} Forbidden strings: "Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum".`,
+    system: `You are yawB's code generator. Write a single complete file. ${designConstraints} Forbidden strings: "Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum", "TODO".`,
     user: JSON.stringify({
       userRequest: input.userRequest,
       plan: input.plan,
