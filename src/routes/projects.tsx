@@ -737,7 +737,9 @@ function VercelProjectsTab({
         providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
         empty={state.projects.length === 0 && !state.loading && !state.error}
         emptyMessage={
-          loaded ? "No Vercel projects visible to this token." : "Click refresh to load Vercel projects."
+          loaded
+            ? "No Vercel projects visible to this token."
+            : "Click refresh to load Vercel projects."
         }
       >
         {!currentProjectId && (

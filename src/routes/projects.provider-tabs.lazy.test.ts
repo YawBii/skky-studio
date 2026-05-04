@@ -11,8 +11,12 @@ describe("Projects provider tabs lazy loading", () => {
   });
 
   it("does not auto-load GitHub or Vercel lists from mount effects", () => {
-    const githubBody = src.split("function GithubReposTab")[1].split("async function importRepo")[0];
-    const vercelBody = src.split("function VercelProjectsTab")[1].split("async function performLink")[0];
+    const githubBody = src
+      .split("function GithubReposTab")[1]
+      .split("async function importRepo")[0];
+    const vercelBody = src
+      .split("function VercelProjectsTab")[1]
+      .split("async function performLink")[0];
     expect(githubBody).not.toMatch(/useEffect\([\s\S]*load/);
     expect(vercelBody).not.toMatch(/useEffect\([\s\S]*load/);
   });
