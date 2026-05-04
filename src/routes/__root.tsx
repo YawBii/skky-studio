@@ -274,9 +274,7 @@ function WorkspaceShell() {
   // navigation isn't "stuck" on the create-workspace screen.
   const isHomeRoute = pathname === "/" || pathname === "/projects";
   let mainContent: React.ReactNode;
-  if (isHomeRoute && !authLoading && !session) {
-    mainContent = <MobileSignedOutEmpty />;
-  } else if (isHomeRoute && workspaceEmpty) {
+  if (isHomeRoute && workspaceEmpty) {
     mainContent = (
       <CreateWorkspaceEmpty
         errorMessage={workspaceError ? workspaceErrorMessage : undefined}
