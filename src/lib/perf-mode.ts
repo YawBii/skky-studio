@@ -20,6 +20,12 @@ interface CallRecord {
 }
 const calls = new Map<string, CallRecord>();
 
+interface RenderRecord {
+  count: number;
+  startedAt: number;
+}
+const renders = new Map<string, RenderRecord>();
+
 /**
  * Dev-only: warns if `key` is invoked more than 3 times in 5 seconds.
  * No-op outside dev. Safe to call in render or effects.
@@ -35,6 +41,25 @@ export function noteFetchCall(key: string): void {
   if (rec.times.length > 3) {
     console.warn(
       `[yawb] fetch-loop suspect: "${key}" fired ${rec.times.length} times in <5s — check effect deps`,
+    );
+  }
+}
+
+/**
+ * Dev-only: warns when a component renders suspiciously often.
+ * Useful for catching browser-freezing render loops without changing UI.
+ */
+export function noteRender(key: string): void {
+  if (typeof window === "undefined") return;
+  if (!import.meta.env?.DEV) return;
+  const now = Date.now();
+  const rec = renders.get(key) ?? { count: 0, startedAt: now };
+  const fresh = now - rec.startedAt > 5000 ? { count: 0, startedAt: now } : rec;
+  fresh.count += 1;
+  renders.set(key, fresh);
+  if (fresh.count === 30) {
+    console.warn(
+      `[yawb] render-loop suspect: "${key}" rendered ${fresh.count} times in <5s — check state/effect churn`,
     );
   }
 }
