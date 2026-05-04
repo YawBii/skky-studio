@@ -288,9 +288,11 @@ type GhRepo = Awaited<ReturnType<typeof listGithubReposFn>>["repos"][number];
 
 function GithubReposTab({
   workspaceId,
+  enabled,
   onImported,
 }: {
   workspaceId: string;
+  enabled: boolean;
   onImported: (id: string, name: string) => void;
 }) {
   const [state, setState] = useState<{
@@ -299,29 +301,31 @@ function GithubReposTab({
     missing?: string[];
     repos: GhRepo[];
   }>({
-    loading: true,
+    loading: false,
     repos: [],
   });
   const [importing, setImporting] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, ImportProof>>({});
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
+    if (!enabled || isSafeMode()) return;
     setState((s) => ({ ...s, loading: true, error: undefined }));
     try {
+      noteFetchCall("GithubReposTab:listGithubRepos");
       const res = await listGithubReposFn({ data: { perPage: 50 } });
       if (!res.ok) {
         setState({ loading: false, error: res.error, missing: res.missing, repos: [] });
+        setLoaded(true);
         return;
       }
       setState({ loading: false, repos: res.repos });
+      setLoaded(true);
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), repos: [] });
+      setLoaded(true);
     }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  }, [enabled]);
 
   async function importRepo(r: GhRepo) {
     if (!workspaceId) {
@@ -443,7 +447,7 @@ function GithubReposTab({
       missing={state.missing}
       providerSetupHint="GITHUB_TOKEN missing — add it from Lovable Cloud secrets."
       empty={state.repos.length === 0 && !state.loading && !state.error}
-      emptyMessage="No repositories visible to this token."
+      emptyMessage={loaded ? "No repositories visible to this token." : "Click refresh to load repositories."}
     >
       {state.repos.map((r) => {
         const proof = proofs[r.fullName];
