@@ -161,15 +161,33 @@ function RootComponent() {
   return (
     <AuthProvider>
       <BodyPointerEventsGuard />
-      <WorkspaceShell />
+      <AuthGate />
       <Toaster />
     </AuthProvider>
   );
 }
 
+function AuthGate() {
+  const { session, loading: authLoading } = useAuth();
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center text-sm text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+  if (!session) {
+    // Hard gate: render the signed-out shell only. Do NOT mount WorkspaceTopBar,
+    // Chat, project lists, ProviderLinksPanel, or any provider hooks.
+    return <MobileSignedOutEmpty />;
+  }
+  return <WorkspaceShell />;
+}
+
 function WorkspaceShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { session, loading: authLoading } = useAuth();
+  // Auth gating happens upstream in <AuthGate />; if we render, session exists.
+
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try {
@@ -190,6 +208,7 @@ function WorkspaceShell() {
   } = useWorkspaces();
   const {
     current: currentProject,
+    projects,
     isReal: projectIsReal,
     isEmpty: projectEmpty,
     refresh: refreshProjects,
@@ -255,9 +274,7 @@ function WorkspaceShell() {
   // navigation isn't "stuck" on the create-workspace screen.
   const isHomeRoute = pathname === "/" || pathname === "/projects";
   let mainContent: React.ReactNode;
-  if (isHomeRoute && !authLoading && !session) {
-    mainContent = <MobileSignedOutEmpty />;
-  } else if (isHomeRoute && workspaceEmpty) {
+  if (isHomeRoute && workspaceEmpty) {
     mainContent = (
       <CreateWorkspaceEmpty
         errorMessage={workspaceError ? workspaceErrorMessage : undefined}
@@ -295,6 +312,9 @@ function WorkspaceShell() {
           collaborators={collaborators}
           presenceLive={isLive}
           onShare={() => setInviteOpen(true)}
+          projects={projects}
+          currentProject={currentProject}
+          selectProject={selectProject}
         />
         <div className="flex-1 min-h-0">
           <SplitPane

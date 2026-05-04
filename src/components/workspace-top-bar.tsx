@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { useSelectedProject } from "@/hooks/use-selected-project";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { MobileProjectPicker } from "@/components/mobile-project-picker";
@@ -32,6 +31,8 @@ import type {
   ConnectionStatus,
   ProjectConnection,
 } from "@/services/project-connections";
+import type { Project } from "@/services/projects";
+import { isSafeMode } from "@/lib/perf-mode";
 
 export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
 export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
@@ -55,6 +56,10 @@ interface WorkspaceTopBarProps {
   presenceLive?: boolean;
   onDeploy?: () => void;
   onShare?: () => void;
+  /** Presentational props — parent must supply. */
+  projects: Project[];
+  currentProject: Project | null;
+  selectProject: (id: string) => void;
 }
 
 const PROVIDER_ICONS: Partial<
@@ -77,13 +82,16 @@ export function WorkspaceTopBar({
   presenceLive = false,
   onDeploy,
   onShare,
+  projects,
+  currentProject,
+  selectProject,
 }: WorkspaceTopBarProps) {
   const visible = collaborators.slice(0, 3);
   const extra = Math.max(0, collaborators.length - visible.length);
-  const { projects, project: currentProject, selectProject } = useSelectedProject();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
+  const safe = isSafeMode();
 
   const onPickProject = (id: string) => {
     console.info("[yawb] topbar.projectSwitcher.pick", { id });
@@ -253,7 +261,7 @@ export function WorkspaceTopBar({
         </Button>
 
         {/* Connection chips — collapsed icon + count, popover with grouped/filterable details */}
-        {connections.length > 0 && <IntegrationsPopover connections={connections} />}
+        {!safe && connections.length > 0 && <IntegrationsPopover connections={connections} />}
 
         <Button
           variant="ghost"

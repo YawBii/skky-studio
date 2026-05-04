@@ -7,16 +7,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useProjectProviderLinks } from "@/hooks/use-project-provider-links";
 import type { ConsistencyProofEntry } from "@/lib/connection-consistency";
+import { isSafeMode } from "@/lib/perf-mode";
 
 interface Props {
   projectId: string | null | undefined;
   workspaceId: string | null | undefined;
   compact?: boolean;
+  /** Defaults to true for back-compat. Pass false to fully suppress fetches. */
+  enabled?: boolean;
 }
 
-export function ProviderLinksPanel({ projectId, workspaceId, compact }: Props) {
-  const links = useProjectProviderLinks(projectId, workspaceId);
+const INACTIVE_DEFAULT_LIMIT = 10;
+
+export function ProviderLinksPanel({ projectId, workspaceId, compact, enabled = true }: Props) {
+  const safe = isSafeMode();
+  const effectiveEnabled = enabled && !safe && !!projectId && !!workspaceId;
+  const links = useProjectProviderLinks(projectId, workspaceId, { enabled: effectiveEnabled });
   const c = links.consistency;
+
+  if (safe) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-[12px] text-muted-foreground">
+        Provider links panel disabled (safe mode).
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm">
@@ -45,7 +60,7 @@ export function ProviderLinksPanel({ projectId, workspaceId, compact }: Props) {
           size="sm"
           variant="outline"
           onClick={() => void links.refresh({ toastOnComplete: true })}
-          disabled={links.loading}
+          disabled={links.loading || !effectiveEnabled}
           aria-label="Refresh links"
         >
           <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${links.loading ? "animate-spin" : ""}`} />
@@ -76,7 +91,9 @@ export function ProviderLinksPanel({ projectId, workspaceId, compact }: Props) {
         <div className="space-y-2">
           {c?.proof.length === 0 && (
             <div className="text-[12px] text-muted-foreground">
-              No active provider connections linked yet.
+              {effectiveEnabled
+                ? "No active provider connections linked yet."
+                : "Sign in and select a project to inspect links."}
             </div>
           )}
           {c?.proof.map((p) => (
@@ -127,6 +144,9 @@ function ProofRow({ p }: { p: ConsistencyProofEntry }) {
 
 function InactiveHistory({ rows }: { rows: ConsistencyProofEntry[] }) {
   const [open, setOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const visible = open ? (showAll ? rows : rows.slice(0, INACTIVE_DEFAULT_LIMIT)) : [];
+  const hidden = Math.max(0, rows.length - INACTIVE_DEFAULT_LIMIT);
   return (
     <div className="rounded-lg border border-white/5 bg-background/20">
       <button
@@ -139,9 +159,18 @@ function InactiveHistory({ rows }: { rows: ConsistencyProofEntry[] }) {
       </button>
       {open && (
         <div className="space-y-2 px-2 pb-2">
-          {rows.map((p) => (
+          {visible.map((p) => (
             <ProofRow key={p.connectionId} p={p} />
           ))}
+          {!showAll && hidden > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="w-full text-center text-[11.5px] text-muted-foreground hover:text-foreground py-1"
+            >
+              +{hidden} more inactive links — show all history
+            </button>
+          )}
         </div>
       )}
     </div>
