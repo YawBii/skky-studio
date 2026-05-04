@@ -1,7 +1,7 @@
 // Shared accessor for the currently selected workspace + project.
 // Data is provided by WorkspaceShell so nested routes do not refetch
 // workspaces/projects independently.
-import { createContext, useContext } from "react";
+import { createContext, createElement, useContext, type ReactNode } from "react";
 import type { Project, ProjectsResult } from "@/services/projects";
 import type { Workspace } from "@/services/workspaces";
 
@@ -42,9 +42,9 @@ export function SelectedProjectProvider({
   children,
 }: {
   value: SelectedProjectState;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  return <SelectedProjectContext.Provider value={value}>{children}</SelectedProjectContext.Provider>;
+  return createElement(SelectedProjectContext.Provider, { value }, children);
 }
 
 export function useSelectedProject() {
