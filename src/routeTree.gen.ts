@@ -34,6 +34,7 @@ import { Route as PublishProjectIdRouteImport } from './routes/publish.$projectI
 import { Route as ProofProjectIdRouteImport } from './routes/proof.$projectId'
 import { Route as PreviewProjectIdRouteImport } from './routes/preview.$projectId'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
+import { Route as ApiPublicVerifyRouteImport } from './routes/api/public/verify'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBuildRunnerRouteImport } from './routes/api/public/build-runner'
 
@@ -162,6 +163,11 @@ const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
   path: '/builder/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVerifyRoute = ApiPublicVerifyRouteImport.update({
+  id: '/api/public/verify',
+  path: '/api/public/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
   path: '/api/public/health',
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/verify': typeof ApiPublicVerifyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/verify': typeof ApiPublicVerifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/versions/$projectId': typeof VersionsProjectIdRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
   '/api/public/health': typeof ApiPublicHealthRoute
+  '/api/public/verify': typeof ApiPublicVerifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/versions/$projectId'
     | '/api/public/build-runner'
     | '/api/public/health'
+    | '/api/public/verify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/versions/$projectId'
     | '/api/public/build-runner'
     | '/api/public/health'
+    | '/api/public/verify'
   id:
     | '__root__'
     | '/'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/versions/$projectId'
     | '/api/public/build-runner'
     | '/api/public/health'
+    | '/api/public/verify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -379,6 +391,7 @@ export interface RootRouteChildren {
   VersionsProjectIdRoute: typeof VersionsProjectIdRoute
   ApiPublicBuildRunnerRoute: typeof ApiPublicBuildRunnerRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
+  ApiPublicVerifyRoute: typeof ApiPublicVerifyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -558,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuilderProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/verify': {
+      id: '/api/public/verify'
+      path: '/api/public/verify'
+      fullPath: '/api/public/verify'
+      preLoaderRoute: typeof ApiPublicVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/health': {
       id: '/api/public/health'
       path: '/api/public/health'
@@ -603,6 +623,7 @@ const rootRouteChildren: RootRouteChildren = {
   VersionsProjectIdRoute: VersionsProjectIdRoute,
   ApiPublicBuildRunnerRoute: ApiPublicBuildRunnerRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
+  ApiPublicVerifyRoute: ApiPublicVerifyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
