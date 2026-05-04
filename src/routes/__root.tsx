@@ -207,6 +207,7 @@ function WorkspaceShell() {
   } = useWorkspaces();
   const {
     current: currentProject,
+    projects,
     isReal: projectIsReal,
     isEmpty: projectEmpty,
     refresh: refreshProjects,
