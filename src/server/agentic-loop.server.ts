@@ -148,7 +148,7 @@ const PLAN_TOOL = {
       files: {
         type: "array",
         description:
-          "Concrete files to write. MUST include 'index.html' and 'styles.css'. Add 'app.js' for interactivity, 'supabase/migrations/001_init.sql' if data model exists, 'README.md', and route HTML files for each non-home page.",
+          "Concrete files to write. MUST include: (1) 'index.html' and 'styles.css' that drive the visible preview; (2) 'app.js' if interactive; (3) one HTML page per non-home route; (4) 'supabase/migrations/001_init.sql' with create-table + RLS enable + policies for every dataModel table; (5) a parallel TanStack Start scaffold under 'src/' — 'src/routes/index.tsx' and one 'src/routes/<page>.tsx' per page, 'src/components/<Component>.tsx' for reusable UI, 'src/services/<name>.ts' for data access; (6) 'README.md' summarizing the build. The static files render the preview; the src/ scaffold is the export target.",
         items: {
           type: "object",
           properties: {
