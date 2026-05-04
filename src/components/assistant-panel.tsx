@@ -143,7 +143,8 @@ export function AssistantPanel({
   const [queuedSummaryJobs, setQueuedSummaryJobs] = useState<Record<string, Job>>({});
   const [checklist, setChecklist] = useState(loadChecklist);
   const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
-  const effectiveEnabled = enabled && !isSafeMode() && !!project?.id && !!workspace?.id;
+  const [liveEnabled, setLiveEnabled] = useState(false);
+  const effectiveEnabled = enabled && liveEnabled && !isSafeMode() && !!project?.id && !!workspace?.id;
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -212,6 +213,7 @@ export function AssistantPanel({
   // Manually re-emit summary cards for the latest few terminal jobs (handy
   // when the user just opened the panel and wants to see what happened).
   const showRecentSummaries = () => {
+    setLiveEnabled(true);
     if (!project) return;
     const terminal = jobsState.jobs.filter((j) => TERMINAL_JOB_STATUSES.has(j.status)).slice(0, 5);
     if (terminal.length === 0) {
@@ -490,6 +492,7 @@ export function AssistantPanel({
   };
 
   const send = async () => {
+    setLiveEnabled(true);
     const text = prompt.trim();
     if (!text) return;
     console.info("[yawb] chat.send.clicked", { len: text.length, projectId: project?.id });
@@ -555,6 +558,7 @@ export function AssistantPanel({
   };
 
   const runJob = async (type: JobType, title: string) => {
+    setLiveEnabled(true);
     console.info("[yawb] chat.runJob.clicked", { type, title, projectId: project?.id });
     if (!project || !workspace) {
       toast.error("Select a project first to enqueue a job.");
