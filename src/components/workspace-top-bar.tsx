@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { useSelectedProject } from "@/hooks/use-selected-project";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { MobileProjectPicker } from "@/components/mobile-project-picker";
@@ -32,6 +31,8 @@ import type {
   ConnectionStatus,
   ProjectConnection,
 } from "@/services/project-connections";
+import type { Project } from "@/services/projects";
+import { isSafeMode } from "@/lib/perf-mode";
 
 export type CollaboratorRole = "owner" | "admin" | "member" | "viewer";
 export type CollaboratorStatus = "editing" | "viewing" | "online" | "offline";
