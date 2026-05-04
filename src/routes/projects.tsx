@@ -295,6 +295,7 @@ function GithubReposTab({
   enabled: boolean;
   onImported: (id: string, name: string) => void;
 }) {
+  noteRender("GithubReposTab");
   const [state, setState] = useState<{
     loading: boolean;
     error?: string;
@@ -447,7 +448,9 @@ function GithubReposTab({
       missing={state.missing}
       providerSetupHint="GITHUB_TOKEN missing — add it from Lovable Cloud secrets."
       empty={state.repos.length === 0 && !state.loading && !state.error}
-      emptyMessage={loaded ? "No repositories visible to this token." : "Click refresh to load repositories."}
+      emptyMessage={
+        loaded ? "No repositories visible to this token." : "Click refresh to load repositories."
+      }
     >
       {state.repos.map((r) => {
         const proof = proofs[r.fullName];
@@ -576,7 +579,7 @@ function VercelProjectsTab({
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
       setLoaded(true);
     }
-  }, [workspaceId, refreshActive]);
+  }, [enabled, workspaceId, refreshActive]);
 
   async function performLink(p: VercelP) {
     if (!workspaceId || !currentProjectId) return;
@@ -695,6 +698,7 @@ function VercelProjectsTab({
           projectId={currentProjectId}
           workspaceId={workspaceId || null}
           compact
+          enabled={enabled && loaded}
         />
       )}
       {duplicates.length > 0 && (
@@ -726,7 +730,9 @@ function VercelProjectsTab({
         missing={state.missing}
         providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
         empty={state.projects.length === 0 && !state.loading && !state.error}
-        emptyMessage="No Vercel projects visible to this token."
+        emptyMessage={
+          loaded ? "No Vercel projects visible to this token." : "Click refresh to load Vercel projects."
+        }
       >
         {!currentProjectId && (
           <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">
