@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { z } from "zod";
 import {
   Plus,
@@ -20,8 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useWorkspaces } from "@/hooks/use-workspaces";
-import { useProjects } from "@/hooks/use-projects";
+import { useSelectedProject } from "@/hooks/use-selected-project";
 import { ProjectScopedEmpty, ProjectSurfaceError } from "@/components/project-empty";
 import { CreateProjectEmpty } from "@/components/empty-states";
 import { listGithubReposFn, listVercelProjectsFn } from "@/services/providers.functions";
@@ -37,6 +36,7 @@ import {
 import { ProviderLinksPanel } from "@/components/provider-links-panel";
 import { cn } from "@/lib/utils";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
+import { isSafeMode, noteFetchCall, noteRender } from "@/lib/perf-mode";
 
 const TabSchema = z
   .object({
@@ -63,10 +63,17 @@ type TabKey = "projects" | "github" | "vercel" | "import";
 /* -------------------- Page shell -------------------- */
 
 function ProjectsPage() {
-  const { current: workspace, isReal: workspaceIsReal } = useWorkspaces();
-  const { projects, current, loading, isError, error, select, refresh } = useProjects(
-    workspace?.id,
-  );
+  const {
+    workspace,
+    workspaceIsReal,
+    projects,
+    project: current,
+    projectsLoading: loading,
+    projectsError: isError,
+    projectsErrorMessage: error,
+    selectProject: select,
+    refreshProjects: refresh,
+  } = useSelectedProject();
   const navigate = useNavigate();
   const search = useSearch({ from: "/projects" }) as { tab?: TabKey } | undefined;
   const tab: TabKey = search?.tab ?? "projects";
@@ -227,6 +234,7 @@ function ProjectsPage() {
         <TabsContent value="github" className="mt-5">
           <GithubReposTab
             workspaceId={workspace?.id ?? ""}
+            enabled={tab === "github"}
             onImported={async (id, name) => {
               await refresh();
               openProject(id, name);
@@ -239,6 +247,7 @@ function ProjectsPage() {
             workspaceId={workspace?.id ?? ""}
             currentProjectId={current?.id ?? null}
             currentProjectName={current?.name ?? null}
+            enabled={tab === "vercel"}
           />
         </TabsContent>
 
@@ -285,40 +294,45 @@ type GhRepo = Awaited<ReturnType<typeof listGithubReposFn>>["repos"][number];
 
 function GithubReposTab({
   workspaceId,
+  enabled,
   onImported,
 }: {
   workspaceId: string;
+  enabled: boolean;
   onImported: (id: string, name: string) => void;
 }) {
+  noteRender("GithubReposTab");
   const [state, setState] = useState<{
     loading: boolean;
     error?: string;
     missing?: string[];
     repos: GhRepo[];
   }>({
-    loading: true,
+    loading: false,
     repos: [],
   });
   const [importing, setImporting] = useState<string | null>(null);
   const [proofs, setProofs] = useState<Record<string, ImportProof>>({});
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
+    if (!enabled || isSafeMode()) return;
     setState((s) => ({ ...s, loading: true, error: undefined }));
     try {
+      noteFetchCall("GithubReposTab:listGithubRepos");
       const res = await listGithubReposFn({ data: { perPage: 50 } });
       if (!res.ok) {
         setState({ loading: false, error: res.error, missing: res.missing, repos: [] });
+        setLoaded(true);
         return;
       }
       setState({ loading: false, repos: res.repos });
+      setLoaded(true);
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), repos: [] });
+      setLoaded(true);
     }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  }, [enabled]);
 
   async function importRepo(r: GhRepo) {
     if (!workspaceId) {
@@ -440,7 +454,9 @@ function GithubReposTab({
       missing={state.missing}
       providerSetupHint="GITHUB_TOKEN missing — add it from Lovable Cloud secrets."
       empty={state.repos.length === 0 && !state.loading && !state.error}
-      emptyMessage="No repositories visible to this token."
+      emptyMessage={
+        loaded ? "No repositories visible to this token." : "Click refresh to load repositories."
+      }
     >
       {state.repos.map((r) => {
         const proof = proofs[r.fullName];
@@ -494,20 +510,24 @@ function VercelProjectsTab({
   workspaceId,
   currentProjectId,
   currentProjectName,
+  enabled,
 }: {
   workspaceId: string;
   currentProjectId: string | null;
   currentProjectName: string | null;
+  enabled: boolean;
 }) {
+  noteRender("VercelProjectsTab");
   const [state, setState] = useState<{
     loading: boolean;
     error?: string;
     missing?: string[];
     projects: VercelP[];
   }>({
-    loading: true,
+    loading: false,
     projects: [],
   });
+  const [loaded, setLoaded] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
   // Sync health per Vercel project id.
   const [health, setHealth] = useState<
@@ -522,26 +542,31 @@ function VercelProjectsTab({
   const [currentGithubRepo, setCurrentGithubRepo] = useState<string | null>(null);
 
   const refreshActive = useCallback(async () => {
+    if (!enabled || isSafeMode()) return;
     if (!currentProjectId) {
       setActiveForCurrent(null);
       setDuplicates([]);
       setCurrentGithubRepo(null);
       return;
     }
+    noteFetchCall("VercelProjectsTab:refreshActive");
     const r = await findActiveVercelConnection(currentProjectId);
     setActiveForCurrent(r.active);
     setDuplicates(r.duplicates);
     const all = await listConnections(currentProjectId);
     const gh = all.connections.find((c) => c.provider === "github" && c.status === "connected");
     setCurrentGithubRepo(gh?.repoFullName ?? null);
-  }, [currentProjectId]);
+  }, [enabled, currentProjectId]);
 
   const load = useCallback(async () => {
+    if (!enabled || isSafeMode()) return;
     setState((s) => ({ ...s, loading: true, error: undefined }));
     try {
+      noteFetchCall("VercelProjectsTab:listVercelProjects");
       const res = await listVercelProjectsFn({ data: { limit: 50 } });
       if (!res.ok) {
         setState({ loading: false, error: res.error, missing: res.missing, projects: [] });
+        setLoaded(true);
         return;
       }
       setState({ loading: false, projects: res.projects });
@@ -555,14 +580,12 @@ function VercelProjectsTab({
       );
       setHealth(next);
       await refreshActive();
+      setLoaded(true);
     } catch (e) {
       setState({ loading: false, error: e instanceof Error ? e.message : String(e), projects: [] });
+      setLoaded(true);
     }
-  }, [workspaceId, refreshActive]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  }, [enabled, workspaceId, refreshActive]);
 
   async function performLink(p: VercelP) {
     if (!workspaceId || !currentProjectId) return;
@@ -681,6 +704,7 @@ function VercelProjectsTab({
           projectId={currentProjectId}
           workspaceId={workspaceId || null}
           compact
+          enabled={enabled && loaded}
         />
       )}
       {duplicates.length > 0 && (
@@ -712,7 +736,11 @@ function VercelProjectsTab({
         missing={state.missing}
         providerSetupHint="VERCEL_TOKEN missing — add it from Lovable Cloud secrets."
         empty={state.projects.length === 0 && !state.loading && !state.error}
-        emptyMessage="No Vercel projects visible to this token."
+        emptyMessage={
+          loaded
+            ? "No Vercel projects visible to this token."
+            : "Click refresh to load Vercel projects."
+        }
       >
         {!currentProjectId && (
           <div className="px-5 py-3 border-b border-white/5 text-[12px] text-warning bg-warning/5 flex items-start gap-2">

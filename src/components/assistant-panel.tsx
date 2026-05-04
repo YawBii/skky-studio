@@ -17,7 +17,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { useSelectedProject } from "@/hooks/use-selected-project";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
@@ -31,6 +30,9 @@ import {
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
 import { TaskSummaryCard } from "@/components/task-summary-card";
+import { isSafeMode, noteRender } from "@/lib/perf-mode";
+import type { Project } from "@/services/projects";
+import type { Workspace } from "@/services/workspaces";
 
 type ProofStatus = "ok" | "warn" | "fail" | "skip";
 type ProofItem = { id: string; label: string; status: ProofStatus; detail?: string };
@@ -126,20 +128,33 @@ const INITIAL: Msg[] = [
   },
 ];
 
-export function AssistantPanel() {
+export function AssistantPanel({
+  project,
+  workspace,
+  enabled = true,
+}: {
+  project: Project | null;
+  workspace: Workspace | null;
+  enabled?: boolean;
+}) {
+  noteRender("AssistantPanel");
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Msg[]>(INITIAL);
   const [queuedSummaryJobs, setQueuedSummaryJobs] = useState<Record<string, Job>>({});
   const [checklist, setChecklist] = useState(loadChecklist);
   const [enqueuingType, setEnqueuingType] = useState<string | null>(null);
-  const { project, workspace } = useSelectedProject();
+  const [liveEnabled, setLiveEnabled] = useState(false);
+  const effectiveEnabled =
+    enabled && liveEnabled && !isSafeMode() && !!project?.id && !!workspace?.id;
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Pull live state for smart suggestions. These hooks are no-ops when
   // there is no project (jobs/connections return empty + a "no-project" source).
-  const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null);
-  const connState = useProjectConnections(project?.id ?? null);
+  const jobsState = useProjectJobs(project?.id ?? null, workspace?.id ?? null, {
+    enabled: effectiveEnabled,
+  });
+  const connState = useProjectConnections(project?.id ?? null, { enabled: effectiveEnabled });
   const diag = useDiagnostics();
   const isGithubLinked = useMemo(
     () => connState.connections.some((c) => c.provider === "github"),
@@ -199,6 +214,7 @@ export function AssistantPanel() {
   // Manually re-emit summary cards for the latest few terminal jobs (handy
   // when the user just opened the panel and wants to see what happened).
   const showRecentSummaries = () => {
+    setLiveEnabled(true);
     if (!project) return;
     const terminal = jobsState.jobs.filter((j) => TERMINAL_JOB_STATUSES.has(j.status)).slice(0, 5);
     if (terminal.length === 0) {
@@ -477,6 +493,7 @@ export function AssistantPanel() {
   };
 
   const send = async () => {
+    setLiveEnabled(true);
     const text = prompt.trim();
     if (!text) return;
     console.info("[yawb] chat.send.clicked", { len: text.length, projectId: project?.id });
@@ -542,6 +559,7 @@ export function AssistantPanel() {
   };
 
   const runJob = async (type: JobType, title: string) => {
+    setLiveEnabled(true);
     console.info("[yawb] chat.runJob.clicked", { type, title, projectId: project?.id });
     if (!project || !workspace) {
       toast.error("Select a project first to enqueue a job.");

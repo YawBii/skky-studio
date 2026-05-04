@@ -5,8 +5,17 @@ import {
   type ConnectionProvider,
   type ProjectConnection,
 } from "@/services/project-connections";
+import { isSafeMode, noteFetchCall } from "@/lib/perf-mode";
 
-export function useProjectConnections(projectId: string | null | undefined) {
+interface UseProjectConnectionsOptions {
+  enabled?: boolean;
+}
+
+export function useProjectConnections(
+  projectId: string | null | undefined,
+  options: UseProjectConnectionsOptions = {},
+) {
+  const enabled = (options.enabled ?? true) && !isSafeMode();
   const [result, setResult] = useState<ConnectionsResult>({
     connections: [],
     source: "no-project",
@@ -14,7 +23,13 @@ export function useProjectConnections(projectId: string | null | undefined) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    if (!enabled || !projectId) {
+      setResult({ connections: [], source: "no-project" });
+      setLoading(false);
+      return { connections: [], source: "no-project" } satisfies ConnectionsResult;
+    }
     setLoading(true);
+    noteFetchCall(`useProjectConnections:${projectId}`);
     const r = await listConnections(projectId ?? null);
     setResult(r);
     setLoading(false);
@@ -27,7 +42,7 @@ export function useProjectConnections(projectId: string | null | undefined) {
       );
     }
     return r;
-  }, [projectId]);
+  }, [enabled, projectId]);
 
   useEffect(() => {
     void refresh();

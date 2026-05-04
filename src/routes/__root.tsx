@@ -6,7 +6,7 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AssistantPanel } from "@/components/assistant-panel";
@@ -20,6 +20,7 @@ import { SplitPane } from "@/components/split-pane";
 import { useWorkspaces } from "@/hooks/use-workspaces";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectConnections } from "@/hooks/use-project-connections";
+import { SelectedProjectProvider } from "@/hooks/use-selected-project";
 import { CreateWorkspaceEmpty, CreateProjectEmpty } from "@/components/empty-states";
 import { DiagnosticsPanel } from "@/components/diagnostics-panel";
 import { setDiag } from "@/lib/diagnostics";
@@ -203,6 +204,7 @@ function WorkspaceShell() {
     isEmpty: workspaceEmpty,
     isError: workspaceError,
     error: workspaceErrorMessage,
+    loading: workspaceLoading,
     refresh: refreshWorkspaces,
     select: selectWorkspace,
   } = useWorkspaces();
@@ -211,6 +213,10 @@ function WorkspaceShell() {
     projects,
     isReal: projectIsReal,
     isEmpty: projectEmpty,
+    isError: projectError,
+    error: projectErrorMessage,
+    loading: projectsLoading,
+    source: projectsSource,
     refresh: refreshProjects,
     select: selectProject,
   } = useProjects(currentWorkspace?.id);
@@ -253,6 +259,39 @@ function WorkspaceShell() {
   // Only show real workspace/project names. No demo fallback.
   const workspaceName = workspaceIsReal && currentWorkspace ? currentWorkspace.name : "yawB";
   const projectName = projectIsReal && currentProject ? currentProject.name : "No project selected";
+
+  const selectedProjectState = useMemo(
+    () => ({
+      workspace: currentWorkspace,
+      workspaceIsReal,
+      workspaceLoading,
+      project: currentProject,
+      projects,
+      projectIsReal,
+      projectsEmpty: projectEmpty,
+      projectsError: projectError,
+      projectsErrorMessage: projectErrorMessage,
+      projectsLoading,
+      projectsSource,
+      refreshProjects,
+      selectProject,
+    }),
+    [
+      currentWorkspace,
+      workspaceIsReal,
+      workspaceLoading,
+      currentProject,
+      projects,
+      projectIsReal,
+      projectEmpty,
+      projectError,
+      projectErrorMessage,
+      projectsLoading,
+      projectsSource,
+      refreshProjects,
+      selectProject,
+    ],
+  );
 
   // Diagnostics for selection state.
   useEffect(() => {
@@ -325,8 +364,18 @@ function WorkspaceShell() {
               setRightWidth(w);
               update({ workspaceSplit: { "chat-width-px": w } });
             }}
-            left={<main className="h-full overflow-y-auto scrollbar-thin">{mainContent}</main>}
-            right={<AssistantPanel />}
+            left={
+              <SelectedProjectProvider value={selectedProjectState}>
+                <main className="h-full overflow-y-auto scrollbar-thin">{mainContent}</main>
+              </SelectedProjectProvider>
+            }
+            right={
+              <AssistantPanel
+                project={projectIsReal ? currentProject : null}
+                workspace={workspaceIsReal ? currentWorkspace : null}
+                enabled={projectIsReal && workspaceIsReal}
+              />
+            }
           />
         </div>
       </div>
