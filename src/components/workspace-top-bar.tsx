@@ -261,7 +261,7 @@ export function WorkspaceTopBar({
         </Button>
 
         {/* Connection chips — collapsed icon + count, popover with grouped/filterable details */}
-        {connections.length > 0 && <IntegrationsPopover connections={connections} />}
+        {!safe && connections.length > 0 && <IntegrationsPopover connections={connections} />}
 
         <Button
           variant="ghost"
