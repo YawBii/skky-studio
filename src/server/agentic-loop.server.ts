@@ -148,7 +148,7 @@ const PLAN_TOOL = {
       files: {
         type: "array",
         description:
-          "Concrete files to write. MUST include 'index.html' and 'styles.css'. Add 'app.js' for interactivity, 'supabase/migrations/001_init.sql' if data model exists, 'README.md', and route HTML files for each non-home page.",
+          "Concrete files to write. MUST include: (1) 'index.html' and 'styles.css' that drive the visible preview; (2) 'app.js' if interactive; (3) one HTML page per non-home route; (4) 'supabase/migrations/001_init.sql' with create-table + RLS enable + policies for every dataModel table; (5) a parallel TanStack Start scaffold under 'src/' — 'src/routes/index.tsx' and one 'src/routes/<page>.tsx' per page, 'src/components/<Component>.tsx' for reusable UI, 'src/services/<name>.ts' for data access; (6) 'README.md' summarizing the build. The static files render the preview; the src/ scaffold is the export target.",
         items: {
           type: "object",
           properties: {
@@ -203,16 +203,38 @@ async function buildPlan(
     files: Array.isArray(v.files) ? (v.files as AgenticPlan["files"]) : [],
     designDirection: String(v.designDirection ?? ""),
   };
-  // Ensure index.html + styles.css are in the file list.
+  // Ensure essential files are in the file list.
   const have = new Set(plan.files.map((f) => f.path));
   if (!have.has("index.html"))
     plan.files.unshift({ path: "index.html", purpose: "Landing/preview", language: "html" });
   if (!have.has("styles.css"))
+    plan.files.push({ path: "styles.css", purpose: "Global design system", language: "css" });
+  if (!have.has("README.md"))
+    plan.files.push({ path: "README.md", purpose: "Build summary", language: "markdown" });
+  if (plan.dataModel.length > 0 && !have.has("supabase/migrations/001_init.sql"))
     plan.files.push({
-      path: "styles.css",
-      purpose: "Global design system",
-      language: "css",
+      path: "supabase/migrations/001_init.sql",
+      purpose: "Initial schema + RLS policies",
+      language: "sql",
     });
+  // Parallel TanStack Start scaffold for export.
+  if (!have.has("src/routes/index.tsx"))
+    plan.files.push({
+      path: "src/routes/index.tsx",
+      purpose: "TanStack Start home route (export scaffold)",
+      language: "typescript",
+    });
+  for (const p of plan.pages) {
+    if (p.path === "/" || p.path === "/index") continue;
+    const slug = p.path.replace(/^\//, "").replace(/\//g, ".") || "page";
+    const tsx = `src/routes/${slug}.tsx`;
+    if (!have.has(tsx))
+      plan.files.push({
+        path: tsx,
+        purpose: `TanStack Start route for ${p.name} (export scaffold)`,
+        language: "typescript",
+      });
+  }
   return { ok: true, plan };
 }
 
@@ -237,12 +259,24 @@ async function generateFile(input: {
   repairHint?: string;
 }): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
   const isIndex = input.file.path === "index.html";
-  const designConstraints = isIndex
-    ? "MUST include <meta name=\"yawb-generator\" content=\"agentic-loop-v1\" />. MUST be a real, content-rich page tailored to the user's product (not a template). Hero, primary workflow surface, navigation to other pages, and clear CTAs. Use semantic HTML and link to ./styles.css."
-    : "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
+  const isTsxRoute = input.file.path.startsWith("src/routes/") && input.file.path.endsWith(".tsx");
+  const isSql = input.file.path.endsWith(".sql");
+  let designConstraints: string;
+  if (isIndex) {
+    designConstraints =
+      'MUST include <meta name="yawb-generator" content="agentic-loop-v1" />. MUST be a real, content-rich page tailored to the user\'s product (not a template). Hero, primary workflow surface, navigation to other pages, and clear CTAs. Use semantic HTML and link to ./styles.css.';
+  } else if (isTsxRoute) {
+    designConstraints =
+      "Use TanStack Start file-based routing: `import { createFileRoute } from \"@tanstack/react-router\"; export const Route = createFileRoute(\"<path>\")({ component: Page }); function Page() { ... }`. No default export. No React Router imports. Match the plan's design direction.";
+  } else if (isSql) {
+    designConstraints =
+      "Emit Postgres SQL: CREATE TABLE for every plan.dataModel entry, ALTER TABLE ... ENABLE ROW LEVEL SECURITY, and at least one CREATE POLICY per table. Use auth.uid() where appropriate. No DROP statements.";
+  } else {
+    designConstraints = "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
+  }
   const r = await callGateway({
     model: CODE_MODEL,
-    system: `You are yawB's code generator. Write a single complete file. ${designConstraints} Forbidden strings: "Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum".`,
+    system: `You are yawB's code generator. Write a single complete file. ${designConstraints} Forbidden strings: "Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum", "TODO".`,
     user: JSON.stringify({
       userRequest: input.userRequest,
       plan: input.plan,
@@ -300,6 +334,28 @@ function checkFile(file: { path: string; content: string }): CheckResult[] {
     out.push({
       name: `${file.path}: contains create table`,
       ok: /create\s+table/i.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: enables RLS`,
+      ok: /enable\s+row\s+level\s+security/i.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: has policy`,
+      ok: /create\s+policy/i.test(file.content),
+    });
+  }
+  if (file.path.endsWith(".tsx") && file.path.startsWith("src/routes/")) {
+    out.push({
+      name: `${file.path}: uses createFileRoute`,
+      ok: /createFileRoute\s*\(/.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: no react-router-dom`,
+      ok: !/from\s+["']react-router-dom["']/.test(file.content),
+    });
+    out.push({
+      name: `${file.path}: balanced braces`,
+      ok: countChar(file.content, "{") === countChar(file.content, "}"),
     });
   }
   return out;
