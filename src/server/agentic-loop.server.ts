@@ -116,7 +116,10 @@ const PLAN_TOOL = {
   parameters: {
     type: "object",
     properties: {
-      appType: { type: "string", description: "e.g. 'AI law firm SaaS', 'pet adoption marketplace'" },
+      appType: {
+        type: "string",
+        description: "e.g. 'AI law firm SaaS', 'pet adoption marketplace'",
+      },
       users: { type: "array", items: { type: "string" } },
       workflows: { type: "array", items: { type: "string" } },
       pages: {
@@ -267,12 +270,13 @@ async function generateFile(input: {
       'MUST include <meta name="yawb-generator" content="agentic-loop-v1" />. MUST be a real, content-rich page tailored to the user\'s product (not a template). Hero, primary workflow surface, navigation to other pages, and clear CTAs. Use semantic HTML and link to ./styles.css.';
   } else if (isTsxRoute) {
     designConstraints =
-      "Use TanStack Start file-based routing: `import { createFileRoute } from \"@tanstack/react-router\"; export const Route = createFileRoute(\"<path>\")({ component: Page }); function Page() { ... }`. No default export. No React Router imports. Match the plan's design direction.";
+      'Use TanStack Start file-based routing: `import { createFileRoute } from "@tanstack/react-router"; export const Route = createFileRoute("<path>")({ component: Page }); function Page() { ... }`. No default export. No React Router imports. Match the plan\'s design direction.';
   } else if (isSql) {
     designConstraints =
       "Emit Postgres SQL: CREATE TABLE for every plan.dataModel entry, ALTER TABLE ... ENABLE ROW LEVEL SECURITY, and at least one CREATE POLICY per table. Use auth.uid() where appropriate. No DROP statements.";
   } else {
-    designConstraints = "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
+    designConstraints =
+      "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
   }
   const r = await callGateway({
     model: CODE_MODEL,
@@ -364,8 +368,20 @@ function checkFile(file: { path: string; content: string }): CheckResult[] {
 function balancedTags(html: string): boolean {
   // Lightweight: every opening tag (excluding void) has a closing tag.
   const voids = new Set([
-    "br", "hr", "img", "input", "meta", "link", "source", "area", "base", "col", "embed", "param",
-    "track", "wbr",
+    "br",
+    "hr",
+    "img",
+    "input",
+    "meta",
+    "link",
+    "source",
+    "area",
+    "base",
+    "col",
+    "embed",
+    "param",
+    "track",
+    "wbr",
   ]);
   const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*?(\/?)>/g;
   const stack: string[] = [];
