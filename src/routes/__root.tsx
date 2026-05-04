@@ -326,7 +326,13 @@ function WorkspaceShell() {
               update({ workspaceSplit: { "chat-width-px": w } });
             }}
             left={<main className="h-full overflow-y-auto scrollbar-thin">{mainContent}</main>}
-            right={<AssistantPanel />}
+            right={
+              <AssistantPanel
+                project={projectIsReal ? currentProject : null}
+                workspace={workspaceIsReal ? currentWorkspace : null}
+                enabled={projectIsReal && workspaceIsReal}
+              />
+            }
           />
         </div>
       </div>
