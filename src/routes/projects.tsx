@@ -37,6 +37,7 @@ import {
 import { ProviderLinksPanel } from "@/components/provider-links-panel";
 import { cn } from "@/lib/utils";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
+import { isSafeMode, noteFetchCall, noteRender } from "@/lib/perf-mode";
 
 const TabSchema = z
   .object({
@@ -227,6 +228,7 @@ function ProjectsPage() {
         <TabsContent value="github" className="mt-5">
           <GithubReposTab
             workspaceId={workspace?.id ?? ""}
+            enabled={tab === "github"}
             onImported={async (id, name) => {
               await refresh();
               openProject(id, name);
@@ -239,6 +241,7 @@ function ProjectsPage() {
             workspaceId={workspace?.id ?? ""}
             currentProjectId={current?.id ?? null}
             currentProjectName={current?.name ?? null}
+            enabled={tab === "vercel"}
           />
         </TabsContent>
 
