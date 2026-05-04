@@ -186,7 +186,8 @@ function AuthGate() {
 
 function WorkspaceShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { session, loading: authLoading } = useAuth();
+  // Auth gating happens upstream in <AuthGate />; if we render, session exists.
+
   // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try {
