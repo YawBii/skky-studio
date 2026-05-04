@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { z } from "zod";
 import {
   Plus,
@@ -20,8 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useWorkspaces } from "@/hooks/use-workspaces";
-import { useProjects } from "@/hooks/use-projects";
+import { useSelectedProject } from "@/hooks/use-selected-project";
 import { ProjectScopedEmpty, ProjectSurfaceError } from "@/components/project-empty";
 import { CreateProjectEmpty } from "@/components/empty-states";
 import { listGithubReposFn, listVercelProjectsFn } from "@/services/providers.functions";
@@ -64,10 +63,17 @@ type TabKey = "projects" | "github" | "vercel" | "import";
 /* -------------------- Page shell -------------------- */
 
 function ProjectsPage() {
-  const { current: workspace, isReal: workspaceIsReal } = useWorkspaces();
-  const { projects, current, loading, isError, error, select, refresh } = useProjects(
-    workspace?.id,
-  );
+  const {
+    workspace,
+    workspaceIsReal,
+    projects,
+    project: current,
+    projectsLoading: loading,
+    projectsError: isError,
+    projectsErrorMessage: error,
+    selectProject: select,
+    refreshProjects: refresh,
+  } = useSelectedProject();
   const navigate = useNavigate();
   const search = useSearch({ from: "/projects" }) as { tab?: TabKey } | undefined;
   const tab: TabKey = search?.tab ?? "projects";
