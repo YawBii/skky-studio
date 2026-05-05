@@ -17,13 +17,38 @@ export interface BuildPlan {
 
 const ENDPOINT = "/api/public/ai-chat";
 
+export type AiErrorCategory =
+  | "missing_key"
+  | "invalid_key"
+  | "rate_limit"
+  | "credits"
+  | "permission"
+  | "network"
+  | "upstream"
+  | "parse"
+  | "unknown";
+
 export type ChatResult =
   | { ok: true; content: string; model?: string }
-  | { ok: false; error: string; setupError?: boolean; status?: number };
+  | {
+      ok: false;
+      error: string;
+      setupError?: boolean;
+      status?: number;
+      category?: AiErrorCategory;
+      provider?: string;
+    };
 
 export type PlanResult =
   | { ok: true; plan: BuildPlan }
-  | { ok: false; error: string; setupError?: boolean; status?: number };
+  | {
+      ok: false;
+      error: string;
+      setupError?: boolean;
+      status?: number;
+      category?: AiErrorCategory;
+      provider?: string;
+    };
 
 /** Non-streaming chat completion. */
 export async function chat(messages: ChatMessage[]): Promise<ChatResult> {
@@ -39,6 +64,8 @@ export async function chat(messages: ChatMessage[]): Promise<ChatResult> {
         ok: false,
         status: r.status,
         setupError: Boolean(body.setupError),
+        category: body.category as AiErrorCategory | undefined,
+        provider: typeof body.provider === "string" ? body.provider : undefined,
         error: typeof body.error === "string" ? body.error : `AI error ${r.status}`,
       };
     }
@@ -66,6 +93,8 @@ export async function planFromPrompt(prompt: string): Promise<PlanResult> {
         ok: false,
         status: r.status,
         setupError: Boolean(body.setupError),
+        category: body.category as AiErrorCategory | undefined,
+        provider: typeof body.provider === "string" ? body.provider : undefined,
         error: typeof body.error === "string" ? body.error : `AI plan error ${r.status}`,
       };
     }

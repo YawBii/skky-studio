@@ -10,6 +10,7 @@ import {
   AI_NOT_CONFIGURED,
   isAiGatewayConfigured,
   getActiveProviderInfo,
+  getRecentAiCalls,
 } from "@/server/ai-gateway.server";
 
 const MessageSchema = z.object({
@@ -28,11 +29,15 @@ const BodySchema = z.object({
 export const Route = createFileRoute("/api/public/ai-chat")({
   server: {
     handlers: {
-      GET: async () =>
-        Response.json(
-          { ...getActiveProviderInfo(), configured: isAiGatewayConfigured() },
-          { headers: { "cache-control": "no-store" } },
-        ),
+      GET: async ({ request }) => {
+        const includeCalls = new URL(request.url).searchParams.get("recent") === "1";
+        const body: Record<string, unknown> = {
+          ...getActiveProviderInfo(),
+          configured: isAiGatewayConfigured(),
+        };
+        if (includeCalls) body.recentCalls = getRecentAiCalls();
+        return Response.json(body, { headers: { "cache-control": "no-store" } });
+      },
       POST: async ({ request }) => {
         let raw: unknown;
         try {
@@ -55,7 +60,12 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           const r = await planFromPrompt({ prompt, model });
           if (!r.ok) {
             return Response.json(
-              { error: r.error, setupError: r.setupError ?? false },
+              {
+                error: r.error,
+                setupError: r.setupError ?? false,
+                category: r.category,
+                provider: r.provider,
+              },
               { status: r.setupError ? 503 : (r.status ?? 500) },
             );
           }
@@ -69,7 +79,12 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           const r = await chatCompletion({ messages: msgs, model });
           if (!r.ok) {
             return Response.json(
-              { error: r.error, setupError: r.setupError ?? false },
+              {
+                error: r.error,
+                setupError: r.setupError ?? false,
+                category: r.category,
+                provider: r.provider,
+              },
               { status: r.setupError ? 503 : (r.status ?? 500) },
             );
           }
@@ -79,7 +94,12 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         const r = await streamChatCompletion({ messages: msgs, model });
         if (!r.ok) {
           return Response.json(
-            { error: r.error, setupError: r.setupError ?? false },
+            {
+              error: r.error,
+              setupError: r.setupError ?? false,
+              category: r.category,
+              provider: r.provider,
+            },
             { status: r.setupError ? 503 : (r.status ?? 500) },
           );
         }

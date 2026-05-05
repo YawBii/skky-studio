@@ -46,7 +46,7 @@ async function call(
       body: JSON.stringify(body),
     });
   } catch (e) {
-    return networkError(e);
+    return networkError("openai", e);
   }
   if (!resp.ok) return httpError("openai", resp.status);
   return { ok: true, value: resp };
@@ -103,7 +103,7 @@ export const openaiProvider: AiProvider = {
         }),
       });
     } catch (e) {
-      return networkError(e);
+      return networkError("openai", e);
     }
     if (!resp.ok) return httpError("openai", resp.status);
     const body = (await resp.json()) as {

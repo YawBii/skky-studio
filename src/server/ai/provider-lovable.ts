@@ -48,7 +48,7 @@ async function call(
       body: JSON.stringify(body),
     });
   } catch (e) {
-    return networkError(e);
+    return networkError("lovable", e);
   }
   if (!resp.ok) return httpError("lovable", resp.status);
   return { ok: true, value: resp };
@@ -105,7 +105,7 @@ export const lovableProvider: AiProvider = {
         }),
       });
     } catch (e) {
-      return networkError(e);
+      return networkError("lovable", e);
     }
     if (!resp.ok) return httpError("lovable", resp.status);
     const body = (await resp.json()) as {

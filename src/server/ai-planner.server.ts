@@ -1,18 +1,12 @@
-// Server-only AI planner. Implements the real provider call for ai.plan jobs.
-//
-// SECURITY: This file is server-only (`.server.ts`). It reads LOVABLE_API_KEY /
-// AI_GATEWAY_KEY from process.env and NEVER ships to the client bundle.
-//
-// Calls Lovable AI Gateway (OpenAI-compatible) with structured output via tool
-// calling so the model can't return malformed JSON. Returns a typed PlanResult
-// or a typed error.
+// Server-only AI planner. Now uses the yawB-owned AI provider abstraction
+// (`src/server/ai/tool-call.ts`) so YAWB_AI_PROVIDER / YAWB_AI_MODEL govern
+// which underlying provider runs the planner. SECURITY: server-only file.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { runToolCall } from "./ai/tool-call";
+import { resolveProvider } from "./ai/resolver";
 
 export const AI_PLANNER_NOT_CONFIGURED_ERROR = "AI planner provider is not configured.";
-
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 
 export type PlanCategory =
   | "build_next"
@@ -39,6 +33,7 @@ export interface PlanResult {
   missingContext: string[];
   proof: {
     model: string;
+    provider: string;
     durationMs: number;
     contextSources: string[];
   };
@@ -63,19 +58,11 @@ export interface PlanContext {
   chatRequest: string | null;
 }
 
-function getKey(): string | null {
-  return process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY || null;
-}
-
-/** True iff the AI planner provider has an API key configured. */
+/** True iff the active yawB AI provider has a configured key. */
 export function isAiPlannerConfigured(): boolean {
-  return Boolean(getKey());
+  return resolveProvider().configured;
 }
 
-/**
- * Gather context needed for ai.plan from the database. Best-effort: each
- * fetch failure becomes a missingContext entry, never a hard failure.
- */
 export async function gatherPlanContext(
   sb: SupabaseClient,
   args: {
@@ -127,7 +114,6 @@ export async function gatherPlanContext(
     missing.push("workspace");
   }
 
-  // Recent jobs (last 20)
   let recentJobs: PlanContext["recentJobs"] = [];
   try {
     const { data, error } = await sb
@@ -151,7 +137,6 @@ export async function gatherPlanContext(
     missing.push("recent_jobs");
   }
 
-  // Latest proofs: take outputs from the most recent succeeded steps across recent jobs.
   let latestProofs: PlanContext["latestProofs"] = [];
   try {
     if (recentJobs.length) {
@@ -177,7 +162,6 @@ export async function gatherPlanContext(
     missing.push("step_proofs");
   }
 
-  // Connections (github / vercel / supabase)
   let github: PlanContext["github"] = { connected: false };
   let vercel: PlanContext["vercel"] = { connected: false };
   let supabaseConn: PlanContext["supabase"] = { connected: false };
@@ -241,222 +225,131 @@ export async function gatherPlanContext(
   };
 }
 
-const PLAN_TOOL = {
-  type: "function" as const,
-  function: {
-    name: "submit_plan",
-    description: "Return a structured build plan with recommended next actions for a yawB project.",
-    parameters: {
-      type: "object",
-      properties: {
-        summary: {
-          type: "string",
-          description: "1-2 sentence summary of the recommended next moves.",
-        },
-        recommendedActions: {
-          type: "array",
-          minItems: 1,
-          maxItems: 6,
-          items: {
-            type: "object",
-            properties: {
-              label: { type: "string", description: "Short action label (<=40 chars)." },
-              reason: { type: "string", description: "Why this action helps now." },
-              confidence: { type: "number", minimum: 0, maximum: 1 },
-              risk: { type: "string", enum: ["low", "medium", "high"] },
-              category: {
-                type: "string",
-                enum: [
-                  "build_next",
-                  "improve_quality",
-                  "fix_failure",
-                  "publish_deploy",
-                  "inspect_proof",
-                ],
-              },
-              prompt: { type: "string", description: "Prefill chat prompt for the user to send." },
-              requiredProviders: { type: "array", items: { type: "string" } },
-            },
-            required: [
-              "label",
-              "reason",
-              "confidence",
-              "risk",
-              "category",
-              "prompt",
-              "requiredProviders",
+const PLAN_TOOL_PARAMS: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    summary: { type: "string", description: "1-2 sentence summary of recommended next moves." },
+    recommendedActions: {
+      type: "array",
+      minItems: 1,
+      maxItems: 6,
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          reason: { type: "string" },
+          confidence: { type: "number", minimum: 0, maximum: 1 },
+          risk: { type: "string", enum: ["low", "medium", "high"] },
+          category: {
+            type: "string",
+            enum: [
+              "build_next",
+              "improve_quality",
+              "fix_failure",
+              "publish_deploy",
+              "inspect_proof",
             ],
-            additionalProperties: false,
           },
+          prompt: { type: "string" },
+          requiredProviders: { type: "array", items: { type: "string" } },
         },
-        missingContext: {
-          type: "array",
-          items: { type: "string" },
-          description: "Names of context pieces that were missing or weakened the plan.",
-        },
+        required: [
+          "label",
+          "reason",
+          "confidence",
+          "risk",
+          "category",
+          "prompt",
+          "requiredProviders",
+        ],
       },
-      required: ["summary", "recommendedActions", "missingContext"],
-      additionalProperties: false,
     },
+    missingContext: { type: "array", items: { type: "string" } },
   },
+  required: ["summary", "recommendedActions", "missingContext"],
 };
 
 const SYSTEM_PROMPT =
-  "You are Monster Brain v1, the build planner for yawB. You inspect a project's " +
-  "current state — workspace, project, selected page/environment, recent jobs, " +
-  "proofs, and provider connections — and recommend the next 2–4 high-leverage " +
-  "actions. Prefer fixing failures, then unblocking the user's chat request, " +
-  "then advancing the build. Keep labels short. Be specific to the project's " +
-  "name/description; never give generic advice. Always call submit_plan.";
+  "You are Monster Brain v1, the build planner for yawB. Inspect the project " +
+  "context (workspace, project, jobs, proofs, connections, chat) and recommend " +
+  "the next 2–4 high-leverage actions. Prefer fixing failures, then unblocking " +
+  "the user's chat request, then advancing the build. Always call submit_plan.";
 
-/**
- * Run the AI planner. Returns either a parsed PlanResult or a typed error.
- * Never throws — the runner converts the result to a StepResult.
- */
 export async function runAiPlan(args: {
   context: PlanContext;
   contextSources: string[];
   baseMissing: string[];
   model?: string;
+  fetchImpl?: typeof fetch;
 }): Promise<
   | { ok: true; plan: PlanResult }
-  | { ok: false; error: string; setupError?: boolean; httpStatus?: number; raw?: string }
+  | {
+      ok: false;
+      error: string;
+      setupError?: boolean;
+      httpStatus?: number;
+      category?: string;
+      raw?: string;
+    }
 > {
-  const key = getKey();
-  if (!key) {
-    return { ok: false, error: AI_PLANNER_NOT_CONFIGURED_ERROR, setupError: true };
+  if (!isAiPlannerConfigured()) {
+    return {
+      ok: false,
+      error: AI_PLANNER_NOT_CONFIGURED_ERROR,
+      setupError: true,
+      category: "missing_key",
+    };
   }
-  const model = args.model || DEFAULT_MODEL;
+  const startedAt = Date.now();
   const userMessage = JSON.stringify({
     instruction:
       "Inspect this yawB project context and call submit_plan with the next actions. " +
-      "Tie each action to specific signals in the context (jobs, proofs, connections, chat).",
+      "Tie each action to specific signals (jobs, proofs, connections, chat).",
     context: args.context,
   });
 
-  const startedAt = Date.now();
-  let resp: Response;
-  try {
-    resp = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        tools: [PLAN_TOOL],
-        tool_choice: { type: "function", function: { name: "submit_plan" } },
-      }),
-    });
-  } catch (e) {
+  const r = await runToolCall({
+    system: SYSTEM_PROMPT,
+    messages: [{ role: "user", content: userMessage }],
+    tool: {
+      name: "submit_plan",
+      description:
+        "Return a structured build plan with recommended next actions for a yawB project.",
+      parameters: PLAN_TOOL_PARAMS,
+    },
+    model: args.model,
+    fetchImpl: args.fetchImpl,
+  });
+  if (!r.ok) {
     return {
       ok: false,
-      error: `AI planner network error: ${e instanceof Error ? e.message : String(e)}`,
+      error: r.error,
+      setupError: r.setupError,
+      httpStatus: r.status,
+      category: r.category,
     };
   }
 
-  if (!resp.ok) {
-    const text = await safeText(resp);
-    if (resp.status === 429) {
-      return {
-        ok: false,
-        error: "AI planner rate limited (429). Try again in a moment.",
-        httpStatus: 429,
-        raw: text,
-      };
-    }
-    if (resp.status === 402) {
-      return {
-        ok: false,
-        error: "AI planner credits exhausted (402). Add credits in Settings → Workspace → Usage.",
-        httpStatus: 402,
-        raw: text,
-      };
-    }
-    return {
-      ok: false,
-      error: `AI planner gateway error ${resp.status}.`,
-      httpStatus: resp.status,
-      raw: text,
-    };
-  }
-
-  let body: unknown;
-  try {
-    body = await resp.json();
-  } catch (e) {
-    return {
-      ok: false,
-      error: `AI planner returned non-JSON: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  }
-
-  const parsed = parseToolCall(body);
-  if (!parsed.ok)
-    return { ok: false, error: parsed.error, raw: JSON.stringify(body).slice(0, 4000) };
-
+  const value = r.value.value;
   const durationMs = Date.now() - startedAt;
   const plan: PlanResult = {
-    summary: String(parsed.value.summary ?? ""),
-    recommendedActions: normalizeActions(parsed.value.recommendedActions),
+    summary: String(value.summary ?? ""),
+    recommendedActions: normalizeActions(value.recommendedActions),
     missingContext: dedupeStrings([
       ...args.baseMissing,
-      ...((Array.isArray(parsed.value.missingContext)
-        ? parsed.value.missingContext
-        : []) as string[]),
+      ...((Array.isArray(value.missingContext) ? value.missingContext : []) as string[]),
     ]),
     proof: {
-      model,
+      model: r.value.model,
+      provider: r.value.provider,
       durationMs,
       contextSources: dedupeStrings(args.contextSources),
     },
   };
   if (!plan.recommendedActions.length) {
-    return {
-      ok: false,
-      error: "AI planner returned no actions.",
-      raw: JSON.stringify(parsed.value).slice(0, 4000),
-    };
+    return { ok: false, error: "AI planner returned no actions.", category: "parse" };
   }
   return { ok: true, plan };
-}
-
-async function safeText(r: Response): Promise<string> {
-  try {
-    return (await r.text()).slice(0, 4000);
-  } catch {
-    return "";
-  }
-}
-
-function parseToolCall(
-  body: unknown,
-): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
-  const choices = (
-    body as {
-      choices?: Array<{
-        message?: { tool_calls?: Array<{ function?: { name?: string; arguments?: string } }> };
-      }>;
-    } | null
-  )?.choices;
-  const call = choices?.[0]?.message?.tool_calls?.[0];
-  if (!call?.function?.arguments) {
-    return { ok: false, error: "AI planner response missing tool_calls[0].function.arguments." };
-  }
-  try {
-    const value = JSON.parse(call.function.arguments) as Record<string, unknown>;
-    return { ok: true, value };
-  } catch (e) {
-    return {
-      ok: false,
-      error: `AI planner tool arguments not JSON: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  }
 }
 
 function normalizeActions(input: unknown): PlanRecommendedAction[] {

@@ -69,7 +69,7 @@ async function callGenerate(
       body: JSON.stringify(body),
     });
   } catch (e) {
-    return networkError(e);
+    return networkError("google", e);
   }
   if (!resp.ok) return httpError("google", resp.status);
   return { ok: true, value: resp };

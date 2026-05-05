@@ -13,6 +13,7 @@ import {
 } from "@/components/project-empty";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
 import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
+import { AiProviderStatus } from "@/components/ai-provider-status";
 
 export const Route = createFileRoute("/health")({
   head: () => ({
@@ -179,6 +180,10 @@ function HealthPage() {
         <ProviderCheck label="GitHub" icon={Github} connected={hasGithub} />
         <ProviderCheck label="Vercel" icon={Triangle} connected={hasVercel} />
         <ProviderCheck label="Supabase" icon={Database} connected={true} note="Lovable Cloud" />
+      </div>
+
+      <div className="mt-6">
+        <AiProviderStatus />
       </div>
 
       <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card p-5">
