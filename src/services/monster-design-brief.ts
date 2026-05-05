@@ -8,7 +8,14 @@ export interface MonsterDesignBrief {
   layoutDirection: string;
   navigationPattern: "left-rail" | "top-nav" | "split-pane" | "tabbed-shell" | "sidebar-stack";
   typographyPairing: { display: string; body: string };
-  colorPalette: { name: string; bg: string; surface: string; ink: string; accent: string; accent2: string };
+  colorPalette: {
+    name: string;
+    bg: string;
+    surface: string;
+    ink: string;
+    accent: string;
+    accent2: string;
+  };
   interactionStyle: string;
   spacingRhythm: "tight" | "balanced" | "airy";
   cardStyle: "glass" | "paper" | "neumorphic" | "outline" | "stamp";
@@ -18,13 +25,62 @@ export interface MonsterDesignBrief {
 }
 
 const PALETTES: MonsterDesignBrief["colorPalette"][] = [
-  { name: "Counsel Oxblood", bg: "#120f0a", surface: "#f4ebd8", ink: "#211814", accent: "#9b2f19", accent2: "#d7a84d" },
-  { name: "Trust Aqua", bg: "#06131e", surface: "#e9f7ff", ink: "#06131e", accent: "#0ea5b7", accent2: "#6ee7b7" },
-  { name: "Ledger Forest", bg: "#07110d", surface: "#ecfff6", ink: "#07110d", accent: "#0f9f6e", accent2: "#d7ff62" },
-  { name: "Bazaar Citrus", bg: "#130d1d", surface: "#fff4e7", ink: "#281529", accent: "#f97316", accent2: "#8b5cf6" },
-  { name: "Studio Indigo", bg: "#080b12", surface: "#edf2ff", ink: "#0b1020", accent: "#4f46e5", accent2: "#06b6d4" },
-  { name: "Hearth Rose", bg: "#1a0f12", surface: "#fff1ec", ink: "#2a131a", accent: "#e11d48", accent2: "#fb923c" },
-  { name: "Clinic Mint", bg: "#0a1410", surface: "#f1fff8", ink: "#0a1410", accent: "#14b8a6", accent2: "#a7f3d0" },
+  {
+    name: "Counsel Oxblood",
+    bg: "#120f0a",
+    surface: "#f4ebd8",
+    ink: "#211814",
+    accent: "#9b2f19",
+    accent2: "#d7a84d",
+  },
+  {
+    name: "Trust Aqua",
+    bg: "#06131e",
+    surface: "#e9f7ff",
+    ink: "#06131e",
+    accent: "#0ea5b7",
+    accent2: "#6ee7b7",
+  },
+  {
+    name: "Ledger Forest",
+    bg: "#07110d",
+    surface: "#ecfff6",
+    ink: "#07110d",
+    accent: "#0f9f6e",
+    accent2: "#d7ff62",
+  },
+  {
+    name: "Bazaar Citrus",
+    bg: "#130d1d",
+    surface: "#fff4e7",
+    ink: "#281529",
+    accent: "#f97316",
+    accent2: "#8b5cf6",
+  },
+  {
+    name: "Studio Indigo",
+    bg: "#080b12",
+    surface: "#edf2ff",
+    ink: "#0b1020",
+    accent: "#4f46e5",
+    accent2: "#06b6d4",
+  },
+  {
+    name: "Hearth Rose",
+    bg: "#1a0f12",
+    surface: "#fff1ec",
+    ink: "#2a131a",
+    accent: "#e11d48",
+    accent2: "#fb923c",
+  },
+  {
+    name: "Clinic Mint",
+    bg: "#0a1410",
+    surface: "#f1fff8",
+    ink: "#0a1410",
+    accent: "#14b8a6",
+    accent2: "#a7f3d0",
+  },
 ];
 
 const PAIRINGS: MonsterDesignBrief["typographyPairing"][] = [
@@ -42,7 +98,13 @@ const NAV: MonsterDesignBrief["navigationPattern"][] = [
   "tabbed-shell",
   "sidebar-stack",
 ];
-const CARDS: MonsterDesignBrief["cardStyle"][] = ["glass", "paper", "neumorphic", "outline", "stamp"];
+const CARDS: MonsterDesignBrief["cardStyle"][] = [
+  "glass",
+  "paper",
+  "neumorphic",
+  "outline",
+  "stamp",
+];
 const SPACE: MonsterDesignBrief["spacingRhythm"][] = ["tight", "balanced", "airy"];
 
 function hash(value: string): number {
@@ -76,7 +138,13 @@ function categoryFor(blueprint: MonsterBlueprint): {
       layout: "case-cockpit with matter timeline + document vault",
       hero: "matter pipeline overview with status, billable hours, and client signals",
       interaction: "keyboard-first, calm motion, document-centric",
-      screens: ["Matter board", "Client intake", "Document vault", "Billing & time", "Compliance log"],
+      screens: [
+        "Matter board",
+        "Client intake",
+        "Document vault",
+        "Billing & time",
+        "Compliance log",
+      ],
     };
   if (/family|child|household|parent|life/.test(t))
     return {
@@ -96,7 +164,13 @@ function categoryFor(blueprint: MonsterBlueprint): {
       layout: "availability grid + provider cards + cart",
       hero: "find a slot in two clicks; provider availability rail",
       interaction: "one-hand tap flow with confirmation toasts",
-      screens: ["Find a slot", "Provider profile", "Confirm booking", "My bookings", "Provider dashboard"],
+      screens: [
+        "Find a slot",
+        "Provider profile",
+        "Confirm booking",
+        "My bookings",
+        "Provider dashboard",
+      ],
     };
   if (/finance|invoice|ledger|payment|billing|wallet|bank/.test(t))
     return {

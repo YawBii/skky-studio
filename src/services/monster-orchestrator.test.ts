@@ -25,7 +25,9 @@ describe("Monster orchestrator", () => {
     ).toBe(true);
     expect(result.output.architectFileCount).toBeGreaterThan(3);
     expect(result.output.written).toContain("src/routes/index.tsx");
-    expect(result.output.designCritique?.join(" ")).toContain("Design brief generated before files");
+    expect(result.output.designCritique?.join(" ")).toContain(
+      "Design brief generated before files",
+    );
     expect(result.output.tableCount).toBeGreaterThan(0);
     expect(result.output.policyCount).toBeGreaterThan(0);
     expect(result.proof.canDeclareDone).toBe(false);

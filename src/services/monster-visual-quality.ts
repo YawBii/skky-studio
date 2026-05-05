@@ -69,7 +69,9 @@ export function evaluateVisualQuality(input: {
     .join("\n");
 
   const bannedHits = BANNED_TEMPLATE_STRINGS.filter((s) => allText.includes(s));
-  const weakHits = WEAK_PLACEHOLDER_STRINGS.filter((s) => allText.toLowerCase().includes(s.toLowerCase()));
+  const weakHits = WEAK_PLACEHOLDER_STRINGS.filter((s) =>
+    allText.toLowerCase().includes(s.toLowerCase()),
+  );
   const workflowHits = WORKFLOW_HINTS.filter((h) => index.toLowerCase().includes(h));
   const mobileMeta = /viewport[^>]+width=device-width/i.test(index);
   const mobileCss = /@media\s*\([^)]*max-width/.test(allText);

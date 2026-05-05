@@ -15,7 +15,9 @@ describe("Monster design brief & visual quality", () => {
     expect(result.critique.beautiful.length).toBeGreaterThan(0);
     expect(result.critique.appSpecific.length).toBeGreaterThan(0);
     expect(["ship", "repair", "block"]).toContain(result.critique.verdict);
-    expect(result.visualQuality.checks.find((c) => c.id === "no-banned-template")?.passed).toBe(true);
+    expect(result.visualQuality.checks.find((c) => c.id === "no-banned-template")?.passed).toBe(
+      true,
+    );
     const index = result.files.find((f) => f.path === "index.html")?.content ?? "";
     expect(index).toContain('name="yawb-category" content="family-life"');
     expect(index).toContain('name="yawb-nav-pattern"');

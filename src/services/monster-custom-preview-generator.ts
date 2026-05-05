@@ -129,7 +129,7 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const targetUser = esc(brief?.targetUser ?? "operators");
   const screensList = (brief?.keyScreens ?? s.routes.map((r) => r.label))
     .slice(0, 6)
-    .map((screen) => `<li>${esc(screen)}</li>`) 
+    .map((screen) => `<li>${esc(screen)}</li>`)
     .join("");
   const tableCards = s.tables
     .map(
@@ -199,7 +199,6 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
 </html>`;
 }
 
-
 function headline(blueprint: MonsterBlueprint, layout: ReturnType<typeof layoutFor>): string {
   const app = esc(blueprint.appName);
   switch (layout) {
@@ -246,7 +245,8 @@ function css(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
     : fallback;
   const display = brief?.typographyPairing.display ?? "Georgia,serif";
   const body = brief?.typographyPairing.body ?? "Inter,ui-sans-serif,system-ui";
-  const gap = brief?.spacingRhythm === "tight" ? "12px" : brief?.spacingRhythm === "airy" ? "28px" : "18px";
+  const gap =
+    brief?.spacingRhythm === "tight" ? "12px" : brief?.spacingRhythm === "airy" ? "28px" : "18px";
   return `:root{--bg:${p.bg};--paper:${p.paper};--ink:${p.ink};--muted:${p.muted};--accent:${p.accent};--accent2:${p.accent2}}*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:${body};color:var(--paper)}.shell{min-height:100vh;display:grid;grid-template-columns:210px minmax(320px,1.05fr) minmax(340px,.95fr);grid-template-rows:auto auto;gap:${gap};padding:22px}.left-rail{grid-row:1/3;border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:22px;display:flex;flex-direction:column;gap:28px;background:rgba(255,255,255,.05);position:sticky;top:22px;height:calc(100vh - 44px)}.mark{width:54px;height:54px;border-radius:18px;background:var(--paper);color:var(--ink);display:grid;place-items:center;font-weight:900}.left-rail nav{display:grid;gap:10px}.left-rail a{color:rgba(255,255,255,.72);text-decoration:none;font-size:13px}.proof-dot{margin-top:auto;color:var(--accent2);font-size:11px;text-transform:uppercase;letter-spacing:.16em}.hero-panel{background:var(--paper);color:var(--ink);border-radius:38px;padding:clamp(28px,4vw,70px);min-height:540px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}.hero-panel:after{content:"";position:absolute;inset:auto -12% -24% 42%;height:55%;border-radius:50%;background:radial-gradient(circle,var(--accent2),transparent 65%);opacity:.45}.kicker{font-size:12px;text-transform:uppercase;letter-spacing:.22em;color:var(--accent);font-weight:800}.hero-panel h1{font-family:${display};font-size:clamp(48px,7vw,104px);line-height:.9;letter-spacing:-.07em;max-width:10ch;margin:0;position:relative}.lede{font-size:clamp(17px,2vw,24px);line-height:1.35;max-width:680px;color:var(--muted);position:relative}.actions{display:flex;gap:12px;flex-wrap:wrap;position:relative}.actions button{border:0;border-radius:999px;padding:14px 20px;background:var(--accent);color:white;font-weight:900}.actions .ghost{background:transparent;color:var(--ink);border:1px solid rgba(0,0,0,.18)}.cockpit,.route-map,.workflow-board{border:1px solid rgba(255,255,255,.12);border-radius:32px;padding:28px;background:rgba(255,255,255,.07);backdrop-filter:blur(18px)}.cockpit-head{display:flex;justify-content:space-between;gap:18px;margin-bottom:20px}.cockpit-head span,.route-map h2,.workflow-board h2{text-transform:uppercase;letter-spacing:.16em;font-size:12px;color:var(--accent2)}.data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.data-card{min-height:138px;border-radius:24px;padding:20px;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.06));display:grid;gap:8px}.data-card span{font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:var(--accent2)}.data-card strong{font-size:20px;line-height:1.1}.data-card small{color:rgba(255,255,255,.6)}.route-map ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}.route-map li{padding:14px;border-radius:18px;background:rgba(255,255,255,.06)}.workflow-board{grid-column:2/4;display:grid;grid-template-columns:1fr 1fr;gap:18px}.workflow-board ol{padding-left:20px;color:rgba(255,255,255,.76);line-height:1.7}@media(max-width:1050px){.shell{grid-template-columns:1fr}.left-rail{position:relative;height:auto;grid-row:auto}.workflow-board{grid-column:auto;grid-template-columns:1fr}.hero-panel{min-height:460px}.data-grid{grid-template-columns:1fr}}`;
 }
 
@@ -264,4 +264,3 @@ export function generateMonsterCustomPreviewFiles(
     { path: "app.js", content: js(blueprint, brief), language: "javascript", kind: "source" },
   ];
 }
-
