@@ -53,9 +53,7 @@ async function callGenerate(
   const { systemInstruction, contents } = toGeminiContents(args.messages);
   const body: Record<string, unknown> = {
     contents,
-    systemInstruction: args.system
-      ? { parts: [{ text: args.system }] }
-      : systemInstruction,
+    systemInstruction: args.system ? { parts: [{ text: args.system }] } : systemInstruction,
   };
   if (args.tools) {
     body.tools = args.tools;
@@ -88,8 +86,7 @@ export const googleProvider: AiProvider = {
     const body = (await r.value.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
-    const content =
-      body.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
+    const content = body.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") ?? "";
     if (!content) return { ok: false, error: "google returned empty content." };
     return { ok: true, value: { content, model: args.model || DEFAULT } };
   },
@@ -123,7 +120,10 @@ export const googleProvider: AiProvider = {
       candidates?: Array<{
         content?: {
           parts?: Array<{
-            functionCall?: { name?: string; args?: { steps?: unknown; estimatedMinutes?: unknown } };
+            functionCall?: {
+              name?: string;
+              args?: { steps?: unknown; estimatedMinutes?: unknown };
+            };
           }>;
         };
       }>;

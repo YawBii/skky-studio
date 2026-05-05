@@ -35,9 +35,7 @@ export async function* parseOpenAiSse(body: ReadableStream<Uint8Array>): AsyncIt
 }
 
 /** Parse Anthropic SSE (`event: content_block_delta` etc.). */
-export async function* parseAnthropicSse(
-  body: ReadableStream<Uint8Array>,
-): AsyncIterable<string> {
+export async function* parseAnthropicSse(body: ReadableStream<Uint8Array>): AsyncIterable<string> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -124,9 +122,7 @@ export function deltasToOpenAiSse(
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`),
-        );
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`));
       } finally {
         controller.close();
       }

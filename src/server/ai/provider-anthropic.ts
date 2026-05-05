@@ -86,7 +86,10 @@ export const anthropicProvider: AiProvider = {
       content?: Array<{ type: string; text?: string }>;
     };
     const content =
-      body.content?.filter((c) => c.type === "text").map((c) => c.text || "").join("") ?? "";
+      body.content
+        ?.filter((c) => c.type === "text")
+        .map((c) => c.text || "")
+        .join("") ?? "";
     if (!content) return { ok: false, error: "anthropic returned empty content." };
     return { ok: true, value: { content, model: args.model || DEFAULT } };
   },

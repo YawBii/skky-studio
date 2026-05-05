@@ -9,7 +9,7 @@ import { deltasToOpenAiSse } from "./ai/sse";
 export type { ChatMsg, BuildPlan } from "./ai/types";
 
 export const AI_NOT_CONFIGURED =
-  'AI provider not configured. Set YAWB_AI_PROVIDER and the matching API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY / LOVABLE_API_KEY).';
+  "AI provider not configured. Set YAWB_AI_PROVIDER and the matching API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY / LOVABLE_API_KEY).";
 
 export type GatewayResult<T> =
   | { ok: true; value: T }

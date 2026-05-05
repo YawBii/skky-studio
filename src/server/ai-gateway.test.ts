@@ -176,8 +176,9 @@ describe("yawB ai-gateway (provider abstraction)", () => {
     const sse =
       'data: {"candidates":[{"content":{"parts":[{"text":"He"}]}}]}\n\n' +
       'data: {"candidates":[{"content":{"parts":[{"text":"llo"}]}}]}\n\n';
-    const fetchImpl = vi.fn(async () =>
-      new Response(sse, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(sse, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
     ) as unknown as typeof fetch;
     const r = await streamChatCompletion({
       messages: [{ role: "user", content: "hi" }],
@@ -213,19 +214,20 @@ describe("yawB ai-gateway (provider abstraction)", () => {
       ],
       estimatedMinutes: 9,
     });
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          choices: [
-            {
-              message: {
-                tool_calls: [{ function: { name: "submit_build_plan", arguments: args } }],
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  tool_calls: [{ function: { name: "submit_build_plan", arguments: args } }],
+                },
               },
-            },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     ) as unknown as typeof fetch;
     const r = await planFromPrompt({ prompt: "Build notes app", fetchImpl });
     expect(r.ok).toBe(true);
@@ -239,22 +241,23 @@ describe("yawB ai-gateway (provider abstraction)", () => {
   it("planFromPrompt parses Anthropic tool_use input", async () => {
     process.env.YAWB_AI_PROVIDER = "anthropic";
     process.env.ANTHROPIC_API_KEY = "ant-key";
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          content: [
-            {
-              type: "tool_use",
-              name: "submit_build_plan",
-              input: {
-                steps: [{ title: "A", detail: "B" }],
-                estimatedMinutes: 4,
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            content: [
+              {
+                type: "tool_use",
+                name: "submit_build_plan",
+                input: {
+                  steps: [{ title: "A", detail: "B" }],
+                  estimatedMinutes: 4,
+                },
               },
-            },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     ) as unknown as typeof fetch;
     const r = await planFromPrompt({ prompt: "x", fetchImpl });
     expect(r.ok).toBe(true);
@@ -264,8 +267,8 @@ describe("yawB ai-gateway (provider abstraction)", () => {
   it("maps 401 to a setup error", async () => {
     process.env.YAWB_AI_PROVIDER = "openai";
     process.env.OPENAI_API_KEY = "sk-bad";
-    const fetchImpl = vi.fn(async () =>
-      new Response("nope", { status: 401 }),
+    const fetchImpl = vi.fn(
+      async () => new Response("nope", { status: 401 }),
     ) as unknown as typeof fetch;
     const r = await chatCompletion({
       messages: [{ role: "user", content: "hi" }],
