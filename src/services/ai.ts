@@ -93,6 +93,8 @@ export async function planFromPrompt(prompt: string): Promise<PlanResult> {
         ok: false,
         status: r.status,
         setupError: Boolean(body.setupError),
+        category: body.category as AiErrorCategory | undefined,
+        provider: typeof body.provider === "string" ? body.provider : undefined,
         error: typeof body.error === "string" ? body.error : `AI plan error ${r.status}`,
       };
     }
