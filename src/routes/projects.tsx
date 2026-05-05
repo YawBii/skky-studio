@@ -34,6 +34,9 @@ import {
   type ProjectConnection,
 } from "@/services/project-connections";
 import { ProviderLinksPanel } from "@/components/provider-links-panel";
+import { AutoLinkPicker } from "@/components/auto-link-picker";
+import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
+import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
 import { cn } from "@/lib/utils";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 import { isSafeMode, noteFetchCall, noteRender } from "@/lib/perf-mode";
