@@ -35,10 +35,7 @@ import {
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
 import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
-import {
-  AutoLinkStatusBadge,
-  summariseAutoLink,
-} from "@/components/auto-link-status-badge";
+import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
 import { isSafeMode } from "@/lib/perf-mode";
 import { RefreshCw } from "lucide-react";
@@ -391,9 +388,7 @@ function Builder() {
                   disabled={auto.running}
                   onClick={() => void auto.refresh({ toast: true })}
                 >
-                  <RefreshCw
-                    className={cn("h-3 w-3 mr-1", auto.running && "animate-spin")}
-                  />
+                  <RefreshCw className={cn("h-3 w-3 mr-1", auto.running && "animate-spin")} />
                   Refresh
                 </Button>
               </div>
