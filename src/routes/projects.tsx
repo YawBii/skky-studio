@@ -34,6 +34,9 @@ import {
   type ProjectConnection,
 } from "@/services/project-connections";
 import { ProviderLinksPanel } from "@/components/provider-links-panel";
+import { AutoLinkPicker } from "@/components/auto-link-picker";
+import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
+import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
 import { cn } from "@/lib/utils";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
 import { isSafeMode, noteFetchCall, noteRender } from "@/lib/perf-mode";
@@ -78,6 +81,13 @@ function ProjectsPage() {
   const search = useSearch({ from: "/projects" }) as { tab?: TabKey } | undefined;
   const tab: TabKey = search?.tab ?? "projects";
   const [createOpen, setCreateOpen] = useState(false);
+
+  // Auto-link runs once per session per selected project, gated to projects tab.
+  const auto = useProviderAutoLink(current ?? null, workspace?.id ?? null, {
+    enabled: !!current && !!workspace && tab === "projects",
+    autoRun: true,
+  });
+  const autoStatus = summariseAutoLink(auto.result);
 
   function setTab(t: TabKey) {
     navigate({ to: "/projects", search: { tab: t } as never }).catch(() => {});
@@ -216,6 +226,39 @@ function ProjectsPage() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {current && workspace && (
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="text-muted-foreground">Provider links for</span>
+                  <span className="font-medium">{current.name}</span>
+                  <AutoLinkStatusBadge status={autoStatus} />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void auto.refresh({ toast: true })}
+                  disabled={auto.running}
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", auto.running && "animate-spin")} />
+                  Refresh provider links
+                </Button>
+              </div>
+              {auto.result &&
+                (auto.result.github.outcome === "ambiguous" ||
+                  auto.result.vercel.outcome === "ambiguous") && (
+                  <AutoLinkPicker
+                    project={current}
+                    workspaceId={workspace.id}
+                    github={auto.result.github}
+                    vercel={auto.result.vercel}
+                    onConfirmed={() => void auto.refresh()}
+                  />
+                )}
             </div>
           )}
 
