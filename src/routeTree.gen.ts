@@ -37,6 +37,7 @@ import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectI
 import { Route as ApiPublicVerifyRouteImport } from './routes/api/public/verify'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBuildRunnerRouteImport } from './routes/api/public/build-runner'
+import { Route as ApiPublicAiChatRouteImport } from './routes/api/public/ai-chat'
 
 const TeamRoute = TeamRouteImport.update({
   id: '/team',
@@ -178,6 +179,11 @@ const ApiPublicBuildRunnerRoute = ApiPublicBuildRunnerRouteImport.update({
   path: '/api/public/build-runner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAiChatRoute = ApiPublicAiChatRouteImport.update({
+  id: '/api/public/ai-chat',
+  path: '/api/public/ai-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
+  '/api/public/ai-chat': typeof ApiPublicAiChatRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/verify': typeof ApiPublicVerifyRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
+  '/api/public/ai-chat': typeof ApiPublicAiChatRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/verify': typeof ApiPublicVerifyRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
   '/versions/$projectId': typeof VersionsProjectIdRoute
+  '/api/public/ai-chat': typeof ApiPublicAiChatRoute
   '/api/public/build-runner': typeof ApiPublicBuildRunnerRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/verify': typeof ApiPublicVerifyRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/proof/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
+    | '/api/public/ai-chat'
     | '/api/public/build-runner'
     | '/api/public/health'
     | '/api/public/verify'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/proof/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
+    | '/api/public/ai-chat'
     | '/api/public/build-runner'
     | '/api/public/health'
     | '/api/public/verify'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/proof/$projectId'
     | '/publish/$projectId'
     | '/versions/$projectId'
+    | '/api/public/ai-chat'
     | '/api/public/build-runner'
     | '/api/public/health'
     | '/api/public/verify'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   ProofProjectIdRoute: typeof ProofProjectIdRoute
   PublishProjectIdRoute: typeof PublishProjectIdRoute
   VersionsProjectIdRoute: typeof VersionsProjectIdRoute
+  ApiPublicAiChatRoute: typeof ApiPublicAiChatRoute
   ApiPublicBuildRunnerRoute: typeof ApiPublicBuildRunnerRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicVerifyRoute: typeof ApiPublicVerifyRoute
@@ -592,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBuildRunnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai-chat': {
+      id: '/api/public/ai-chat'
+      path: '/api/public/ai-chat'
+      fullPath: '/api/public/ai-chat'
+      preLoaderRoute: typeof ApiPublicAiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -621,6 +641,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProofProjectIdRoute: ProofProjectIdRoute,
   PublishProjectIdRoute: PublishProjectIdRoute,
   VersionsProjectIdRoute: VersionsProjectIdRoute,
+  ApiPublicAiChatRoute: ApiPublicAiChatRoute,
   ApiPublicBuildRunnerRoute: ApiPublicBuildRunnerRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicVerifyRoute: ApiPublicVerifyRoute,
