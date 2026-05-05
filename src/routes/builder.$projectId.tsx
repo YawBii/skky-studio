@@ -171,6 +171,19 @@ function Builder() {
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
+
+  // Provider auto-link: gated, runs once per project/session, skips if already linked.
+  const auto = useProviderAutoLink(project, project?.workspaceId ?? null, {
+    enabled: !!project && !isSafeMode(),
+    autoRun: true,
+    skipIfAlreadyLinked: true,
+  });
+  const autoStatus = isSafeMode() ? null : summariseAutoLink(auto.result);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const showAmbiguous =
+    auto.result &&
+    (auto.result.github.outcome === "ambiguous" || auto.result.vercel.outcome === "ambiguous");
+
   const activeDeployResolved = useMemo(
     () => resolveDeployUrl(connectionsApi.connections),
     [connectionsApi.connections],
