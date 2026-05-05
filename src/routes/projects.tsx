@@ -82,6 +82,13 @@ function ProjectsPage() {
   const tab: TabKey = search?.tab ?? "projects";
   const [createOpen, setCreateOpen] = useState(false);
 
+  // Auto-link runs once per session per selected project, gated to projects tab.
+  const auto = useProviderAutoLink(current ?? null, workspace?.id ?? null, {
+    enabled: !!current && !!workspace && tab === "projects",
+    autoRun: true,
+  });
+  const autoStatus = summariseAutoLink(auto.result);
+
   function setTab(t: TabKey) {
     navigate({ to: "/projects", search: { tab: t } as never }).catch(() => {});
   }
