@@ -100,6 +100,8 @@ export function scoreVercelProject(
         reason: `linked to GitHub repo ${matchedGithubRepoFullName}`,
       };
     }
+    // Penalize Vercel-linked-to-different-repo: explicit anti-match guard.
+    return null;
   }
   const slug = p.slug.toLowerCase();
   const name = normalizeName(p.name);
@@ -111,10 +113,6 @@ export function scoreVercelProject(
   }
   if (vpNorm === name && vpNorm.length > 2) {
     return { resource: vp, score: 0.92, reason: "vercel project name normalized === project name" };
-  }
-  // Penalize Vercel-linked-to-different-repo: explicit anti-match guard.
-  if (vp.link?.repo && matchedGithubRepoFullName && vp.link.repo.toLowerCase() !== matchedGithubRepoFullName.toLowerCase()) {
-    return null;
   }
   if (vpNorm.includes(name) && name.length >= 4) {
     return { resource: vp, score: 0.7, reason: "vercel name contains project name" };
