@@ -34,6 +34,14 @@ import {
 } from "@/components/command-center";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
+import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
+import {
+  AutoLinkStatusBadge,
+  summariseAutoLink,
+} from "@/components/auto-link-status-badge";
+import { AutoLinkPicker } from "@/components/auto-link-picker";
+import { isSafeMode } from "@/lib/perf-mode";
+import { RefreshCw } from "lucide-react";
 
 import { resolveDeployUrl } from "@/lib/deploy-url";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
