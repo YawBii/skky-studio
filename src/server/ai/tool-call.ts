@@ -244,7 +244,16 @@ export async function runToolCall(
       status: resp.status,
       category,
       setupError: category === "invalid_key",
-      error: `${provider} tool call ${resp.status}${text ? `: ${text.slice(0, 200)}` : ""}`,
+      error:
+        category === "credits"
+          ? `${provider} returned 402 — credits exhausted. Top up your account.`
+          : category === "rate_limit"
+            ? `${provider} rate limited (429). Try again shortly.`
+            : category === "invalid_key"
+              ? `${provider} returned 401 — the API key is invalid or missing.`
+              : category === "permission"
+                ? `${provider} returned 403 — API key lacks permission.`
+                : `${provider} tool call ${resp.status}${text ? `: ${text.slice(0, 200)}` : ""}`,
     };
   }
   let body: unknown;
