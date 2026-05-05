@@ -64,6 +64,8 @@ export async function chat(messages: ChatMessage[]): Promise<ChatResult> {
         ok: false,
         status: r.status,
         setupError: Boolean(body.setupError),
+        category: body.category as AiErrorCategory | undefined,
+        provider: typeof body.provider === "string" ? body.provider : undefined,
         error: typeof body.error === "string" ? body.error : `AI error ${r.status}`,
       };
     }
