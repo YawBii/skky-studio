@@ -1,15 +1,13 @@
 // Server-only agentic build loop. Implements:
 //   1) Plan → 2) Codegen → 3) Verify → 4) Repair → 5) Critique → 6) Persist + Proof
 //
-// SECURITY: server-only (`.server.ts`). Reads LOVABLE_API_KEY from process.env.
-// Never imported into client bundles.
+// Calls into the yawB-owned AI provider abstraction (`src/server/ai/tool-call.ts`)
+// — provider selection respects YAWB_AI_PROVIDER / YAWB_AI_MODEL.
 
 import type { MonsterSupabaseLike } from "@/services/monster-persistence";
+import { runToolCall } from "./ai/tool-call";
+import { resolveProvider } from "./ai/resolver";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const PLAN_MODEL = "google/gemini-2.5-pro";
-const CODE_MODEL = "google/gemini-3-flash-preview";
-const CRITIC_MODEL = "google/gemini-2.5-pro";
 
 export interface AgenticPlan {
   appType: string;
