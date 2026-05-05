@@ -62,7 +62,9 @@ export async function runProviderAutoLink(input: AutoLinkInput): Promise<AutoLin
   const existing = existingRes.connections;
   const activeGithub = existing.find((c) => c.provider === "github" && c.status === "connected");
   const activeVercel = existing.find((c) => c.provider === "vercel" && c.status === "connected");
-  const activeSupabase = existing.find((c) => c.provider === "supabase" && c.status === "connected");
+  const activeSupabase = existing.find(
+    (c) => (c.provider as string) === "supabase" && c.status === "connected",
+  );
 
   // ---------- GitHub ----------
   let githubResult: AutoLinkProviderResult<GithubRepoSummary>;
