@@ -160,7 +160,7 @@ async function buildPlan(
   projectName: string,
 ): Promise<{ ok: true; plan: AgenticPlan } | { ok: false; error: string }> {
   const r = await callGateway({
-    model: PLAN_MODEL,
+    model: PLAN_MODEL_HINT,
     system:
       "You are yawB's senior product architect. Read the user's request and produce a SPECIFIC, opinionated build plan for a custom application — never a generic template. Infer app type, users, workflows, pages, data model, integrations, backend needs, and concrete files. Pick a distinctive design direction tied to the product domain.",
     user: JSON.stringify({ projectName, userRequest }),
@@ -252,7 +252,7 @@ async function generateFile(input: {
       "Write production-quality code. No placeholder TODOs. Match the plan's design direction.";
   }
   const r = await callGateway({
-    model: CODE_MODEL,
+    model: CODE_MODEL_HINT,
     system: `You are yawB's code generator. Write a single complete file. ${designConstraints} Forbidden strings: "Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum", "TODO".`,
     user: JSON.stringify({
       userRequest: input.userRequest,
@@ -408,7 +408,7 @@ async function critique(input: {
   generic: boolean;
 }> {
   const r = await callGateway({
-    model: CRITIC_MODEL,
+    model: CRITIC_MODEL_HINT,
     system:
       "You are a strict design + product critic. Judge whether the preview HTML matches the user's request and the plan, and whether it feels custom (not a template). Be specific.",
     user: JSON.stringify({
