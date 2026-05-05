@@ -253,7 +253,15 @@ const PLAN_TOOL_PARAMS: Record<string, unknown> = {
           prompt: { type: "string" },
           requiredProviders: { type: "array", items: { type: "string" } },
         },
-        required: ["label", "reason", "confidence", "risk", "category", "prompt", "requiredProviders"],
+        required: [
+          "label",
+          "reason",
+          "confidence",
+          "risk",
+          "category",
+          "prompt",
+          "requiredProviders",
+        ],
       },
     },
     missingContext: { type: "array", items: { type: "string" } },
@@ -285,7 +293,12 @@ export async function runAiPlan(args: {
     }
 > {
   if (!isAiPlannerConfigured()) {
-    return { ok: false, error: AI_PLANNER_NOT_CONFIGURED_ERROR, setupError: true, category: "missing_key" };
+    return {
+      ok: false,
+      error: AI_PLANNER_NOT_CONFIGURED_ERROR,
+      setupError: true,
+      category: "missing_key",
+    };
   }
   const startedAt = Date.now();
   const userMessage = JSON.stringify({
@@ -300,7 +313,8 @@ export async function runAiPlan(args: {
     messages: [{ role: "user", content: userMessage }],
     tool: {
       name: "submit_plan",
-      description: "Return a structured build plan with recommended next actions for a yawB project.",
+      description:
+        "Return a structured build plan with recommended next actions for a yawB project.",
       parameters: PLAN_TOOL_PARAMS,
     },
     model: args.model,

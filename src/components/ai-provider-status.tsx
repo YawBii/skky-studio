@@ -42,9 +42,7 @@ export function AiProviderStatus() {
         <span className="font-display font-semibold">AI provider</span>
         <span
           className={`ml-auto rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-            info.configured
-              ? "bg-success/15 text-success"
-              : "bg-destructive/15 text-destructive"
+            info.configured ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
           }`}
         >
           {info.configured ? "configured" : "missing key"}

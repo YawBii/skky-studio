@@ -124,7 +124,13 @@ export function httpError(provider: AiProviderName, status: number, raw?: string
       category: "invalid_key",
       error: `${provider} returned 401 — the API key is invalid or missing.${tail}`,
     };
-  return { ok: false, status, provider, category: "upstream", error: `${provider} error ${status}.${tail}` };
+  return {
+    ok: false,
+    status,
+    provider,
+    category: "upstream",
+    error: `${provider} error ${status}.${tail}`,
+  };
 }
 
 export function clampPlan(steps: BuildPlanStep[], estimatedMinutes: unknown): BuildPlan {

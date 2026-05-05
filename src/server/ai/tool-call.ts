@@ -76,15 +76,19 @@ function buildAnthropic(model: string, args: ToolCallArgs): ProviderRequestShape
           .filter((m) => m.role !== "system")
           .map((m) => ({ role: m.role, content: m.content })),
         tools: [
-          { name: args.tool.name, description: args.tool.description, input_schema: args.tool.parameters },
+          {
+            name: args.tool.name,
+            description: args.tool.description,
+            input_schema: args.tool.parameters,
+          },
         ],
         tool_choice: { type: "tool", name: args.tool.name },
       }),
     },
     parse: (json) => {
-      const tu = (json as { content?: Array<{ type: string; name?: string; input?: unknown }> })?.content?.find(
-        (c) => c.type === "tool_use" && c.name === args.tool.name,
-      );
+      const tu = (
+        json as { content?: Array<{ type: string; name?: string; input?: unknown }> }
+      )?.content?.find((c) => c.type === "tool_use" && c.name === args.tool.name);
       return (tu?.input as Record<string, unknown> | undefined) ?? null;
     },
   };
@@ -109,7 +113,11 @@ function buildGoogle(model: string, args: ToolCallArgs): ProviderRequestShape | 
         tools: [
           {
             functionDeclarations: [
-              { name: args.tool.name, description: args.tool.description, parameters: args.tool.parameters },
+              {
+                name: args.tool.name,
+                description: args.tool.description,
+                parameters: args.tool.parameters,
+              },
             ],
           },
         ],
@@ -154,7 +162,11 @@ function buildLovable(model: string, args: ToolCallArgs): ProviderRequestShape |
   );
 }
 
-function shapeFor(provider: AiProviderName, model: string, args: ToolCallArgs): ProviderRequestShape | null {
+function shapeFor(
+  provider: AiProviderName,
+  model: string,
+  args: ToolCallArgs,
+): ProviderRequestShape | null {
   switch (provider) {
     case "openai":
       return buildOpenAiAuth(model, args);

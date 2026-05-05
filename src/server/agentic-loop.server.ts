@@ -8,7 +8,6 @@ import type { MonsterSupabaseLike } from "@/services/monster-persistence";
 import { runToolCall } from "./ai/tool-call";
 import { resolveProvider } from "./ai/resolver";
 
-
 export interface AgenticPlan {
   appType: string;
   users: string[];
@@ -78,7 +77,6 @@ async function callGateway(input: {
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, value: r.value.value };
 }
-
 
 // ---------- 1. Plan ----------
 
