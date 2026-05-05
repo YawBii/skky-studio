@@ -229,6 +229,41 @@ function ProjectsPage() {
             </div>
           )}
 
+          {current && workspace && (
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <span className="text-muted-foreground">Provider links for</span>
+                  <span className="font-medium">{current.name}</span>
+                  <AutoLinkStatusBadge status={autoStatus} />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void auto.refresh({ toast: true })}
+                  disabled={auto.running}
+                >
+                  <RefreshCw
+                    className={cn("h-3.5 w-3.5 mr-1.5", auto.running && "animate-spin")}
+                  />
+                  Refresh provider links
+                </Button>
+              </div>
+              {auto.result &&
+                (auto.result.github.outcome === "ambiguous" ||
+                  auto.result.vercel.outcome === "ambiguous") && (
+                  <AutoLinkPicker
+                    project={current}
+                    workspaceId={workspace.id}
+                    github={auto.result.github}
+                    vercel={auto.result.vercel}
+                    onConfirmed={() => void auto.refresh()}
+                  />
+                )}
+            </div>
+          )}
+
           <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-[11.5px] text-muted-foreground flex items-start gap-2">
             <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
