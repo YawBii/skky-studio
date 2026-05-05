@@ -1,8 +1,6 @@
-// Public AI chat endpoint. Streams SSE from the Lovable AI Gateway when
-// `stream: true` (default) and returns a JSON `{ content }` payload otherwise.
-// Also supports `mode: "plan"` for structured plan extraction via tool calling.
-//
-// SECURITY: secrets stay on the server. The browser only sees streamed deltas.
+// Public AI chat endpoint. Routes through yawB's provider abstraction
+// (`src/server/ai-gateway.server.ts`), which selects an adapter based on
+// YAWB_AI_PROVIDER / YAWB_AI_MODEL. Provider keys never leave the server.
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import {
@@ -11,6 +9,7 @@ import {
   streamChatCompletion,
   AI_NOT_CONFIGURED,
   isAiGatewayConfigured,
+  getActiveProviderInfo,
 } from "@/server/ai-gateway.server";
 
 const MessageSchema = z.object({
@@ -31,7 +30,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
     handlers: {
       GET: async () =>
         Response.json(
-          { configured: isAiGatewayConfigured() },
+          { configured: isAiGatewayConfigured(), ...getActiveProviderInfo() },
           { headers: { "cache-control": "no-store" } },
         ),
       POST: async ({ request }) => {
