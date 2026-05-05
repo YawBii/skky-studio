@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
     handlers: {
       GET: async () =>
         Response.json(
-          { configured: isAiGatewayConfigured(), ...getActiveProviderInfo() },
+          { ...getActiveProviderInfo(), configured: isAiGatewayConfigured() },
           { headers: { "cache-control": "no-store" } },
         ),
       POST: async ({ request }) => {
