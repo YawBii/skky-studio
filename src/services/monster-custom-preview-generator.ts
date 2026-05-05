@@ -108,12 +108,29 @@ function sections(blueprint: MonsterBlueprint) {
   };
 }
 
-function html(blueprint: MonsterBlueprint): string {
+function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const layout = layoutFor(blueprint);
-  const p = paletteFor(layout);
+  const p = brief
+    ? {
+        bg: brief.colorPalette.bg,
+        paper: brief.colorPalette.surface,
+        ink: brief.colorPalette.ink,
+        muted: brief.colorPalette.ink,
+        accent: brief.colorPalette.accent,
+        accent2: brief.colorPalette.accent2,
+      }
+    : paletteFor(layout);
+  void p;
   const s = sections(blueprint);
   const app = esc(blueprint.appName);
   const prompt = esc(blueprint.prompt || blueprint.summary);
+  const category = esc(brief?.productCategory ?? blueprint.appType);
+  const heroLine = esc(brief?.heroComposition ?? blueprint.summary);
+  const targetUser = esc(brief?.targetUser ?? "operators");
+  const screensList = (brief?.keyScreens ?? s.routes.map((r) => r.label))
+    .slice(0, 6)
+    .map((screen) => `<li>${esc(screen)}</li>`) 
+    .join("");
   const tableCards = s.tables
     .map(
       (table, index) =>
@@ -125,6 +142,9 @@ function html(blueprint: MonsterBlueprint): string {
     .join("");
   const workflowList = s.workflows.map((workflow) => `<li>${esc(workflow)}</li>`).join("");
   const tests = s.tests.map((test) => `<li>${esc(test)}</li>`).join("");
+  const navPattern = brief?.navigationPattern ?? "left-rail";
+  const cardStyle = brief?.cardStyle ?? "glass";
+  const spacing = brief?.spacingRhythm ?? "balanced";
 
   return `<!doctype html>
 <html lang="en">
@@ -135,45 +155,50 @@ function html(blueprint: MonsterBlueprint): string {
   <meta name="yawb-design-mode" content="${esc(blueprint.design.mode)}" />
   <meta name="yawb-app-type" content="${esc(blueprint.appType)}" />
   <meta name="yawb-layout" content="${layout}" />
+  <meta name="yawb-category" content="${category}" />
+  <meta name="yawb-nav-pattern" content="${navPattern}" />
+  <meta name="yawb-card-style" content="${cardStyle}" />
+  <meta name="yawb-spacing" content="${spacing}" />
   <title>${app}</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body data-layout="${layout}">
+<body data-layout="${layout}" data-nav="${navPattern}" data-cards="${cardStyle}" data-spacing="${spacing}">
   <main class="shell">
     <aside class="left-rail">
       <div class="mark">${app.slice(0, 2).toUpperCase()}</div>
       <nav>${s.routes.map((route) => `<a href="#${slug(route.label)}">${esc(route.label)}</a>`).join("")}</nav>
-      <div class="proof-dot">Monster Blueprint</div>
+      <div class="proof-dot">${category}</div>
     </aside>
 
     <section class="hero-panel">
-      <p class="kicker">${esc(blueprint.appType)} · ${layout.replace(/-/g, " ")}</p>
+      <p class="kicker">${category} · for ${targetUser}</p>
       <h1>${headline(blueprint, layout)}</h1>
-      <p class="lede">${prompt}</p>
-      <div class="actions"><button>${primaryCta(layout)}</button><button class="ghost">View proof</button></div>
+      <p class="lede">${heroLine || prompt}</p>
+      <div class="actions"><button>${primaryCta(layout)}</button><button class="ghost">View workflow</button></div>
     </section>
 
     <section class="cockpit">
       <div class="cockpit-head">
-        <span>${esc(s.noun)} command center</span>
+        <span>${esc(s.noun)} workflow board</span>
         <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
       </div>
       <div class="data-grid">${tableCards}</div>
     </section>
 
     <section class="route-map">
-      <h2>Product map</h2>
-      <ul>${routeRail}</ul>
+      <h2>Key screens</h2>
+      <ul>${screensList}</ul>
     </section>
 
     <section class="workflow-board">
-      <div><h2>What yawB wired</h2><ol>${workflowList}</ol></div>
+      <div><h2>Real workflows wired</h2><ol>${workflowList}</ol></div>
       <div><h2>Acceptance proof</h2><ol>${tests}</ol></div>
     </section>
   </main>
 </body>
 </html>`;
 }
+
 
 function headline(blueprint: MonsterBlueprint, layout: ReturnType<typeof layoutFor>): string {
   const app = esc(blueprint.appName);
