@@ -67,19 +67,85 @@ function HealthPage() {
           status={status}
           onRefresh={() => auto.refresh({ toast: true })}
         />
-        <ProjectScopedEmpty
-          icon={Activity}
-          eyebrow={project.name}
-          title={
-            status === "no-match" ? "No matching provider resource found" : "No health data yet"
-          }
-          hint={
-            status === "no-match"
-              ? "yawB checked your connected GitHub and Vercel accounts but couldn't find an obvious match for this project. Import the matching repo or pick a Vercel project manually."
-              : "Health checks run against your connected GitHub repo and Vercel deployments. Connect at least one provider to start scanning."
-          }
-          cta={{ label: "Open Integrations", to: "/connectors" }}
-        />
+        <div className="rounded-2xl border border-white/5 bg-gradient-card p-8">
+          <Activity className="h-7 w-7 text-muted-foreground" />
+          <h2 className="mt-3 font-display text-2xl font-semibold">
+            {status === "no-match"
+              ? `No exact repo/deployment match found for ${project.name}.`
+              : "No health data yet"}
+          </h2>
+          {status === "no-match" ? (
+            <div className="mt-2 text-[13px] text-muted-foreground space-y-1">
+              <p>Auto-link checked GitHub and Vercel.</p>
+              <p>This is safe: yawB did not link an unrelated project.</p>
+              <p className="italic">
+                This looks like a new yawB project. Build the first screen or link an existing repo.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-[13px] text-muted-foreground">
+              Health checks run against your connected GitHub repo and Vercel deployments.
+            </p>
+          )}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/builder/$projectId" params={{ projectId: project.id }}>
+                Build this project
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/projects" search={{ tab: "import" } as never}>
+                Import / link manually
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={auto.running}
+              onClick={() => void auto.refresh({ toast: true })}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${auto.running ? "animate-spin" : ""}`} />
+              Refresh provider links
+            </Button>
+          </div>
+          {auto.result && (
+            <details className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[11.5px] text-muted-foreground">
+              <summary className="cursor-pointer select-none">
+                Proof log — candidates checked, reasons rejected
+              </summary>
+              <div className="mt-2 text-[11px]">
+                <div className="mb-1">Ran at {auto.result.ranAt}</div>
+                <pre className="whitespace-pre-wrap font-mono leading-relaxed">
+                  {auto.result.proof.join("\n")}
+                </pre>
+                {auto.result.github.candidates.length > 0 && (
+                  <div className="mt-2">
+                    <div className="font-medium">GitHub candidates considered:</div>
+                    <ul className="ml-4 list-disc">
+                      {auto.result.github.candidates.map((c) => (
+                        <li key={c.resource.id}>
+                          {c.resource.fullName} — score {c.score.toFixed(2)} · {c.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {auto.result.vercel.candidates.length > 0 && (
+                  <div className="mt-2">
+                    <div className="font-medium">Vercel candidates considered:</div>
+                    <ul className="ml-4 list-disc">
+                      {auto.result.vercel.candidates.map((c) => (
+                        <li key={c.resource.id}>
+                          {c.resource.name} — score {c.score.toFixed(2)} · {c.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+        </div>
       </div>
     );
   }

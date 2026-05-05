@@ -34,6 +34,11 @@ import {
 } from "@/components/command-center";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProjectFiles } from "@/hooks/use-project-files";
+import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
+import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
+import { AutoLinkPicker } from "@/components/auto-link-picker";
+import { isSafeMode } from "@/lib/perf-mode";
+import { RefreshCw } from "lucide-react";
 
 import { resolveDeployUrl } from "@/lib/deploy-url";
 import { MobileBootstrapPanel } from "@/components/mobile-bootstrap-panel";
@@ -163,6 +168,19 @@ function Builder() {
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
+
+  // Provider auto-link: gated, runs once per project/session, skips if already linked.
+  const auto = useProviderAutoLink(project, project?.workspaceId ?? null, {
+    enabled: !!project && !isSafeMode(),
+    autoRun: true,
+    skipIfAlreadyLinked: true,
+  });
+  const autoStatus = isSafeMode() ? null : summariseAutoLink(auto.result);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const showAmbiguous =
+    auto.result &&
+    (auto.result.github.outcome === "ambiguous" || auto.result.vercel.outcome === "ambiguous");
+
   const activeDeployResolved = useMemo(
     () => resolveDeployUrl(connectionsApi.connections),
     [connectionsApi.connections],
@@ -333,6 +351,80 @@ function Builder() {
           </span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
+
+        {/* Provider auto-link status — small, non-blocking. */}
+        {isSafeMode() ? (
+          <AutoLinkStatusBadge status="no-match" className="hidden sm:inline-flex" />
+        ) : autoStatus ? (
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="hidden sm:inline-flex items-center"
+                title="Provider auto-link status"
+              >
+                <AutoLinkStatusBadge status={autoStatus} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              className="w-[360px] p-3 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[13px] font-medium">
+                  {autoStatus === "auto-linked"
+                    ? "Provider links ready"
+                    : autoStatus === "needs-confirmation"
+                      ? "Provider match needed"
+                      : autoStatus === "running"
+                        ? "Linking…"
+                        : autoStatus === "error"
+                          ? "Auto-link error"
+                          : "No matching GitHub/Vercel project found"}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={auto.running}
+                  onClick={() => void auto.refresh({ toast: true })}
+                >
+                  <RefreshCw className={cn("h-3 w-3 mr-1", auto.running && "animate-spin")} />
+                  Refresh
+                </Button>
+              </div>
+              {showAmbiguous && auto.result && (
+                <AutoLinkPicker
+                  project={project}
+                  workspaceId={project.workspaceId}
+                  github={auto.result.github}
+                  vercel={auto.result.vercel}
+                  onConfirmed={() => {
+                    setPickerOpen(false);
+                    void auto.refresh();
+                  }}
+                />
+              )}
+              {autoStatus === "no-match" && (
+                <div className="text-[12px] text-muted-foreground">
+                  Auto-link checked GitHub and Vercel but found no exact match.
+                  <div className="mt-2 flex gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to="/health">Open Health</Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {auto.result && (
+                <details className="text-[11px] text-muted-foreground">
+                  <summary className="cursor-pointer">Proof log</summary>
+                  <pre className="mt-1 whitespace-pre-wrap font-mono leading-relaxed">
+                    {auto.result.proof.join("\n")}
+                  </pre>
+                </details>
+              )}
+            </PopoverContent>
+          </Popover>
+        ) : null}
 
         <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
