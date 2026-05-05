@@ -84,13 +84,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
             { status: r.setupError ? 503 : (r.status ?? 500) },
           );
         }
-        return new Response(r.value.body, {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-store",
-            Connection: "keep-alive",
-          },
-        });
+        return r.value;
       },
     },
   },
