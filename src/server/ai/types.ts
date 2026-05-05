@@ -18,9 +18,27 @@ export interface BuildPlan {
 
 export type AiProviderName = "openai" | "anthropic" | "google" | "lovable";
 
+export type AiErrorCategory =
+  | "missing_key"
+  | "invalid_key"
+  | "rate_limit"
+  | "credits"
+  | "permission"
+  | "network"
+  | "upstream"
+  | "parse"
+  | "unknown";
+
 export type AiResult<T> =
   | { ok: true; value: T }
-  | { ok: false; error: string; status?: number; setupError?: boolean };
+  | {
+      ok: false;
+      error: string;
+      status?: number;
+      setupError?: boolean;
+      category?: AiErrorCategory;
+      provider?: AiProviderName;
+    };
 
 export interface AiChatArgs {
   messages: ChatMsg[];
