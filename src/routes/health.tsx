@@ -13,6 +13,7 @@ import {
 } from "@/components/project-empty";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
 import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
+import { AiProviderStatus } from "@/components/ai-provider-status";
 
 export const Route = createFileRoute("/health")({
   head: () => ({
