@@ -10,6 +10,7 @@ import {
   AI_NOT_CONFIGURED,
   isAiGatewayConfigured,
   getActiveProviderInfo,
+  getRecentAiCalls,
 } from "@/server/ai-gateway.server";
 
 const MessageSchema = z.object({
