@@ -60,7 +60,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           const r = await planFromPrompt({ prompt, model });
           if (!r.ok) {
             return Response.json(
-              { error: r.error, setupError: r.setupError ?? false },
+              { error: r.error, setupError: r.setupError ?? false, category: r.category, provider: r.provider },
               { status: r.setupError ? 503 : (r.status ?? 500) },
             );
           }
@@ -74,7 +74,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           const r = await chatCompletion({ messages: msgs, model });
           if (!r.ok) {
             return Response.json(
-              { error: r.error, setupError: r.setupError ?? false },
+              { error: r.error, setupError: r.setupError ?? false, category: r.category, provider: r.provider },
               { status: r.setupError ? 503 : (r.status ?? 500) },
             );
           }
@@ -84,7 +84,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         const r = await streamChatCompletion({ messages: msgs, model });
         if (!r.ok) {
           return Response.json(
-            { error: r.error, setupError: r.setupError ?? false },
+            { error: r.error, setupError: r.setupError ?? false, category: r.category, provider: r.provider },
             { status: r.setupError ? 503 : (r.status ?? 500) },
           );
         }
