@@ -53,57 +53,32 @@ export interface AgenticBuildResult {
   error?: string;
 }
 
-function getKey(): string | null {
-  return process.env.LOVABLE_API_KEY || process.env.AI_GATEWAY_KEY || null;
-}
+// Per-route model hints. The yawB resolver will fall back to the active
+// provider's defaultModel if a hint isn't supported by that provider.
+const PLAN_MODEL_HINT = process.env.YAWB_AI_PLAN_MODEL || undefined;
+const CODE_MODEL_HINT = process.env.YAWB_AI_CODE_MODEL || undefined;
+const CRITIC_MODEL_HINT = process.env.YAWB_AI_CRITIC_MODEL || undefined;
 
 export function isAgenticLoopConfigured(): boolean {
-  return Boolean(getKey());
+  return resolveProvider().configured;
 }
 
 async function callGateway(input: {
-  model: string;
+  model?: string;
   system: string;
   user: string;
   tool: { name: string; description: string; parameters: Record<string, unknown> };
 }): Promise<{ ok: true; value: Record<string, unknown> } | { ok: false; error: string }> {
-  const key = getKey();
-  if (!key) return { ok: false, error: "LOVABLE_API_KEY not configured" };
-  let resp: Response;
-  try {
-    resp = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: input.model,
-        messages: [
-          { role: "system", content: input.system },
-          { role: "user", content: input.user },
-        ],
-        tools: [{ type: "function", function: input.tool }],
-        tool_choice: { type: "function", function: { name: input.tool.name } },
-      }),
-    });
-  } catch (e) {
-    return { ok: false, error: `network: ${e instanceof Error ? e.message : String(e)}` };
-  }
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    return { ok: false, error: `gateway ${resp.status}: ${text.slice(0, 400)}` };
-  }
-  const body = (await resp.json().catch(() => null)) as {
-    choices?: Array<{
-      message?: { tool_calls?: Array<{ function?: { arguments?: string } }> };
-    }>;
-  } | null;
-  const args = body?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) return { ok: false, error: "missing tool_calls arguments" };
-  try {
-    return { ok: true, value: JSON.parse(args) as Record<string, unknown> };
-  } catch (e) {
-    return { ok: false, error: `tool args parse: ${e instanceof Error ? e.message : String(e)}` };
-  }
+  const r = await runToolCall({
+    system: input.system,
+    messages: [{ role: "user", content: input.user }],
+    tool: input.tool,
+    model: input.model,
+  });
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, value: r.value.value };
 }
+
 
 // ---------- 1. Plan ----------
 
