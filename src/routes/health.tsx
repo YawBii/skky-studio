@@ -182,6 +182,10 @@ function HealthPage() {
         <ProviderCheck label="Supabase" icon={Database} connected={true} note="Lovable Cloud" />
       </div>
 
+      <div className="mt-6">
+        <AiProviderStatus />
+      </div>
+
       <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card p-5">
         <div className="text-[13px] font-medium">Diagnostic checks</div>
         <p className="text-[12px] text-muted-foreground mt-1">
