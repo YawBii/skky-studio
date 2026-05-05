@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
+import { streamChat as streamAiChat } from "@/services/ai";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useDiagnostics } from "@/lib/diagnostics";
@@ -492,22 +493,60 @@ export function AssistantPanel({
     };
   };
 
+  const streamModelReply = async (history: Msg[], userText: string) => {
+    // Append a placeholder assistant message and stream tokens into it.
+    let placeholderIndex = -1;
+    setMessages((m) => {
+      placeholderIndex = m.length;
+      return [...m, { role: "assistant", content: "" }];
+    });
+    const apiMessages = [
+      ...history
+        .filter((x) => x.role === "user" || x.role === "assistant")
+        .slice(-12)
+        .map((x) => ({ role: x.role as "user" | "assistant", content: x.content })),
+      { role: "user" as const, content: userText },
+    ];
+    let acc = "";
+    try {
+      await streamAiChat({
+        messages: apiMessages,
+        onDelta: (chunk) => {
+          acc += chunk;
+          setMessages((m) =>
+            m.map((msg, i) => (i === placeholderIndex ? { ...msg, content: acc } : msg)),
+          );
+        },
+      });
+      if (!acc) {
+        setMessages((m) =>
+          m.map((msg, i) =>
+            i === placeholderIndex ? { ...msg, content: "(model returned no content)" } : msg,
+          ),
+        );
+      }
+      console.info("[yawb] chat.stream.done", { chars: acc.length });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[yawb] chat.stream.error", msg);
+      setMessages((m) =>
+        m.map((x, i) => (i === placeholderIndex ? { ...x, content: `AI error: ${msg}` } : x)),
+      );
+      toast.error(`AI: ${msg}`);
+    }
+  };
+
   const send = async () => {
     setLiveEnabled(true);
     const text = prompt.trim();
     if (!text) return;
     console.info("[yawb] chat.send.clicked", { len: text.length, projectId: project?.id });
+    const historySnapshot = messages;
     setMessages((m) => [...m, { role: "user", content: text }]);
     setPrompt("");
-    if (!project || !workspace) {
-      toast.error("Select a project first to send a request.");
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "No project selected. Open a project, then try again." },
-      ]);
-      return;
-    }
+
     if (
+      project &&
       isGithubLinked &&
       /\b(build|create|make|ship|scaffold|implement|design|redesign|fix|update|change|add|generate|regenerate)\b/i.test(
         text,
@@ -524,6 +563,12 @@ export function AssistantPanel({
       ]);
       return;
     }
+
+    // Stream a real model reply (works with or without a project).
+    void streamModelReply(historySnapshot, text);
+
+    if (!project || !workspace) return;
+
     const r = await enqueueJob({
       projectId: project.id,
       workspaceId: workspace.id,
@@ -537,14 +582,9 @@ export function AssistantPanel({
         ? `Job tables missing — run ${r.sqlFile ?? "docs/sql/2026-04-30-project-jobs.sql"}`
         : r.error;
       toast.error(`Couldn't queue request: ${detail}`);
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: `Couldn't queue request: ${detail}` },
-      ]);
       return;
     }
     console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
-    toast.success("Request queued");
     summarizedRef.current.add(r.job.id);
     persistSummarized(project.id, summarizedRef.current);
     setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
@@ -552,7 +592,7 @@ export function AssistantPanel({
       ...m,
       {
         role: "assistant",
-        content: `Queued ai.plan job. I'll keep the live summary under this message.`,
+        content: `Queued ai.plan job — live summary below.`,
         summaryJobId: r.job.id,
       },
     ]);
