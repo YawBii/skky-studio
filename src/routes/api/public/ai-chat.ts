@@ -28,11 +28,15 @@ const BodySchema = z.object({
 export const Route = createFileRoute("/api/public/ai-chat")({
   server: {
     handlers: {
-      GET: async () =>
-        Response.json(
-          { ...getActiveProviderInfo(), configured: isAiGatewayConfigured() },
-          { headers: { "cache-control": "no-store" } },
-        ),
+      GET: async ({ request }) => {
+        const includeCalls = new URL(request.url).searchParams.get("recent") === "1";
+        const body: Record<string, unknown> = {
+          ...getActiveProviderInfo(),
+          configured: isAiGatewayConfigured(),
+        };
+        if (includeCalls) body.recentCalls = getRecentAiCalls();
+        return Response.json(body, { headers: { "cache-control": "no-store" } });
+      },
       POST: async ({ request }) => {
         let raw: unknown;
         try {
