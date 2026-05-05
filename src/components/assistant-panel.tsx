@@ -530,11 +530,7 @@ export function AssistantPanel({
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[yawb] chat.stream.error", msg);
       setMessages((m) =>
-        m.map((x, i) =>
-          i === placeholderIndex
-            ? { ...x, content: `AI error: ${msg}` }
-            : x,
-        ),
+        m.map((x, i) => (i === placeholderIndex ? { ...x, content: `AI error: ${msg}` } : x)),
       );
       toast.error(`AI: ${msg}`);
     }

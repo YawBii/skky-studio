@@ -42,7 +42,11 @@ export async function chat(messages: ChatMessage[]): Promise<ChatResult> {
         error: typeof body.error === "string" ? body.error : `AI error ${r.status}`,
       };
     }
-    return { ok: true, content: String(body.content ?? ""), model: body.model as string | undefined };
+    return {
+      ok: true,
+      content: String(body.content ?? ""),
+      model: body.model as string | undefined,
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

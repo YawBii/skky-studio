@@ -30,12 +30,14 @@ describe("ai-gateway.server", () => {
 
   it("parses gateway success into a real message", async () => {
     process.env.LOVABLE_API_KEY = "test";
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ choices: [{ message: { content: "Hello world!" } }] }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ choices: [{ message: { content: "Hello world!" } }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
     const r = await chatCompletion({
       messages: [{ role: "user", content: "hi" }],
       fetchImpl: fetchMock as unknown as typeof fetch,
@@ -46,10 +48,12 @@ describe("ai-gateway.server", () => {
 
   it("streaming returns the upstream response with body", async () => {
     process.env.LOVABLE_API_KEY = "test";
-    const fakeBody = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\ndata: [DONE]\n\n";
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(fakeBody, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
-    );
+    const fakeBody = 'data: {"choices":[{"delta":{"content":"hi"}}]}\n\ndata: [DONE]\n\n';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(fakeBody, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
+      );
     const r = await streamChatCompletion({
       messages: [{ role: "user", content: "hi" }],
       fetchImpl: fetchMock as unknown as typeof fetch,
@@ -75,7 +79,11 @@ describe("ai-gateway.server", () => {
       new Response(
         JSON.stringify({
           choices: [
-            { message: { tool_calls: [{ function: { name: "submit_build_plan", arguments: args } }] } },
+            {
+              message: {
+                tool_calls: [{ function: { name: "submit_build_plan", arguments: args } }],
+              },
+            },
           ],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },

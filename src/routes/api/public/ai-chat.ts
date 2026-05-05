@@ -30,7 +30,10 @@ export const Route = createFileRoute("/api/public/ai-chat")({
   server: {
     handlers: {
       GET: async () =>
-        Response.json({ configured: isAiGatewayConfigured() }, { headers: { "cache-control": "no-store" } }),
+        Response.json(
+          { configured: isAiGatewayConfigured() },
+          { headers: { "cache-control": "no-store" } },
+        ),
       POST: async ({ request }) => {
         let raw: unknown;
         try {
@@ -48,7 +51,8 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         const { mode, stream, prompt, messages, model } = parsed.data;
 
         if (mode === "plan") {
-          if (!prompt) return Response.json({ error: "prompt is required for plan mode." }, { status: 400 });
+          if (!prompt)
+            return Response.json({ error: "prompt is required for plan mode." }, { status: 400 });
           const r = await planFromPrompt({ prompt, model });
           if (!r.ok) {
             return Response.json(

@@ -55,7 +55,10 @@ export async function chatCompletion(args: {
   try {
     body = await resp.json();
   } catch (e) {
-    return { ok: false, error: `AI gateway non-JSON response: ${e instanceof Error ? e.message : e}` };
+    return {
+      ok: false,
+      error: `AI gateway non-JSON response: ${e instanceof Error ? e.message : e}`,
+    };
   }
   const content =
     (body as { choices?: Array<{ message?: { content?: string } }> })?.choices?.[0]?.message
@@ -170,7 +173,10 @@ export async function planFromPrompt(args: {
   try {
     body = await resp.json();
   } catch (e) {
-    return { ok: false, error: `AI gateway non-JSON response: ${e instanceof Error ? e.message : e}` };
+    return {
+      ok: false,
+      error: `AI gateway non-JSON response: ${e instanceof Error ? e.message : e}`,
+    };
   }
   const argStr = (
     body as {
@@ -184,7 +190,10 @@ export async function planFromPrompt(args: {
   try {
     parsed = JSON.parse(argStr);
   } catch (e) {
-    return { ok: false, error: `AI gateway plan arguments not JSON: ${e instanceof Error ? e.message : e}` };
+    return {
+      ok: false,
+      error: `AI gateway plan arguments not JSON: ${e instanceof Error ? e.message : e}`,
+    };
   }
   const steps = Array.isArray(parsed.steps)
     ? parsed.steps

@@ -24,11 +24,18 @@ describe("services/ai (client wrapper)", () => {
   });
 
   it("chat() surfaces setup error from server", async () => {
-    mockFetch(async () =>
-      new Response(JSON.stringify({ error: "AI gateway is not configured (set LOVABLE_API_KEY).", setupError: true }), {
-        status: 503,
-        headers: { "Content-Type": "application/json" },
-      }),
+    mockFetch(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: "AI gateway is not configured (set LOVABLE_API_KEY).",
+            setupError: true,
+          }),
+          {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
     );
     const r = await chat([{ role: "user", content: "hi" }]);
     expect(r.ok).toBe(false);
@@ -39,11 +46,12 @@ describe("services/ai (client wrapper)", () => {
   });
 
   it("planFromPrompt() returns a structured plan", async () => {
-    mockFetch(async () =>
-      new Response(
-        JSON.stringify({ plan: { steps: [{ title: "A", detail: "B" }], estimatedMinutes: 5 } }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+    mockFetch(
+      async () =>
+        new Response(
+          JSON.stringify({ plan: { steps: [{ title: "A", detail: "B" }], estimatedMinutes: 5 } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
     );
     const r = await planFromPrompt("build x");
     expect(r.ok).toBe(true);
@@ -58,8 +66,9 @@ describe("services/ai (client wrapper)", () => {
       'data: {"choices":[{"delta":{"content":"Hel"}}]}\n\n' +
       'data: {"choices":[{"delta":{"content":"lo"}}]}\n\n' +
       "data: [DONE]\n\n";
-    mockFetch(async () =>
-      new Response(sse, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
+    mockFetch(
+      async () =>
+        new Response(sse, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
     );
     const chunks: string[] = [];
     await streamChat({
