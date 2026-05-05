@@ -243,7 +243,7 @@ export async function runToolCall(
       provider,
       status: resp.status,
       category,
-      setupError: category === "invalid_key" || category === "missing_key",
+      setupError: category === "invalid_key",
       error: `${provider} tool call ${resp.status}${text ? `: ${text.slice(0, 200)}` : ""}`,
     };
   }
