@@ -68,7 +68,7 @@ async function send(
       body: JSON.stringify(body),
     });
   } catch (e) {
-    return networkError(this.name, e);
+    return networkError("anthropic", e);
   }
   if (!resp.ok) return httpError("anthropic", resp.status);
   return { ok: true, value: resp };
@@ -129,7 +129,7 @@ export const anthropicProvider: AiProvider = {
         }),
       });
     } catch (e) {
-      return networkError(this.name, e);
+      return networkError("anthropic", e);
     }
     if (!resp.ok) return httpError("anthropic", resp.status);
     const body = (await resp.json()) as {
