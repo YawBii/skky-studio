@@ -244,9 +244,7 @@ function ProjectsPage() {
                   onClick={() => void auto.refresh({ toast: true })}
                   disabled={auto.running}
                 >
-                  <RefreshCw
-                    className={cn("h-3.5 w-3.5 mr-1.5", auto.running && "animate-spin")}
-                  />
+                  <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", auto.running && "animate-spin")} />
                   Refresh provider links
                 </Button>
               </div>

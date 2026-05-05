@@ -96,7 +96,9 @@ export async function runProviderAutoLink(input: AutoLinkInput): Promise<AutoLin
         const decision = decideGithub(projectMatchInput(project), ghRes.repos);
         log(
           `github: ${ghRes.repos.length} repos → ${decision.outcome}` +
-            (decision.picked ? ` (${decision.picked.resource.fullName} score=${decision.picked.score})` : ""),
+            (decision.picked
+              ? ` (${decision.picked.resource.fullName} score=${decision.picked.score})`
+              : ""),
         );
         if (decision.outcome === "match" && decision.picked) {
           const r = decision.picked.resource;
@@ -146,7 +148,13 @@ export async function runProviderAutoLink(input: AutoLinkInput): Promise<AutoLin
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       log(`github: exception → ${msg}`);
-      githubResult = { provider: "github", outcome: "error", picked: null, candidates: [], error: msg };
+      githubResult = {
+        provider: "github",
+        outcome: "error",
+        picked: null,
+        candidates: [],
+        error: msg,
+      };
     }
   }
 
@@ -181,7 +189,9 @@ export async function runProviderAutoLink(input: AutoLinkInput): Promise<AutoLin
         );
         log(
           `vercel: ${vRes.projects.length} projects → ${decision.outcome}` +
-            (decision.picked ? ` (${decision.picked.resource.name} score=${decision.picked.score})` : ""),
+            (decision.picked
+              ? ` (${decision.picked.resource.name} score=${decision.picked.score})`
+              : ""),
         );
         if (decision.outcome === "match" && decision.picked) {
           const v = decision.picked.resource;
@@ -228,7 +238,13 @@ export async function runProviderAutoLink(input: AutoLinkInput): Promise<AutoLin
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       log(`vercel: exception → ${msg}`);
-      vercelResult = { provider: "vercel", outcome: "error", picked: null, candidates: [], error: msg };
+      vercelResult = {
+        provider: "vercel",
+        outcome: "error",
+        picked: null,
+        candidates: [],
+        error: msg,
+      };
     }
   }
 
@@ -356,7 +372,12 @@ export async function confirmAutoLinkPick(input: {
     url: v.productionUrl,
     workspaceId,
     tokenOwnerType: "workspace",
-    metadata: { auto_linked: false, manual_confirm: true, reason: pick.reason, vercel_name: v.name },
+    metadata: {
+      auto_linked: false,
+      manual_confirm: true,
+      reason: pick.reason,
+      vercel_name: v.name,
+    },
   });
   return conn.ok ? { ok: true, connection: conn.connection } : { ok: false, error: conn.error };
 }

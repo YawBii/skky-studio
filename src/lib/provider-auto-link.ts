@@ -42,7 +42,10 @@ export function projectMatchInput(p: Pick<Project, "slug" | "name">): ProjectMat
 
 // ---------- GitHub ----------
 
-export function scoreGithubRepo(p: ProjectMatchInput, repo: GithubRepoSummary): AutoLinkCandidate<GithubRepoSummary> | null {
+export function scoreGithubRepo(
+  p: ProjectMatchInput,
+  repo: GithubRepoSummary,
+): AutoLinkCandidate<GithubRepoSummary> | null {
   // Locked by stored import metadata.
   if (p.importedGithubRepoId && repo.id === p.importedGithubRepoId) {
     return { resource: repo, score: 1, reason: "import metadata: repo_id match" };

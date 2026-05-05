@@ -3,7 +3,12 @@
 import { Check, AlertCircle, Triangle, Loader2 } from "lucide-react";
 import type { AutoLinkResult } from "@/services/provider-auto-link";
 
-export type AutoLinkBadgeStatus = "auto-linked" | "needs-confirmation" | "no-match" | "running" | "error";
+export type AutoLinkBadgeStatus =
+  | "auto-linked"
+  | "needs-confirmation"
+  | "no-match"
+  | "running"
+  | "error";
 
 export function summariseAutoLink(r: AutoLinkResult | null): AutoLinkBadgeStatus {
   if (!r) return "running";
@@ -23,7 +28,11 @@ export function AutoLinkStatusBadge({
   className?: string;
 }) {
   const map: Record<AutoLinkBadgeStatus, { label: string; tone: string; Icon: typeof Check }> = {
-    "auto-linked": { label: "Auto-linked", tone: "text-success border-success/40 bg-success/5", Icon: Check },
+    "auto-linked": {
+      label: "Auto-linked",
+      tone: "text-success border-success/40 bg-success/5",
+      Icon: Check,
+    },
     "needs-confirmation": {
       label: "Needs confirmation",
       tone: "text-warning border-warning/40 bg-warning/5",
@@ -39,7 +48,11 @@ export function AutoLinkStatusBadge({
       tone: "text-muted-foreground border-white/10 bg-white/[0.02]",
       Icon: Loader2,
     },
-    error: { label: "Link error", tone: "text-destructive border-destructive/40 bg-destructive/5", Icon: AlertCircle },
+    error: {
+      label: "Link error",
+      tone: "text-destructive border-destructive/40 bg-destructive/5",
+      Icon: AlertCircle,
+    },
   };
   const { label, tone, Icon } = map[status];
   return (

@@ -12,10 +12,7 @@ import {
   NoProjectSelected,
 } from "@/components/project-empty";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
-import {
-  AutoLinkStatusBadge,
-  summariseAutoLink,
-} from "@/components/auto-link-status-badge";
+import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
 
 export const Route = createFileRoute("/health")({
   head: () => ({
@@ -52,7 +49,8 @@ function HealthPage() {
   if (isTableMissing)
     return <ProjectSurfaceError message="project_connections table missing" sqlFile={sqlFile} />;
 
-  if (loading || auto.running) return <div className="p-10 text-sm text-muted-foreground">Loading…</div>;
+  if (loading || auto.running)
+    return <div className="p-10 text-sm text-muted-foreground">Loading…</div>;
 
   const hasGithub = connections.some((c) => c.provider === "github" && c.status === "connected");
   const hasVercel = connections.some((c) => c.provider === "vercel" && c.status === "connected");
@@ -64,11 +62,17 @@ function HealthPage() {
   if (connections.length === 0 && status !== "needs-confirmation") {
     return (
       <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-        <Header project={project.name} status={status} onRefresh={() => auto.refresh({ toast: true })} />
+        <Header
+          project={project.name}
+          status={status}
+          onRefresh={() => auto.refresh({ toast: true })}
+        />
         <ProjectScopedEmpty
           icon={Activity}
           eyebrow={project.name}
-          title={status === "no-match" ? "No matching provider resource found" : "No health data yet"}
+          title={
+            status === "no-match" ? "No matching provider resource found" : "No health data yet"
+          }
           hint={
             status === "no-match"
               ? "yawB checked your connected GitHub and Vercel accounts but couldn't find an obvious match for this project. Import the matching repo or pick a Vercel project manually."
@@ -82,7 +86,11 @@ function HealthPage() {
 
   return (
     <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-      <Header project={project.name} status={status} onRefresh={() => auto.refresh({ toast: true })} />
+      <Header
+        project={project.name}
+        status={status}
+        onRefresh={() => auto.refresh({ toast: true })}
+      />
 
       {showPicker && auto.result && (
         <div className="mb-6">
@@ -97,7 +105,8 @@ function HealthPage() {
       )}
 
       <p className="text-muted-foreground mt-1 mb-6">
-        {connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a build happens
+        {connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a
+        build happens
       </p>
 
       <div className="grid sm:grid-cols-3 gap-4">

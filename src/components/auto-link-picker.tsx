@@ -24,7 +24,9 @@ export function AutoLinkPicker({ project, workspaceId, github, vercel, onConfirm
 
   return (
     <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 space-y-4">
-      <div className="text-[12px] uppercase tracking-[0.2em] text-warning">Confirm provider match</div>
+      <div className="text-[12px] uppercase tracking-[0.2em] text-warning">
+        Confirm provider match
+      </div>
 
       {showGithub && (
         <PickerSection
