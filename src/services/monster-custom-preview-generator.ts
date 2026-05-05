@@ -1,5 +1,6 @@
 import type { MonsterBlueprint } from "./monster-blueprint";
 import type { GeneratedProjectFile } from "./monster-brain-generator";
+import type { MonsterDesignBrief } from "./monster-design-brief";
 
 function esc(value: unknown): string {
   return String(value ?? "").replace(
