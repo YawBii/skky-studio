@@ -35,14 +35,17 @@ export type DesignAngle =
   | "minimal-light"
   | "brutalist-data";
 
+// Design angle labels are intentionally non-preset-sounding. The angle id is a
+// stable internal identifier; the label shown in the UI is a domain-flavoured
+// design identity, not a marketing preset.
 export const DESIGN_ANGLES: { id: DesignAngle; label: string }[] = [
-  { id: "editorial-luxury", label: "Luxury Editorial" },
-  { id: "minimal-light", label: "Clean Minimal" },
-  { id: "glass-dashboard", label: "Glass Dashboard" },
-  { id: "neon-command", label: "Neon Command" },
+  { id: "editorial-luxury", label: "Counsel Authority" },
+  { id: "minimal-light", label: "Quiet Operator" },
+  { id: "glass-dashboard", label: "Signal Cockpit" },
+  { id: "neon-command", label: "Command Console" },
   { id: "civic-map", label: "Civic Impact" },
-  { id: "magazine-cards", label: "Magazine Cards" },
-  { id: "brutalist-data", label: "Brutalist Data" },
+  { id: "magazine-cards", label: "Story Cards" },
+  { id: "brutalist-data", label: "Raw Data Room" },
 ];
 
 export const DESIGN_ANGLE_KEY = (projectId: string) => `yawb:design-angle:${projectId}`;
