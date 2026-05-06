@@ -436,8 +436,9 @@ function Builder() {
                 </details>
               )}
             </PopoverContent>
-          </Popover>
-        ) : null}
+            </Popover>
+          );
+        })()}
 
         <span className="hidden sm:inline text-muted-foreground/40 text-xs">/</span>
 
