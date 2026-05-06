@@ -4,6 +4,7 @@ import {
   History,
   Loader2,
   Monitor,
+  MoreHorizontal,
   Play,
   RefreshCw,
   Smartphone,
