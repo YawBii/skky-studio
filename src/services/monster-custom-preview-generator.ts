@@ -174,6 +174,14 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
       <div class="proof-dot">${category}</div>
     </aside>
 
+    <section class="cockpit" id="cockpit" data-app-surface="cockpit">
+      <div class="cockpit-head">
+        <span>${cockpitTitle}</span>
+        <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
+      </div>
+      <div class="data-grid">${tableCards}</div>
+    </section>
+
     <section class="hero-panel hero-compact">
       <div class="hero-text">
         <p class="kicker">${category} · for ${targetUser}</p>
@@ -181,14 +189,6 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
         <p class="lede">${heroLine || prompt}</p>
       </div>
       <div class="actions"><button>${primaryCta(layout)}</button><button class="ghost">View workflow</button></div>
-    </section>
-
-    <section class="cockpit" id="cockpit" data-app-surface="cockpit">
-      <div class="cockpit-head">
-        <span>${cockpitTitle}</span>
-        <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
-      </div>
-      <div class="data-grid">${tableCards}</div>
     </section>
 
     <section class="intake-queue" id="intake">
