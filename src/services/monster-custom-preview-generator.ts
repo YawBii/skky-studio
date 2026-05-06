@@ -148,38 +148,38 @@ function lawAppShellHtml(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief
         <div class="user">AR</div>
       </header>
       <section class="kpis" aria-label="KPI cards">
-        <article><span>Active matters</span><strong>48</strong><em>+6 this week</em></article>
-        <article><span>Client intake</span><strong>17</strong><em>5 urgent reviews</em></article>
-        <article><span>Outstanding invoices</span><strong>$82.4k</strong><em>Payments tracked</em></article>
-        <article><span>RLS policies</span><strong>24</strong><em>Supabase locked</em></article>
+        <div><span>Active matters</span><strong>48</strong><em>+6 this week</em></div>
+        <div><span>Client intake</span><strong>17</strong><em>5 urgent reviews</em></div>
+        <div><span>Outstanding invoices</span><strong>$82.4k</strong><em>Payments tracked</em></div>
+        <div><span>RLS policies</span><strong>24</strong><em>Supabase locked</em></div>
       </section>
       <section class="matter-board workflow-board" id="matters" aria-label="Case cockpit matter board">
         <div class="section-head"><div><p>Case cockpit</p><h2>Matter board</h2></div><span>Live workflow</span></div>
         <div class="board-grid" role="grid">
-          <article><h3>New</h3><div class="matter-card"><b>Acme employment claim</b><span>Client intake complete</span><i>Owner Mina</i></div><div class="matter-card"><b>Vega contract review</b><span>Conflict check</span><i>Owner Amir</i></div></article>
-          <article><h3>In review</h3><div class="matter-card violet"><b>Patel data request</b><span>Documents pending</span><i>Owner Sara</i></div></article>
-          <article><h3>Discovery</h3><div class="matter-card amber"><b>Hill Group dispute</b><span>Evidence timeline</span><i>Owner Jonas</i></div></article>
-          <article><h3>Billing</h3><div class="matter-card emerald"><b>Northstar closing</b><span>Invoices ready</span><i>Payments due Friday</i></div></article>
+          <div><h3>New</h3><div class="matter-card"><b>Acme employment claim</b><span>Client intake complete</span><i>Owner Mina</i></div><div class="matter-card"><b>Vega contract review</b><span>Conflict check</span><i>Owner Amir</i></div></div>
+          <div><h3>In review</h3><div class="matter-card violet"><b>Patel data request</b><span>Documents pending</span><i>Owner Sara</i></div></div>
+          <div><h3>Discovery</h3><div class="matter-card amber"><b>Hill Group dispute</b><span>Evidence timeline</span><i>Owner Jonas</i></div></div>
+          <div><h3>Billing</h3><div class="matter-card emerald"><b>Northstar closing</b><span>Invoices ready</span><i>Payments due Friday</i></div></div>
         </div>
       </section>
       <section class="lower-grid">
-        <article class="panel intake" id="intake">
+        <section class="panel intake" id="intake">
           <div class="section-head"><div><p>Client intake</p><h2>Queue</h2></div><span>7 new</span></div>
           <table role="grid"><thead><tr><th>Client</th><th>Status</th><th>Owner</th></tr></thead><tbody><tr><td>Acme Co.</td><td><span class="pill emerald">Qualified</span></td><td>Mina</td></tr><tr><td>J. Patel</td><td><span class="pill amber">Docs needed</span></td><td>Sara</td></tr><tr><td>Vega LLC</td><td><span class="pill violet">Conflict check</span></td><td>Amir</td></tr></tbody></table>
-        </article>
-        <article class="panel billing" id="billing">
+        </section>
+        <section class="panel billing" id="billing">
           <div class="section-head"><div><p>Invoices &amp; Payments</p><h2>Billing status</h2></div><span>$82.4k</span></div>
           <ul><li><b>INV-1048</b><span>Acme Co.</span><em>Sent</em></li><li><b>INV-1044</b><span>Hill Group</span><em>Paid</em></li><li><b>TIME-330</b><span>Northstar</span><em>Draft</em></li></ul>
-        </article>
-        <article class="panel admin" id="admin">
+        </section>
+        <section class="panel admin" id="admin">
           <div class="section-head"><div><p>Admin</p><h2>Roles &amp; access</h2></div><span>3 roles</span></div>
           <div class="role-stack"><div><b>Partner</b><span>All matters, billing, users</span></div><div><b>Associate</b><span>Assigned matters and documents</span></div><div><b>Client</b><span>Portal-only document access</span></div></div>
-        </article>
-        <article class="panel schema">
+        </section>
+        <section class="panel schema">
           <div class="section-head"><div><p>Supabase</p><h2>Schema / RLS</h2></div><span>Protected</span></div>
           <code>matters · client_intakes · invoices · payments · user_roles</code>
           <p>RLS policies isolate firm workspaces and admin role access.</p>
-        </article>
+        </section>
       </section>
     </main>
   </div>
