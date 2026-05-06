@@ -754,6 +754,21 @@ export async function runAgenticBuild(input: {
     }
   }
 
+  if (isLegalSaasRequest(`${input.userRequest} ${plan.appType} ${plan.designDirection}`)) {
+    const forced = forceLegalAppPreviewFiles({
+      projectName: input.projectName,
+      userRequest: input.userRequest,
+      files,
+    });
+    repairs.push({
+      path: forced.join(", "),
+      reason: "Forced deterministic legal SaaS app-shell preview; quarantined agentic editorial/website output.",
+      attempt: 88,
+      ok: true,
+    });
+    redesigned = true;
+  }
+
   // Visual quality gate (shared with monster orchestrator). Repair index.html
   // up to two times when banned strings appear OR when key gates fail
   // (workflow-above-fold, hero-not-oversized, law-firm-tokens-present,
