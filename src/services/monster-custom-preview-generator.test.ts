@@ -15,7 +15,7 @@ describe("Monster custom preview generator", () => {
     const index = files.find((file) => file.path === "index.html")?.content ?? "";
     expect(index).toContain('name="yawb-generator" content="monster-custom-preview-v1"');
     expect(index).toContain('name="yawb-layout" content="case-cockpit"');
-    expect(index).toContain("legal operations with a case cockpit");
+    expect(index).toContain("Case cockpit");
     expect(index).not.toContain("Money operations");
   });
 
