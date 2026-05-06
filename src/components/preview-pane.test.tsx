@@ -306,7 +306,11 @@ describe("PreviewPane — local preview", () => {
         activeDeployUrl={null}
       />,
     );
-    const liveBtn = container.querySelector(
+    const more = container.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const liveBtn = document.querySelector(
       '[data-testid="preview-mode-live"]',
     ) as HTMLButtonElement | null;
     expect(liveBtn).not.toBeNull();
