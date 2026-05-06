@@ -31,6 +31,22 @@ const BANNED_TEMPLATE_STRINGS = [
   "Atelier",
   "Journal",
   "The Sovereignty of Law",
+  "Sovereignty",
+  "Aeterna",
+  "Lex Scripta",
+  "Examine Briefing",
+  "Private Tier",
+];
+
+// Editorial / blog / publication nouns. Case-sensitive whole-word match in the
+// generated body. These must never appear in a SaaS app shell.
+const BLOG_TERMS = [
+  "Briefing",
+  "Article",
+  "Library",
+  "Publication",
+  "Volume",
+  "Archive",
 ];
 
 const WEAK_PLACEHOLDER_STRINGS = [
