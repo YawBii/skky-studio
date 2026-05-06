@@ -64,9 +64,11 @@ export function inferMonsterDesignMode(
   if (input.requestedDesignMode && DESIGN_MODES.includes(input.requestedDesignMode))
     return input.requestedDesignMode;
   const text = commandText(input);
-  if (
-    has(text, /\b(luxury|premium|law|legal|hotel|real estate|estate|fashion|private|exclusive)\b/)
-  )
+  // Legal/professional-services intentionally NEVER maps to "editorial-luxury"
+  // — that produces magazine/landing pages instead of an app shell.
+  if (has(text, /\b(law|legal|attorney|solicitor|firm|matter|case|counsel)\b/))
+    return "glass-dashboard";
+  if (has(text, /\b(luxury|premium|hotel|real estate|estate|fashion|private|exclusive)\b/))
     return "editorial-luxury";
   if (has(text, /\b(neon|terminal|developer|devtool|ai|command|cyber|console)\b/))
     return "neon-command";
@@ -74,14 +76,14 @@ export function inferMonsterDesignMode(
     return "glass-dashboard";
   if (has(text, /\b(civic|government|community|impact|nonprofit|charity|map)\b/))
     return "civic-map";
-  if (has(text, /\b(magazine|media|blog|content|creator|editorial)\b/)) return "magazine-cards";
+  if (has(text, /\b(magazine|media|content|creator)\b/)) return "magazine-cards";
   if (has(text, /\b(minimal|clean|simple|light|white)\b/)) return "minimal-light";
   if (has(text, /\b(brutalist|raw|data-heavy|terminal|industrial)\b/)) return "brutalist-data";
   switch (appType) {
     case "saas-dashboard":
       return "glass-dashboard";
     case "professional-services":
-      return "editorial-luxury";
+      return "glass-dashboard";
     case "community-platform":
       return "civic-map";
     case "marketplace":
@@ -89,7 +91,7 @@ export function inferMonsterDesignMode(
     case "fintech-app":
       return "neon-command";
     default:
-      return "editorial-luxury";
+      return "glass-dashboard";
   }
 }
 
