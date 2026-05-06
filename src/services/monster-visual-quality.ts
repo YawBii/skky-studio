@@ -51,6 +51,30 @@ const WORKFLOW_HINTS = [
   "board",
   "dashboard",
   "approvals",
+  "intake",
+  "cockpit",
+  "matter",
+  "invoice",
+  "admin",
+];
+
+// Substrings that, if found in the first ~3500 chars of <body>, count as a
+// real app workflow surface above the fold (vs. landing-only marketing).
+const ABOVE_FOLD_HINTS = [
+  "<table",
+  "<form",
+  'role="grid"',
+  'role="list"',
+  "queue",
+  "cockpit",
+  "intake",
+  "pipeline",
+  "timeline",
+  "dashboard",
+  "ledger",
+  "approvals",
+  "data-grid",
+  "workflow-board",
 ];
 
 function check(id: string, label: string, passed: boolean, detail: string): VisualQualityCheck {
