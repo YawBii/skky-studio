@@ -136,6 +136,14 @@ export function evaluateVisualQuality(input: {
       workflowHits.length ? `Surfaces: ${workflowHits.join(", ")}` : "No workflow surface detected",
     ),
     check(
+      "workflow-above-fold",
+      "Workflow surface visible above the fold (not landing-only)",
+      aboveFoldHits.length >= 1,
+      aboveFoldHits.length
+        ? `Above-fold: ${aboveFoldHits.join(", ")}`
+        : "Only hero/landing content detected — needs cockpit/intake/queue/timeline above the fold",
+    ),
+    check(
       "mobile-ready",
       "Mobile viewport + responsive CSS",
       mobileMeta && mobileCss,
