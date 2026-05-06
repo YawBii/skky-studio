@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
+import { detectBuildIntent } from "@/lib/build-intent";
 import { streamChat as streamAiChat } from "@/services/ai";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
@@ -569,12 +570,21 @@ export function AssistantPanel({
 
     if (!project || !workspace) return;
 
+    // Route real build prompts to the agentic build loop instead of stopping
+    // at ai.plan. Plan-only / audit / review requests still use ai.plan.
+    const intent = detectBuildIntent(text);
+    const jobType: JobType = intent.isBuild ? "ai.generate_changes" : "ai.plan";
     const r = await enqueueJob({
       projectId: project.id,
       workspaceId: workspace.id,
-      type: "ai.plan",
+      type: jobType,
       title: text.slice(0, 80),
-      input: { prompt: text, source: "chat_send" },
+      input: {
+        prompt: text,
+        chatRequest: text,
+        source: "chat_send",
+        intent: intent.reason,
+      },
     });
     if (!r.ok) {
       console.error("[yawb] chat.send.enqueue.error", r);
@@ -584,7 +594,7 @@ export function AssistantPanel({
       toast.error(`Couldn't queue request: ${detail}`);
       return;
     }
-    console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
+    console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id, type: jobType });
     summarizedRef.current.add(r.job.id);
     persistSummarized(project.id, summarizedRef.current);
     setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
@@ -592,7 +602,9 @@ export function AssistantPanel({
       ...m,
       {
         role: "assistant",
-        content: `Queued ai.plan job — live summary below.`,
+        content: intent.isBuild
+          ? `Queued ${jobType} — building now. Live summary below.`
+          : `Queued ${jobType} — live summary below.`,
         summaryJobId: r.job.id,
       },
     ]);

@@ -305,20 +305,39 @@ async function runMonsterGenerateChanges(input: {
         userRequest: chatRequest || input.job.title || "Build the requested product.",
       });
       if (agentic.ok) {
+        const sectionRepairs = (agentic.repairs ?? []).map((r) => ({
+          path: r.path,
+          reason: r.reason,
+          attempt: r.attempt,
+          ok: r.ok,
+        }));
         const output = {
           generator: "agentic-loop-v1",
           appType: agentic.plan.appType,
           designDirection: agentic.plan.designDirection,
           previewReady: agentic.previewSource !== null,
           written: agentic.written,
+          filesTouched: agentic.written,
+          filesWritten: agentic.written,
           fileCount: agentic.files.length,
           plan: agentic.plan,
           checks: agentic.checks,
-          repairs: agentic.repairs,
+          repairs: sectionRepairs,
+          repairCount: sectionRepairs.length,
+          sectionRepairs,
           critique: agentic.critique,
+          designBrief: agentic.designBrief,
+          visualQuality: agentic.visualQuality,
+          provider: agentic.provider?.name ?? null,
+          model: agentic.provider?.model ?? null,
           limitations: agentic.limitations,
           handledJobType: input.job.type,
           handledStepKey: input.step.step_key,
+          projectFilesUpsert: {
+            ok: true,
+            count: agentic.written.length,
+            paths: agentic.written,
+          },
           previewProof: {
             generator: "agentic-loop-v1",
             expectedMeta: '<meta name="yawb-generator" content="agentic-loop-v1" />',
@@ -332,7 +351,7 @@ async function runMonsterGenerateChanges(input: {
           status: "succeeded",
           output,
           error: null,
-          log: `Agentic loop generated ${agentic.written.length} files (critique ${agentic.critique.score}/100${agentic.critique.redesigned ? ", redesigned once" : ""}).`,
+          log: `Agentic loop generated ${agentic.written.length} files (critique ${agentic.critique.score}/100${agentic.critique.redesigned ? ", redesigned once" : ""}, repairs=${sectionRepairs.length}).`,
         });
         return {
           advanced: true,

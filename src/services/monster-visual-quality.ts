@@ -75,6 +75,12 @@ export function evaluateVisualQuality(input: {
   const workflowHits = WORKFLOW_HINTS.filter((h) => index.toLowerCase().includes(h));
   const mobileMeta = /viewport[^>]+width=device-width/i.test(index);
   const mobileCss = /@media\s*\([^)]*max-width/.test(allText);
+  const hasFixedPxWidth =
+    /width:\s*\d{4,}px/i.test(allText) || /min-width:\s*1[2-9]\d{2}px/i.test(allText);
+  const hasMobileNav =
+    /aria-label=["'](?:menu|navigation|open menu)["']/i.test(allText) ||
+    /(?:hamburger|menu-toggle|mobile-nav|nav-toggle)/i.test(allText);
+  const usesResponsiveUnits = /(?:\b\d+(?:\.\d+)?(?:rem|vw|vh|%|fr))\b/.test(allText);
   const sameAsPrevious = Boolean(input.previousIndexHtml && input.previousIndexHtml === index);
   const briefBakedIn =
     index.includes(input.brief.colorPalette.accent) ||
@@ -104,6 +110,24 @@ export function evaluateVisualQuality(input: {
       "Mobile viewport + responsive CSS",
       mobileMeta && mobileCss,
       `viewport=${mobileMeta}, mediaQuery=${mobileCss}`,
+    ),
+    check(
+      "no-fixed-large-width",
+      "No fixed desktop-only widths",
+      !hasFixedPxWidth,
+      hasFixedPxWidth ? "Found fixed >=1000px width" : "Fluid widths",
+    ),
+    check(
+      "mobile-nav-component",
+      "Mobile-friendly nav (toggle/hamburger)",
+      hasMobileNav || !mobileCss,
+      hasMobileNav ? "Mobile nav detected" : "No mobile nav toggle found",
+    ),
+    check(
+      "responsive-units",
+      "Uses responsive units (rem/%/vw/vh/fr)",
+      usesResponsiveUnits,
+      usesResponsiveUnits ? "Responsive units used" : "Only px units detected",
     ),
     check(
       "differs-from-previous",
