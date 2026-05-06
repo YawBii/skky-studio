@@ -450,6 +450,148 @@ async function critique(input: {
   };
 }
 
+// ---------- 4b. Design brief (AI-first, deterministic fallback) ----------
+
+const BRIEF_TOOL = {
+  name: "submit_design_brief",
+  description:
+    "Produce a custom design brief for the user's product BEFORE files are generated.",
+  parameters: {
+    type: "object",
+    properties: {
+      productCategory: { type: "string" },
+      targetUser: { type: "string" },
+      brandFeel: { type: "string" },
+      layoutDirection: { type: "string" },
+      navigationPattern: { type: "string" },
+      typography: {
+        type: "object",
+        properties: { display: { type: "string" }, body: { type: "string" } },
+        required: ["display", "body"],
+      },
+      palette: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          bg: { type: "string" },
+          surface: { type: "string" },
+          ink: { type: "string" },
+          accent: { type: "string" },
+        },
+        required: ["name", "bg", "surface", "ink", "accent"],
+      },
+      interactionStyle: { type: "string" },
+      keyScreens: { type: "array", items: { type: "string" } },
+    },
+    required: [
+      "productCategory",
+      "targetUser",
+      "brandFeel",
+      "layoutDirection",
+      "navigationPattern",
+      "typography",
+      "palette",
+      "interactionStyle",
+      "keyScreens",
+    ],
+  },
+};
+
+function deterministicBrief(input: {
+  projectName: string;
+  userRequest: string;
+}): AgenticDesignBrief {
+  const blueprint = createMonsterBlueprint({
+    project: { id: "agentic", name: input.projectName, description: input.userRequest },
+    chatRequest: input.userRequest,
+  });
+  const det = generateMonsterDesignBrief(blueprint, input.userRequest);
+  return {
+    productCategory: det.productCategory,
+    targetUser: det.targetUser,
+    brandFeel: det.brandFeel,
+    layoutDirection: det.layoutDirection,
+    navigationPattern: det.navigationPattern,
+    typography: det.typographyPairing,
+    palette: {
+      name: det.colorPalette.name,
+      bg: det.colorPalette.bg,
+      surface: det.colorPalette.surface,
+      ink: det.colorPalette.ink,
+      accent: det.colorPalette.accent,
+    },
+    interactionStyle: det.interactionStyle,
+    keyScreens: det.keyScreens,
+    source: "deterministic",
+  };
+}
+
+async function buildDesignBrief(input: {
+  projectName: string;
+  userRequest: string;
+}): Promise<AgenticDesignBrief> {
+  const r = await callGateway({
+    model: BRIEF_MODEL_HINT,
+    system:
+      "You are yawB's design strategist. Produce a non-generic design brief tailored to the product domain. Never reuse 'Luxury Editorial' or 'Clean Minimal'.",
+    user: JSON.stringify({ projectName: input.projectName, userRequest: input.userRequest }),
+    tool: BRIEF_TOOL,
+  });
+  if (!r.ok) return deterministicBrief(input);
+  const v = r.value as Partial<AgenticDesignBrief> & {
+    typography?: { display?: string; body?: string };
+    palette?: { name?: string; bg?: string; surface?: string; ink?: string; accent?: string };
+  };
+  const fb = deterministicBrief(input);
+  return {
+    productCategory: String(v.productCategory ?? fb.productCategory),
+    targetUser: String(v.targetUser ?? fb.targetUser),
+    brandFeel: String(v.brandFeel ?? fb.brandFeel),
+    layoutDirection: String(v.layoutDirection ?? fb.layoutDirection),
+    navigationPattern: String(v.navigationPattern ?? fb.navigationPattern),
+    typography: {
+      display: String(v.typography?.display ?? fb.typography.display),
+      body: String(v.typography?.body ?? fb.typography.body),
+    },
+    palette: {
+      name: String(v.palette?.name ?? fb.palette.name),
+      bg: String(v.palette?.bg ?? fb.palette.bg),
+      surface: String(v.palette?.surface ?? fb.palette.surface),
+      ink: String(v.palette?.ink ?? fb.palette.ink),
+      accent: String(v.palette?.accent ?? fb.palette.accent),
+    },
+    interactionStyle: String(v.interactionStyle ?? fb.interactionStyle),
+    keyScreens: Array.isArray(v.keyScreens) ? v.keyScreens.map(String) : fb.keyScreens,
+    source: "ai",
+  };
+}
+
+function briefToVisualQualityShape(b: AgenticDesignBrief) {
+  // Adapter so the existing visual-quality gate (which expects a
+  // MonsterDesignBrief) can score agentic output.
+  return {
+    version: "monster-design-brief-v1" as const,
+    productCategory: b.productCategory,
+    targetUser: b.targetUser,
+    brandFeel: b.brandFeel,
+    layoutDirection: b.layoutDirection,
+    navigationPattern:
+      (["left-rail", "top-nav", "split-pane", "tabbed-shell", "sidebar-stack"].includes(
+        b.navigationPattern,
+      )
+        ? b.navigationPattern
+        : "top-nav") as "left-rail" | "top-nav" | "split-pane" | "tabbed-shell" | "sidebar-stack",
+    typographyPairing: b.typography,
+    colorPalette: { ...b.palette, accent2: b.palette.accent },
+    interactionStyle: b.interactionStyle,
+    spacingRhythm: "balanced" as const,
+    cardStyle: "paper" as const,
+    heroComposition: b.layoutDirection,
+    keyScreens: b.keyScreens,
+    varianceSeed: "agentic",
+  };
+}
+
 // ---------- 5. Orchestrate ----------
 
 export async function runAgenticBuild(input: {
@@ -464,12 +606,25 @@ export async function runAgenticBuild(input: {
     "Verification is heuristic (syntax/balance/banned strings). No real tsc/vite runs in this loop.",
     "Generated code is static HTML/CSS/JS plus draft Supabase SQL. Wire to a real framework on next pass.",
   ];
+  const r = resolveProvider();
+  const providerInfo = r.configured
+    ? { name: r.provider.name, model: r.model || r.provider.defaultModel }
+    : null;
+
+  // Step 0: Design brief (AI with deterministic fallback) BEFORE plan/files.
+  const designBrief = await buildDesignBrief({
+    projectName: input.projectName,
+    userRequest: input.userRequest,
+  });
 
   const planResp = await buildPlan(input.userRequest, input.projectName);
   if (!planResp.ok) {
-    return emptyFailure(input, planResp.error, limitations);
+    return emptyFailure(input, planResp.error, limitations, designBrief, providerInfo);
   }
   const plan = planResp.plan;
+  // Bake the brief into the design direction so codegen sees it.
+  plan.designDirection =
+    `${plan.designDirection}\n\nBrief: category=${designBrief.productCategory}; user=${designBrief.targetUser}; feel=${designBrief.brandFeel}; nav=${designBrief.navigationPattern}; palette=${designBrief.palette.name} (accent ${designBrief.palette.accent}); typography=${designBrief.typography.display}/${designBrief.typography.body}; screens=${designBrief.keyScreens.join(", ")}.`.trim();
 
   const files: Array<{ path: string; content: string; language: string }> = [];
   const checks: CheckResult[] = [];
@@ -530,7 +685,6 @@ export async function runAgenticBuild(input: {
       indexHtml: index.content,
     });
     if (critiqueResult.score < 70 || critiqueResult.generic) {
-      // One redesign pass.
       const hint = `Critic flagged the previous index.html (score ${critiqueResult.score}, generic=${critiqueResult.generic}). Issues: ${critiqueResult.issues.join("; ")}. Regenerate with stronger product specificity and a more distinctive visual identity.`;
       const regen = await generateFile({
         plan,
@@ -552,6 +706,50 @@ export async function runAgenticBuild(input: {
     }
   }
 
+  // Visual quality gate (shared with monster orchestrator). On banned/weak
+  // hits, ask the AI to repair the offending files once.
+  let visualQuality: VisualQualityReport = evaluateVisualQuality({
+    files: files.map((f) => ({
+      path: f.path,
+      content: f.content,
+      language: f.language,
+      kind: "source",
+    })),
+    brief: briefToVisualQualityShape(designBrief),
+    previousIndexHtml: null,
+  });
+  if (!visualQuality.passed && visualQuality.bannedHits.length > 0) {
+    const hint = `Visual quality gate failed. Remove banned template strings: ${visualQuality.bannedHits.join(", ")}. Use the design brief instead (category=${designBrief.productCategory}, brand=${designBrief.brandFeel}).`;
+    for (const f of files) {
+      if (!visualQuality.bannedHits.some((b) => f.content.includes(b))) continue;
+      const spec = plan.files.find((p) => p.path === f.path) ?? {
+        path: f.path,
+        purpose: "repair",
+        language: f.language,
+      };
+      const regen = await generateFile({
+        plan,
+        userRequest: input.userRequest,
+        file: spec,
+        repairHint: hint,
+      });
+      if (regen.ok) {
+        f.content = regen.content;
+        repairs.push({ path: f.path, reason: hint, attempt: 99, ok: true });
+      }
+    }
+    visualQuality = evaluateVisualQuality({
+      files: files.map((f) => ({
+        path: f.path,
+        content: f.content,
+        language: f.language,
+        kind: "source",
+      })),
+      brief: briefToVisualQualityShape(designBrief),
+      previousIndexHtml: null,
+    });
+  }
+
   // Persist files
   const written: string[] = [];
   for (const f of files) {
@@ -571,11 +769,14 @@ export async function runAgenticBuild(input: {
         generator: "agentic-loop-v1",
         userRequest: input.userRequest,
         plan,
+        designBrief,
         files,
         written,
         checks,
         repairs,
         critique: { ...critiqueResult, redesigned },
+        visualQuality,
+        provider: providerInfo,
         previewSource: index?.content ?? null,
         limitations,
         error: `project_files upsert ${f.path}: ${error.message}`,
@@ -584,7 +785,7 @@ export async function runAgenticBuild(input: {
     written.push(f.path);
   }
 
-  // Persist proof
+  // Persist proof (no prompts/responses recorded — only metadata).
   const proofRow = {
     project_id: input.projectId,
     job_id: input.jobId,
@@ -592,13 +793,16 @@ export async function runAgenticBuild(input: {
     generator: "agentic-loop-v1",
     user_request: input.userRequest,
     plan,
+    design_brief: designBrief,
+    provider: providerInfo,
     files_written: written,
     checks,
     repairs,
     critique: { ...critiqueResult, redesigned },
+    visual_quality: visualQuality,
     preview_source: index?.content ?? null,
     limitations,
-    ok: written.length > 0 && Boolean(index),
+    ok: written.length > 0 && Boolean(index) && visualQuality.passed,
   };
   try {
     await input.sb.from("project_proofs").insert(proofRow);
@@ -608,15 +812,18 @@ export async function runAgenticBuild(input: {
 
   const allChecksPassed = checks.every((c) => c.ok);
   return {
-    ok: written.length > 0 && Boolean(index) && allChecksPassed,
+    ok: written.length > 0 && Boolean(index) && allChecksPassed && visualQuality.passed,
     generator: "agentic-loop-v1",
     userRequest: input.userRequest,
     plan,
+    designBrief,
     files,
     written: written.sort(),
     checks,
     repairs,
     critique: { ...critiqueResult, redesigned },
+    visualQuality,
+    provider: providerInfo,
     previewSource: index?.content ?? null,
     limitations,
   };
@@ -626,6 +833,8 @@ function emptyFailure(
   input: { projectId: string; userRequest: string },
   error: string,
   limitations: string[],
+  designBrief: AgenticDesignBrief | null,
+  providerInfo: { name: string; model: string } | null,
 ): AgenticBuildResult {
   return {
     ok: false,
@@ -642,11 +851,14 @@ function emptyFailure(
       files: [],
       designDirection: "",
     },
+    designBrief,
     files: [],
     written: [],
     checks: [],
     repairs: [],
     critique: { score: 0, summary: error, issues: [error], redesigned: false },
+    visualQuality: null,
+    provider: providerInfo,
     previewSource: null,
     limitations,
     error,
