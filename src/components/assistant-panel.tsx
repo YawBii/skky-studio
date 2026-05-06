@@ -594,7 +594,7 @@ export function AssistantPanel({
       toast.error(`Couldn't queue request: ${detail}`);
       return;
     }
-    console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id });
+    console.info("[yawb] chat.send.enqueue.success", { jobId: r.job.id, type: jobType });
     summarizedRef.current.add(r.job.id);
     persistSummarized(project.id, summarizedRef.current);
     setQueuedSummaryJobs((prev) => ({ ...prev, [r.job.id]: r.job }));
@@ -602,7 +602,9 @@ export function AssistantPanel({
       ...m,
       {
         role: "assistant",
-        content: `Queued ai.plan job — live summary below.`,
+        content: intent.isBuild
+          ? `Queued ${jobType} — building now. Live summary below.`
+          : `Queued ${jobType} — live summary below.`,
         summaryJobId: r.job.id,
       },
     ]);
