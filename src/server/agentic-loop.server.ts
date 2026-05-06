@@ -10,6 +10,7 @@ import { resolveProvider } from "./ai/resolver";
 import { evaluateVisualQuality, type VisualQualityReport } from "@/services/monster-visual-quality";
 import { generateMonsterDesignBrief } from "@/services/monster-design-brief";
 import { createMonsterBlueprint } from "@/services/monster-director";
+import { generateMonsterCustomPreviewFiles } from "@/services/monster-custom-preview-generator";
 
 export interface AgenticDesignBrief {
   productCategory: string;
@@ -602,6 +603,41 @@ function briefToVisualQualityShape(b: AgenticDesignBrief) {
     keyScreens: b.keyScreens,
     varianceSeed: "agentic",
   };
+}
+
+function isLegalSaasRequest(text: string): boolean {
+  return /\b(law|legal|firm|matter|case|attorney|counsel|client intake)\b/i.test(text);
+}
+
+function forceLegalAppPreviewFiles(input: {
+  projectName: string;
+  userRequest: string;
+  files: Array<{ path: string; content: string; language: string }>;
+}): string[] {
+  const blueprint = createMonsterBlueprint({
+    project: { id: "agentic-preview", name: input.projectName, description: input.userRequest },
+    chatRequest: input.userRequest,
+    requestedDesignMode: "glass-dashboard",
+    production: true,
+  });
+  const brief = generateMonsterDesignBrief(blueprint, "agentic-legal-app-shell");
+  const previewFiles = generateMonsterCustomPreviewFiles(blueprint, brief).map((file) => ({
+    path: file.path,
+    content: file.content,
+    language: file.language,
+  }));
+  const replaced: string[] = [];
+  for (const preview of previewFiles) {
+    const existing = input.files.find((file) => file.path === preview.path);
+    if (existing) {
+      existing.content = preview.content;
+      existing.language = preview.language;
+    } else {
+      input.files.push(preview);
+    }
+    replaced.push(preview.path);
+  }
+  return replaced;
 }
 
 // ---------- 5. Orchestrate ----------
