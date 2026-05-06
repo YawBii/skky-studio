@@ -128,7 +128,7 @@ function lawAppShellHtml(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief
 </head>
 <body data-layout="case-cockpit" data-app-shell="legal-saas">
   <div class="app-shell" data-app-surface="dashboard">
-    <aside class="sidebar" aria-label="Primary navigation">
+    <aside class="sidebar" aria-label="navigation">
       <div class="brand"><span class="brand-mark">LX</span><strong>LexOS</strong></div>
       <nav>
         <a href="#dashboard" class="active">Dashboard</a>
