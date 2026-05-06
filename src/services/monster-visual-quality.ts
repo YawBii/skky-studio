@@ -122,6 +122,30 @@ export function evaluateVisualQuality(input: {
   const aboveFold = (bodyMatch ? bodyMatch[0] : index.slice(0, 3500)).toLowerCase();
   const aboveFoldHits = ABOVE_FOLD_HINTS.filter((h) => aboveFold.includes(h.toLowerCase()));
 
+  // Hero must NOT dominate the first screen. A giant editorial h1 (font-size
+  // >= ~64px or clamp ceiling >= 80px) is treated as marketing-only.
+  const heroOversize =
+    /h1[^{}]*\{[^}]*font-size:\s*(?:clamp\([^)]*?,\s*)?(?:6[4-9]|[7-9]\d|1\d{2,})px/i.test(
+      allText,
+    ) || /font-size:\s*clamp\([^)]*,\s*[7-9]\d?px,\s*\d+px\)/i.test(allText);
+
+  // Law-firm / matter-product token gate (only enforced when the brief or
+  // index hints at the legal domain).
+  const legalContext =
+    /\b(law|legal|firm|matter|case|attorney|counsel|client intake)\b/i.test(index) ||
+    /\b(law|legal|firm|matter|case|attorney|counsel)\b/i.test(input.brief.productCategory);
+  const lowerAll = allText.toLowerCase();
+  const lawTokens = {
+    intake: /client intake/.test(lowerAll),
+    cockpit: /case cockpit|matter board/.test(lowerAll),
+    billing: /invoices|payments/.test(lowerAll),
+    admin: /\badmin\b|\broles\b/.test(lowerAll),
+    supabase: /supabase|\brls\b/.test(lowerAll),
+  };
+  const lawTokenMisses = Object.entries(lawTokens)
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+
   const checks: VisualQualityCheck[] = [
     check(
       "no-banned-template",
