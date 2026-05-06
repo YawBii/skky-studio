@@ -851,12 +851,9 @@ export async function runAgenticBuild(input: {
   }
 
   const allChecksPassed = checks.every((c) => c.ok);
+  const indexPersisted = written.includes("index.html");
   return {
-    ok:
-      written.length > 0 &&
-      Boolean(index) &&
-      allChecksPassed &&
-      visualQuality.bannedHits.length === 0,
+    ok: indexPersisted && visualOk && allChecksPassed,
     generator: "agentic-loop-v1",
     userRequest: input.userRequest,
     plan,
