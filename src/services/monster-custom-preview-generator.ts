@@ -427,6 +427,7 @@ function primaryCta(layout: ReturnType<typeof layoutFor>): string {
 
 function css(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const layout = layoutFor(blueprint);
+  if (layout === "case-cockpit") return lawAppShellCss();
   const fallback = paletteFor(layout);
   const p = brief
     ? {
