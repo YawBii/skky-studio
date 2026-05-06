@@ -305,45 +305,50 @@ async function runMonsterGenerateChanges(input: {
         userRequest: chatRequest || input.job.title || "Build the requested product.",
       });
       if (agentic.ok) {
-        const sectionRepairs = (agentic.repairs ?? []).map((r) => ({
-          path: r.path,
-          reason: r.reason,
-          attempt: r.attempt,
-          ok: r.ok,
-        }));
-        const output = {
+      const sectionRepairs = (agentic.repairs ?? []).map((r) => ({
+        path: r.path,
+        reason: r.reason,
+        attempt: r.attempt,
+        ok: r.ok,
+      }));
+      const failedGates =
+        agentic.visualQuality?.checks.filter((c) => !c.passed).map((c) => c.label) ?? [];
+      const output = {
+        generator: "agentic-loop-v1",
+        appType: agentic.plan.appType,
+        designDirection: agentic.plan.designDirection,
+        previewReady: agentic.ok && agentic.previewSource !== null,
+        written: agentic.written,
+        filesTouched: agentic.written,
+        filesWritten: agentic.written,
+        fileCount: agentic.files.length,
+        plan: agentic.plan,
+        checks: agentic.checks,
+        repairs: sectionRepairs,
+        repairCount: sectionRepairs.length,
+        sectionRepairs,
+        critique: agentic.critique,
+        designBrief: agentic.designBrief,
+        visualQuality: agentic.visualQuality,
+        provider: agentic.provider?.name ?? null,
+        model: agentic.provider?.model ?? null,
+        limitations: agentic.limitations,
+        handledJobType: input.job.type,
+        handledStepKey: input.step.step_key,
+        needsRepair: !agentic.ok,
+        failedGates,
+        projectFilesUpsert: {
+          ok: true,
+          count: agentic.written.length,
+          paths: agentic.written,
+        },
+        previewProof: {
           generator: "agentic-loop-v1",
-          appType: agentic.plan.appType,
-          designDirection: agentic.plan.designDirection,
-          previewReady: agentic.previewSource !== null,
-          written: agentic.written,
-          filesTouched: agentic.written,
-          filesWritten: agentic.written,
-          fileCount: agentic.files.length,
-          plan: agentic.plan,
-          checks: agentic.checks,
-          repairs: sectionRepairs,
-          repairCount: sectionRepairs.length,
-          sectionRepairs,
-          critique: agentic.critique,
-          designBrief: agentic.designBrief,
-          visualQuality: agentic.visualQuality,
-          provider: agentic.provider?.name ?? null,
-          model: agentic.provider?.model ?? null,
-          limitations: agentic.limitations,
-          handledJobType: input.job.type,
-          handledStepKey: input.step.step_key,
-          projectFilesUpsert: {
-            ok: true,
-            count: agentic.written.length,
-            paths: agentic.written,
-          },
-          previewProof: {
-            generator: "agentic-loop-v1",
-            expectedMeta: '<meta name="yawb-generator" content="agentic-loop-v1" />',
-            indexPath: "index.html",
-          },
-        };
+          expectedMeta: '<meta name="yawb-generator" content="agentic-loop-v1" />',
+          indexPath: "index.html",
+        },
+      };
+      if (agentic.ok) {
         await markJobAndStep({
           sb: input.sb,
           jobId: input.job.id,
@@ -360,10 +365,29 @@ async function runMonsterGenerateChanges(input: {
           status: "succeeded",
         };
       }
-      console.warn(
-        "[yawb] agentic-loop.failed_falling_back",
-        agentic.error ?? agentic.critique.summary,
-      );
+      // Visual quality / banned strings did not pass — mark the job as failed
+      // (needs repair) and DO NOT persist a bad index.html. The runner refuses
+      // to advertise the build as done.
+      const reason =
+        failedGates.length > 0
+          ? `Needs repair — failed gates: ${failedGates.join("; ")}`
+          : agentic.error || "Needs repair — visual quality not met";
+      await markJobAndStep({
+        sb: input.sb,
+        jobId: input.job.id,
+        stepId: input.step.id,
+        status: "failed",
+        output,
+        error: reason,
+        log: `Agentic loop refused to ship: ${reason}`,
+      });
+      return {
+        advanced: true,
+        jobId: input.job.id,
+        stepKey: input.step.step_key,
+        status: "failed",
+        error: reason,
+      };
     } catch (e) {
       console.warn(
         "[yawb] agentic-loop.threw_falling_back",
