@@ -108,8 +108,89 @@ function sections(blueprint: MonsterBlueprint) {
   };
 }
 
+function lawAppShellHtml(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
+  const app = esc(blueprint.appName || "LexOS");
+  const category = esc(brief?.productCategory ?? "professional services");
+  const accent = esc(brief?.colorPalette.accent ?? "#34d399");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="yawb-generator" content="monster-custom-preview-v1" />
+  <meta name="yawb-design-mode" content="glass-dashboard" />
+  <meta name="yawb-app-type" content="professional-services" />
+  <meta name="yawb-layout" content="case-cockpit" />
+  <meta name="yawb-category" content="${category}" />
+  <meta name="yawb-accent" content="${accent}" />
+  <title>${app} · LexOS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-layout="case-cockpit" data-app-shell="legal-saas">
+  <div class="app-shell" data-app-surface="dashboard">
+    <aside class="sidebar" aria-label="navigation">
+      <div class="brand"><span class="brand-mark">LX</span><strong>LexOS</strong></div>
+      <nav>
+        <a href="#dashboard" class="active">Dashboard</a>
+        <a href="#intake">Intake</a>
+        <a href="#matters">Matters</a>
+        <a href="#documents">Documents</a>
+        <a href="#billing">Billing</a>
+        <a href="#admin">Admin</a>
+      </nav>
+      <div class="rls-mini"><span>Supabase</span><b>RLS enforced</b></div>
+    </aside>
+    <main class="workspace" id="dashboard">
+      <header class="topbar">
+        <div><p>Case cockpit</p><h1>Matter board command center</h1></div>
+        <label class="search"><span>Search</span><input aria-label="Search matters" value="Acme discovery" /></label>
+        <button type="button">New matter</button>
+        <div class="user">AR</div>
+      </header>
+      <section class="kpis" aria-label="KPI cards">
+        <div><span>Active matters</span><strong>48</strong><em>+6 this week</em></div>
+        <div><span>Client intake</span><strong>17</strong><em>5 urgent reviews</em></div>
+        <div><span>Outstanding invoices</span><strong>$82.4k</strong><em>Payments tracked</em></div>
+        <div><span>RLS policies</span><strong>24</strong><em>Supabase locked</em></div>
+      </section>
+      <section class="matter-board workflow-board" id="matters" aria-label="Case cockpit matter board">
+        <div class="section-head"><div><p>Case cockpit</p><h2>Matter board</h2></div><span>Live workflow</span></div>
+        <div class="board-grid" role="grid">
+          <div><h3>New</h3><div class="matter-card"><b>Acme employment claim</b><span>Client intake complete</span><i>Owner Mina</i></div><div class="matter-card"><b>Vega contract review</b><span>Conflict check</span><i>Owner Amir</i></div></div>
+          <div><h3>In review</h3><div class="matter-card violet"><b>Patel data request</b><span>Documents pending</span><i>Owner Sara</i></div></div>
+          <div><h3>Discovery</h3><div class="matter-card amber"><b>Hill Group dispute</b><span>Evidence timeline</span><i>Owner Jonas</i></div></div>
+          <div><h3>Billing</h3><div class="matter-card emerald"><b>Northstar closing</b><span>Invoices ready</span><i>Payments due Friday</i></div></div>
+        </div>
+      </section>
+      <section class="lower-grid">
+        <section class="panel intake" id="intake">
+          <div class="section-head"><div><p>Client intake</p><h2>Queue</h2></div><span>7 new</span></div>
+          <table role="grid"><thead><tr><th>Client</th><th>Status</th><th>Owner</th></tr></thead><tbody><tr><td>Acme Co.</td><td><span class="pill emerald">Qualified</span></td><td>Mina</td></tr><tr><td>J. Patel</td><td><span class="pill amber">Docs needed</span></td><td>Sara</td></tr><tr><td>Vega LLC</td><td><span class="pill violet">Conflict check</span></td><td>Amir</td></tr></tbody></table>
+        </section>
+        <section class="panel billing" id="billing">
+          <div class="section-head"><div><p>Invoices &amp; Payments</p><h2>Billing status</h2></div><span>$82.4k</span></div>
+          <ul><li><b>INV-1048</b><span>Acme Co.</span><em>Sent</em></li><li><b>INV-1044</b><span>Hill Group</span><em>Paid</em></li><li><b>TIME-330</b><span>Northstar</span><em>Draft</em></li></ul>
+        </section>
+        <section class="panel admin" id="admin">
+          <div class="section-head"><div><p>Admin</p><h2>Roles &amp; access</h2></div><span>3 roles</span></div>
+          <div class="role-stack"><div><b>Partner</b><span>All matters, billing, users</span></div><div><b>Associate</b><span>Assigned matters and documents</span></div><div><b>Client</b><span>Portal-only document access</span></div></div>
+        </section>
+        <section class="panel schema">
+          <div class="section-head"><div><p>Supabase</p><h2>Schema / RLS</h2></div><span>Protected</span></div>
+          <code>matters · client_intakes · invoices · payments · user_roles</code>
+          <p>RLS policies isolate firm workspaces and admin role access.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>`;
+}
+
 function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const layout = layoutFor(blueprint);
+  if (layout === "case-cockpit") return lawAppShellHtml(blueprint, brief);
   const p = brief
     ? {
         bg: brief.colorPalette.bg,
@@ -146,7 +227,7 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const cardStyle = brief?.cardStyle ?? "glass";
   const spacing = brief?.spacingRhythm ?? "balanced";
 
-  const cockpitTitle = layout === "case-cockpit" ? "Case cockpit · Matter board" : `${esc(s.noun)} cockpit · workflow board`;
+  const cockpitTitle = `${esc(s.noun)} cockpit · workflow board`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -309,6 +390,10 @@ function billingRows(layout: ReturnType<typeof layoutFor>): string {
     .join("");
 }
 
+function lawAppShellCss(): string {
+  return `:root{--bg:#08111f;--panel:rgba(15,23,42,.72);--panel-strong:rgba(15,23,42,.92);--line:rgba(148,163,184,.18);--text:#e5eefc;--muted:#94a3b8;--emerald:#34d399;--amber:#fbbf24;--violet:#a78bfa;--cyan:#67e8f9}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 12% 0%,rgba(52,211,153,.14),transparent 32%),radial-gradient(circle at 88% 12%,rgba(167,139,250,.16),transparent 34%),linear-gradient(135deg,#08111f,#0f172a 52%,#111827);color:var(--text);font-family:Manrope,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app-shell{min-height:100vh;display:grid;grid-template-columns:232px minmax(0,1fr);gap:18px;padding:18px}.sidebar{border:1px solid var(--line);border-radius:24px;background:rgba(2,6,23,.52);backdrop-filter:blur(22px);padding:18px;display:flex;flex-direction:column;gap:22px}.brand{display:flex;align-items:center;gap:10px}.brand-mark,.user{display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,var(--emerald),var(--cyan));color:#062019;font-weight:900}.brand-mark{width:42px;height:42px}.user{width:38px;height:38px}.sidebar nav{display:grid;gap:8px}.sidebar a{color:var(--muted);text-decoration:none;padding:10px 12px;border-radius:14px;font-size:14px}.sidebar a.active,.sidebar a:hover{background:rgba(148,163,184,.12);color:var(--text)}.rls-mini{margin-top:auto;border:1px solid rgba(52,211,153,.28);border-radius:18px;padding:14px;background:rgba(52,211,153,.08);display:grid;gap:4px}.rls-mini span,.topbar p,.section-head p,.kpis span{margin:0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em}.rls-mini b{color:var(--emerald);font-size:14px}.workspace{min-width:0;display:grid;gap:16px}.topbar,.kpis>div,.matter-board,.panel{border:1px solid var(--line);background:var(--panel);box-shadow:0 24px 80px rgba(0,0,0,.28);backdrop-filter:blur(18px)}.topbar{min-height:76px;border-radius:24px;padding:14px 16px;display:grid;grid-template-columns:minmax(220px,1fr) minmax(180px,330px) auto auto;gap:12px;align-items:center}.topbar h1,.section-head h2{margin:2px 0 0;font-size:22px;line-height:1.1;letter-spacing:0}.search{height:42px;border:1px solid var(--line);border-radius:14px;padding:6px 10px;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,.68)}.search span{color:var(--muted);font-size:12px}.search input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:var(--text);font:inherit}.topbar button{height:42px;border:0;border-radius:14px;background:var(--emerald);color:#062019;font-weight:900;padding:0 16px}.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.kpis>div{border-radius:20px;padding:16px;display:grid;gap:6px}.kpis strong{font-size:28px;line-height:1}.kpis em,.matter-card i,.panel em{color:var(--muted);font-style:normal;font-size:12px}.matter-board{border-radius:26px;padding:16px}.section-head{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:14px}.section-head>span{border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--emerald);font-size:12px;background:rgba(52,211,153,.08)}.board-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.board-grid>div{min-height:190px;border:1px solid var(--line);border-radius:20px;background:rgba(2,6,23,.34);padding:12px}.board-grid h3{margin:0 0 10px;font-size:13px;color:var(--muted)}.matter-card{border:1px solid rgba(52,211,153,.22);border-radius:16px;padding:12px;margin-bottom:10px;background:rgba(52,211,153,.08);display:grid;gap:6px}.matter-card.violet{border-color:rgba(167,139,250,.28);background:rgba(167,139,250,.1)}.matter-card.amber{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.1)}.matter-card.emerald{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.12)}.matter-card span{color:#cbd5e1;font-size:13px}.lower-grid{display:grid;grid-template-columns:1.2fr .9fr;gap:12px}.panel{border-radius:24px;padding:16px;min-width:0}.panel table{width:100%;border-collapse:collapse}.panel th,.panel td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}.panel th{color:var(--muted);font-weight:700}.pill{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:12px}.pill.emerald{background:rgba(52,211,153,.12);color:var(--emerald)}.pill.amber{background:rgba(251,191,36,.13);color:var(--amber)}.pill.violet{background:rgba(167,139,250,.13);color:var(--violet)}.billing ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.billing li,.role-stack>div{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(2,6,23,.28);font-size:13px}.role-stack{display:grid;gap:8px}.role-stack>div{grid-template-columns:110px 1fr}.schema code{display:block;border:1px solid rgba(103,232,249,.24);border-radius:16px;padding:14px;background:rgba(103,232,249,.08);color:#bae6fd;white-space:normal}.schema p{color:var(--muted);line-height:1.5}@media(max-width:980px){.app-shell{grid-template-columns:1fr}.sidebar{position:relative}.sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}.topbar{grid-template-columns:1fr auto}.search{grid-column:1/-1}.kpis,.board-grid,.lower-grid{grid-template-columns:1fr 1fr}}@media(max-width:680px){.app-shell{padding:10px}.sidebar nav,.kpis,.board-grid,.lower-grid{grid-template-columns:1fr}.topbar{grid-template-columns:1fr}.topbar button{width:100%}}`;
+}
+
 function headline(blueprint: MonsterBlueprint, layout: ReturnType<typeof layoutFor>): string {
   const app = esc(blueprint.appName);
   switch (layout) {
@@ -342,6 +427,7 @@ function primaryCta(layout: ReturnType<typeof layoutFor>): string {
 
 function css(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const layout = layoutFor(blueprint);
+  if (layout === "case-cockpit") return lawAppShellCss();
   const fallback = paletteFor(layout);
   const p = brief
     ? {

@@ -21,6 +21,17 @@ export async function persistMonsterGeneratedFiles(input: {
   projectId: string;
   generation: MonsterGenerationResult;
 }): Promise<PersistMonsterProjectResult> {
+  if (!input.generation.visualQuality.passed) {
+    const failed = input.generation.visualQuality.checks
+      .filter((check) => !check.passed)
+      .map((check) => `${check.label}: ${check.detail}`)
+      .join("; ");
+    return {
+      ok: false,
+      written: [],
+      error: `visualQuality failed; refusing to persist generated preview: ${failed}`,
+    };
+  }
   const written: string[] = [];
   for (const file of input.generation.files) {
     const { error } = await input.sb.from("project_files").upsert(

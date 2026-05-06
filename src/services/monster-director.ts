@@ -61,13 +61,13 @@ export function inferMonsterDesignMode(
   input: DirectorInput,
   appType = inferMonsterAppType(input),
 ): DesignMode {
-  if (input.requestedDesignMode && DESIGN_MODES.includes(input.requestedDesignMode))
-    return input.requestedDesignMode;
   const text = commandText(input);
   // Legal/professional-services intentionally NEVER maps to "editorial-luxury"
   // — that produces magazine/landing pages instead of an app shell.
   if (has(text, /\b(law|legal|attorney|solicitor|firm|matter|case|counsel)\b/))
     return "glass-dashboard";
+  if (input.requestedDesignMode && DESIGN_MODES.includes(input.requestedDesignMode))
+    return input.requestedDesignMode;
   if (has(text, /\b(luxury|premium|hotel|real estate|estate|fashion|private|exclusive)\b/))
     return "editorial-luxury";
   if (has(text, /\b(neon|terminal|developer|devtool|ai|command|cyber|console)\b/))

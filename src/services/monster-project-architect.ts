@@ -201,10 +201,10 @@ function cssSource(blueprint: MonsterBlueprint): string {
 
 .monster-hero h1 {
   font-family: ${luxury ? "Georgia, serif" : "Inter, sans-serif"};
-  font-size: clamp(54px, 11vw, 132px);
-  line-height: .86;
-  letter-spacing: -.07em;
-  max-width: 11ch;
+  font-size: clamp(28px, 5vw, 56px);
+  line-height: 1;
+  letter-spacing: 0;
+  max-width: 18ch;
   margin: 0;
 }
 
