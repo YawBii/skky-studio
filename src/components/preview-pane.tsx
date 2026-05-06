@@ -878,15 +878,7 @@ export function PreviewPane({
                   </button>
                 </div>
               )}
-              {/* Subtle "Local preview" pill on local */}
-              {resolved.kind === "local" && (
-                <div
-                  data-testid="preview-local-corner-badge"
-                  className="absolute top-3 left-3 rounded-md bg-background/80 backdrop-blur px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-warning border border-warning/20"
-                >
-                  Local preview
-                </div>
-              )}
+              {/* Local pill removed — URL bar already shows the local source label. */}
             </div>
           ) : showFallbackCard ? (
             <div
