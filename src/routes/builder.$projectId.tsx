@@ -352,20 +352,33 @@ function Builder() {
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
-        {/* Provider auto-link status — small, non-blocking. */}
-        {isSafeMode() ? (
-          <AutoLinkStatusBadge status="no-match" className="hidden sm:inline-flex" />
-        ) : autoStatus ? (
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="hidden sm:inline-flex items-center"
-                title="Provider auto-link status"
-              >
-                <AutoLinkStatusBadge status={autoStatus} />
-              </button>
-            </PopoverTrigger>
+        {/* Provider auto-link status — small, non-blocking. When the project
+            has no GitHub/Vercel match but local project_files exist, show
+            "Local-only project" instead of the alarming "No match found". */}
+        {(() => {
+          const hasLocal = (filesApi.files?.length ?? 0) > 0;
+          const noMatchLabel = hasLocal ? "Local-only project" : "No provider linked";
+          if (isSafeMode()) {
+            return (
+              <AutoLinkStatusBadge
+                status="no-match"
+                className="hidden sm:inline-flex"
+                noMatchLabel={noMatchLabel}
+              />
+            );
+          }
+          if (!autoStatus) return null;
+          return (
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="hidden sm:inline-flex items-center"
+                  title="Provider auto-link status"
+                >
+                  <AutoLinkStatusBadge status={autoStatus} noMatchLabel={noMatchLabel} />
+                </button>
+              </PopoverTrigger>
             <PopoverContent
               align="start"
               className="w-[360px] p-3 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-3"
