@@ -109,6 +109,12 @@ export function evaluateVisualQuality(input: {
   const briefBakedIn =
     index.includes(input.brief.colorPalette.accent) ||
     index.toLowerCase().includes(input.brief.productCategory.replace(/-/g, " "));
+  // Above-the-fold workflow detection: take the first ~3500 chars after <body>
+  // and require at least one app workflow signal — a landing-only hero is not
+  // enough.
+  const bodyMatch = index.match(/<body[\s\S]{0,3500}/i);
+  const aboveFold = (bodyMatch ? bodyMatch[0] : index.slice(0, 3500)).toLowerCase();
+  const aboveFoldHits = ABOVE_FOLD_HINTS.filter((h) => aboveFold.includes(h.toLowerCase()));
 
   const checks: VisualQualityCheck[] = [
     check(
