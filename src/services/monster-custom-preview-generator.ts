@@ -108,8 +108,89 @@ function sections(blueprint: MonsterBlueprint) {
   };
 }
 
+function lawAppShellHtml(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
+  const app = esc(blueprint.appName || "LexOS");
+  const category = esc(brief?.productCategory ?? "professional services");
+  const accent = esc(brief?.colorPalette.accent ?? "#34d399");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="yawb-generator" content="monster-custom-preview-v1" />
+  <meta name="yawb-design-mode" content="glass-dashboard" />
+  <meta name="yawb-app-type" content="professional-services" />
+  <meta name="yawb-layout" content="case-cockpit" />
+  <meta name="yawb-category" content="${category}" />
+  <meta name="yawb-accent" content="${accent}" />
+  <title>${app} · LexOS</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-layout="case-cockpit" data-app-shell="legal-saas">
+  <div class="app-shell" data-app-surface="dashboard">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand"><span class="brand-mark">LX</span><strong>LexOS</strong></div>
+      <nav>
+        <a href="#dashboard" class="active">Dashboard</a>
+        <a href="#intake">Intake</a>
+        <a href="#matters">Matters</a>
+        <a href="#documents">Documents</a>
+        <a href="#billing">Billing</a>
+        <a href="#admin">Admin</a>
+      </nav>
+      <div class="rls-mini"><span>Supabase</span><b>RLS enforced</b></div>
+    </aside>
+    <main class="workspace" id="dashboard">
+      <header class="topbar">
+        <div><p>Case cockpit</p><h1>Matter board command center</h1></div>
+        <label class="search"><span>Search</span><input aria-label="Search matters" value="Acme discovery" /></label>
+        <button type="button">New matter</button>
+        <div class="user">AR</div>
+      </header>
+      <section class="kpis" aria-label="KPI cards">
+        <article><span>Active matters</span><strong>48</strong><em>+6 this week</em></article>
+        <article><span>Client intake</span><strong>17</strong><em>5 urgent reviews</em></article>
+        <article><span>Outstanding invoices</span><strong>$82.4k</strong><em>Payments tracked</em></article>
+        <article><span>RLS policies</span><strong>24</strong><em>Supabase locked</em></article>
+      </section>
+      <section class="matter-board workflow-board" id="matters" aria-label="Case cockpit matter board">
+        <div class="section-head"><div><p>Case cockpit</p><h2>Matter board</h2></div><span>Live workflow</span></div>
+        <div class="board-grid" role="grid">
+          <article><h3>New</h3><div class="matter-card"><b>Acme employment claim</b><span>Client intake complete</span><i>Owner Mina</i></div><div class="matter-card"><b>Vega contract review</b><span>Conflict check</span><i>Owner Amir</i></div></article>
+          <article><h3>In review</h3><div class="matter-card violet"><b>Patel data request</b><span>Documents pending</span><i>Owner Sara</i></div></article>
+          <article><h3>Discovery</h3><div class="matter-card amber"><b>Hill Group dispute</b><span>Evidence timeline</span><i>Owner Jonas</i></div></article>
+          <article><h3>Billing</h3><div class="matter-card emerald"><b>Northstar closing</b><span>Invoices ready</span><i>Payments due Friday</i></div></article>
+        </div>
+      </section>
+      <section class="lower-grid">
+        <article class="panel intake" id="intake">
+          <div class="section-head"><div><p>Client intake</p><h2>Queue</h2></div><span>7 new</span></div>
+          <table role="grid"><thead><tr><th>Client</th><th>Status</th><th>Owner</th></tr></thead><tbody><tr><td>Acme Co.</td><td><span class="pill emerald">Qualified</span></td><td>Mina</td></tr><tr><td>J. Patel</td><td><span class="pill amber">Docs needed</span></td><td>Sara</td></tr><tr><td>Vega LLC</td><td><span class="pill violet">Conflict check</span></td><td>Amir</td></tr></tbody></table>
+        </article>
+        <article class="panel billing" id="billing">
+          <div class="section-head"><div><p>Invoices &amp; Payments</p><h2>Billing status</h2></div><span>$82.4k</span></div>
+          <ul><li><b>INV-1048</b><span>Acme Co.</span><em>Sent</em></li><li><b>INV-1044</b><span>Hill Group</span><em>Paid</em></li><li><b>TIME-330</b><span>Northstar</span><em>Draft</em></li></ul>
+        </article>
+        <article class="panel admin" id="admin">
+          <div class="section-head"><div><p>Admin</p><h2>Roles &amp; access</h2></div><span>3 roles</span></div>
+          <div class="role-stack"><div><b>Partner</b><span>All matters, billing, users</span></div><div><b>Associate</b><span>Assigned matters and documents</span></div><div><b>Client</b><span>Portal-only document access</span></div></div>
+        </article>
+        <article class="panel schema">
+          <div class="section-head"><div><p>Supabase</p><h2>Schema / RLS</h2></div><span>Protected</span></div>
+          <code>matters · client_intakes · invoices · payments · user_roles</code>
+          <p>RLS policies isolate firm workspaces and admin role access.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>`;
+}
+
 function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const layout = layoutFor(blueprint);
+  if (layout === "case-cockpit") return lawAppShellHtml(blueprint, brief);
   const p = brief
     ? {
         bg: brief.colorPalette.bg,
