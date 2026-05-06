@@ -258,7 +258,7 @@ async function generateFile(input: {
   let designConstraints: string;
   if (isIndex) {
     designConstraints =
-      'MUST include <meta name="yawb-generator" content="agentic-loop-v1" />. MUST be a real, content-rich page tailored to the user\'s product (not a template). Hero, primary workflow surface, navigation to other pages, and clear CTAs. Use semantic HTML and link to ./styles.css.';
+      'MUST include <meta name="yawb-generator" content="agentic-loop-v1" />. The FIRST visible viewport MUST be an actual SaaS app/dashboard surface — NOT a landing page, manifesto, or editorial hero. Place a real workflow surface (cockpit/board/queue/table/data-grid) ABOVE the hero. Keep the hero compact: a single short h1 (font-size <= 28px), small kicker, and lede; no oversize editorial typography. Forbidden nav labels: Manifesto, Atelier, Journal. For legal/law/firm/matter products, the above-fold UI MUST contain the literal phrases: "Client intake", "Case cockpit" or "Matter board", "Invoices" or "Payments", "Admin" or "Roles", and "Supabase" or "RLS". Use semantic HTML and link to ./styles.css.';
   } else if (isTsxRoute) {
     designConstraints =
       'Use TanStack Start file-based routing: `import { createFileRoute } from "@tanstack/react-router"; export const Route = createFileRoute("<path>")({ component: Page }); function Page() { ... }`. No default export. No React Router imports. Match the plan\'s design direction.';
