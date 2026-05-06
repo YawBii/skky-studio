@@ -146,6 +146,22 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const cardStyle = brief?.cardStyle ?? "glass";
   const spacing = brief?.spacingRhythm ?? "balanced";
 
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="yawb-generator" content="monster-custom-preview-v1" />
+  <meta name="yawb-design-mode" content="${esc(blueprint.design.mode)}" />
+  <meta name="yawb-app-type" content="${esc(blueprint.appType)}" />
+  <meta name="yawb-layout" content="${layout}" />
+  <meta name="yawb-category" content="${category}" />
+  <meta name="yawb-nav-pattern" content="${navPattern}" />
+  <meta name="yawb-card-style" content="${cardStyle}" />
+  <meta name="yawb-spacing" content="${spacing}" />
+  <title>${app}</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
 <body data-layout="${layout}" data-nav="${navPattern}" data-cards="${cardStyle}" data-spacing="${spacing}">
   <button class="mobile-nav-toggle" aria-label="Open menu" aria-controls="left-rail" data-nav-toggle>
     <span></span><span></span><span></span>
