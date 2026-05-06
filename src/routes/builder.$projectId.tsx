@@ -379,63 +379,63 @@ function Builder() {
                   <AutoLinkStatusBadge status={autoStatus} noMatchLabel={noMatchLabel} />
                 </button>
               </PopoverTrigger>
-            <PopoverContent
-              align="start"
-              className="w-[360px] p-3 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-3"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-[13px] font-medium">
-                  {autoStatus === "auto-linked"
-                    ? "Provider links ready"
-                    : autoStatus === "needs-confirmation"
-                      ? "Provider match needed"
-                      : autoStatus === "running"
-                        ? "Linking…"
-                        : autoStatus === "error"
-                          ? "Auto-link error"
-                          : "No matching GitHub/Vercel project found"}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={auto.running}
-                  onClick={() => void auto.refresh({ toast: true })}
-                >
-                  <RefreshCw className={cn("h-3 w-3 mr-1", auto.running && "animate-spin")} />
-                  Refresh
-                </Button>
-              </div>
-              {showAmbiguous && auto.result && (
-                <AutoLinkPicker
-                  project={project}
-                  workspaceId={project.workspaceId}
-                  github={auto.result.github}
-                  vercel={auto.result.vercel}
-                  onConfirmed={() => {
-                    setPickerOpen(false);
-                    void auto.refresh();
-                  }}
-                />
-              )}
-              {autoStatus === "no-match" && (
-                <div className="text-[12px] text-muted-foreground">
-                  Auto-link checked GitHub and Vercel but found no exact match.
-                  <div className="mt-2 flex gap-2">
-                    <Button size="sm" variant="outline" asChild>
-                      <Link to="/health">Open Health</Link>
-                    </Button>
+              <PopoverContent
+                align="start"
+                className="w-[360px] p-3 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[13px] font-medium">
+                    {autoStatus === "auto-linked"
+                      ? "Provider links ready"
+                      : autoStatus === "needs-confirmation"
+                        ? "Provider match needed"
+                        : autoStatus === "running"
+                          ? "Linking…"
+                          : autoStatus === "error"
+                            ? "Auto-link error"
+                            : "No matching GitHub/Vercel project found"}
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={auto.running}
+                    onClick={() => void auto.refresh({ toast: true })}
+                  >
+                    <RefreshCw className={cn("h-3 w-3 mr-1", auto.running && "animate-spin")} />
+                    Refresh
+                  </Button>
                 </div>
-              )}
-              {auto.result && (
-                <details className="text-[11px] text-muted-foreground">
-                  <summary className="cursor-pointer">Proof log</summary>
-                  <pre className="mt-1 whitespace-pre-wrap font-mono leading-relaxed">
-                    {auto.result.proof.join("\n")}
-                  </pre>
-                </details>
-              )}
-            </PopoverContent>
+                {showAmbiguous && auto.result && (
+                  <AutoLinkPicker
+                    project={project}
+                    workspaceId={project.workspaceId}
+                    github={auto.result.github}
+                    vercel={auto.result.vercel}
+                    onConfirmed={() => {
+                      setPickerOpen(false);
+                      void auto.refresh();
+                    }}
+                  />
+                )}
+                {autoStatus === "no-match" && (
+                  <div className="text-[12px] text-muted-foreground">
+                    Auto-link checked GitHub and Vercel but found no exact match.
+                    <div className="mt-2 flex gap-2">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to="/health">Open Health</Link>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {auto.result && (
+                  <details className="text-[11px] text-muted-foreground">
+                    <summary className="cursor-pointer">Proof log</summary>
+                    <pre className="mt-1 whitespace-pre-wrap font-mono leading-relaxed">
+                      {auto.result.proof.join("\n")}
+                    </pre>
+                  </details>
+                )}
+              </PopoverContent>
             </Popover>
           );
         })()}
