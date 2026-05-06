@@ -531,155 +531,61 @@ export function PreviewPane({
           onOpenInChat={onOpenSummaryInChat}
         />
       )}
-      <div className="h-11 border-b border-white/5 px-2 sm:px-4 flex items-center gap-2 overflow-x-auto scrollbar-thin flex-nowrap min-w-0">
+      <div className="h-11 border-b border-white/5 px-2 sm:px-4 flex items-center gap-2 flex-nowrap min-w-0">
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-7 w-7 touch-manipulation"
+          className="h-7 w-7 touch-manipulation shrink-0"
           onClick={() => {
             console.info("[yawb] preview.refresh.clicked");
             toast("Refreshing preview…");
           }}
+          aria-label="Refresh preview"
+          title="Refresh preview"
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        <Button
-          asChild
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation gap-1"
-          data-testid="preview-revert-version"
-          title="Revert to an earlier version"
-        >
-          <a href={`/versions/${project.id}`}>
-            <History className="h-3 w-3" />
-            Revert
-          </a>
-        </Button>
+
         {onRegenerateDesign && !isGithubLinked && (
-          <>
-            <select
-              data-testid="preview-design-angle"
-              aria-label="Design angle"
-              value={designAngle}
-              onChange={(e) => {
-                const next = e.target.value as DesignAngle;
-                console.info("[yawb] preview.designAngle.changed", {
-                  projectId: project.id,
-                  angle: next,
-                });
-                setDesignAngle(next);
-              }}
-              className="h-7 rounded-md bg-white/[0.04] border border-white/10 px-2 text-[11px] uppercase tracking-[0.14em] text-foreground touch-manipulation"
-            >
-              {DESIGN_ANGLES.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
-              data-testid="preview-regenerate-design"
-              onClick={() => {
-                console.info("[yawb] preview.regenerate.clicked", {
-                  projectId: project.id,
-                  designMode: designAngle,
-                });
-                onRegenerateDesign(designAngle);
-              }}
-              disabled={regenerating}
-              title="Rewrite project_files with the selected design angle"
-            >
-              {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-              Regenerate design
-            </Button>
-          </>
-        )}
-        {onRefreshLocalPreview && !isGithubLinked && (
           <Button
             type="button"
-            variant="ghost"
+            variant="soft"
             size="sm"
-            className="h-7 px-2 text-[11px] uppercase tracking-[0.14em] touch-manipulation"
-            data-testid="preview-refresh-local"
+            className="h-7 px-2.5 text-[12px] touch-manipulation shrink-0"
+            data-testid="preview-regenerate-design"
             onClick={() => {
-              console.info("[yawb] preview.refreshLocal.clicked", { projectId: project.id });
-              onRefreshLocalPreview();
+              console.info("[yawb] preview.regenerate.clicked", {
+                projectId: project.id,
+                designMode: designAngle,
+              });
+              onRegenerateDesign(designAngle);
             }}
-            title="Reload project_files into the local preview"
+            disabled={regenerating}
+            title="Rewrite project_files with the selected design angle"
           >
-            Refresh local preview
+            {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Regenerate design
           </Button>
         )}
 
-        {/* Local | Live toggle */}
-        <div
-          className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5"
-          data-testid="preview-mode-toggle"
-        >
-          <button
-            type="button"
-            onClick={() => onModeChange("local")}
-            disabled={!effectiveLocalAvailable}
-            data-testid="preview-mode-local"
-            aria-pressed={mode === "local"}
-            title={
-              isGithubLinked
-                ? "GitHub imports keep their original app; local yawB preview is disabled"
-                : "Show local preview"
-            }
-            className={cn(
-              "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
-              mode === "local"
-                ? "bg-white/10 text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-              !effectiveLocalAvailable && "opacity-40 cursor-not-allowed",
-            )}
-          >
-            Local
-          </button>
-          <button
-            type="button"
-            onClick={() => onModeChange("live")}
-            disabled={!liveAvailable}
-            data-testid="preview-mode-live"
-            aria-pressed={mode === "live"}
-            title={liveAvailable ? "Show live deploy" : "No live deploy yet"}
-            className={cn(
-              "h-6 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
-              mode === "live"
-                ? "bg-white/10 text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-              !liveAvailable && "opacity-40 cursor-not-allowed",
-            )}
-          >
-            Live
-          </button>
-        </div>
-
         <div
           data-testid="preview-url-bar"
-          className="flex-1 min-w-[120px] mx-2 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono overflow-hidden"
+          className="flex-1 min-w-0 mx-1 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 hidden sm:flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono overflow-hidden"
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-3 w-3 shrink-0" />
           {resolved.kind === "live" && activeDeployUrl ? (
             <>
               <span className="truncate text-foreground/80">{activeDeployUrl}</span>
-              <span className="text-muted-foreground/50">{selectedPage}</span>
+              <span className="text-muted-foreground/50 shrink-0">{selectedPage}</span>
             </>
           ) : resolved.kind === "local" ? (
             <>
               <span
                 data-testid="preview-local-badge"
-                className="px-1.5 py-0.5 rounded bg-warning/15 text-warning text-[10px] uppercase tracking-[0.16em] font-sans"
+                className="px-1.5 py-0.5 rounded bg-warning/15 text-warning text-[10px] uppercase tracking-[0.16em] font-sans shrink-0"
               >
-                Local preview
+                Local
               </span>
               <span className="truncate">
                 {resolved.source ?? resolved.url ?? "fallback:placeholder"}
@@ -690,24 +596,9 @@ export function PreviewPane({
           )}
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 touch-manipulation"
-          onClick={onExternalOpen}
-          disabled={!resolved.externalOpenable || !activeDeployUrl}
-          aria-label="Open deploy URL in new tab"
-          title={
-            resolved.externalOpenable && activeDeployUrl
-              ? "Open in new tab"
-              : "External open is only available for live deploys"
-          }
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex-1 sm:hidden" />
 
-        <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5">
+        <div className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5 shrink-0">
           {(
             [
               { k: "desktop", I: Monitor },
@@ -736,6 +627,163 @@ export function PreviewPane({
             </button>
           ))}
         </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 touch-manipulation shrink-0"
+          onClick={onExternalOpen}
+          disabled={!resolved.externalOpenable || !activeDeployUrl}
+          aria-label="Open deploy URL in new tab"
+          title={
+            resolved.externalOpenable && activeDeployUrl
+              ? "Open in new tab"
+              : "External open is only available for live deploys"
+          }
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* More menu — collects diagnostics, design variant, mode toggle, refresh local, revert. */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 touch-manipulation shrink-0"
+              aria-label="More preview options"
+              title="More"
+              data-testid="preview-more"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="w-72 p-2 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-2"
+          >
+            {/* Local | Live toggle */}
+            <div>
+              <div className="px-1 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Source
+              </div>
+              <div
+                className="flex items-center gap-0.5 rounded-lg bg-white/[0.04] p-0.5"
+                data-testid="preview-mode-toggle"
+              >
+                <button
+                  type="button"
+                  onClick={() => onModeChange("local")}
+                  disabled={!effectiveLocalAvailable}
+                  data-testid="preview-mode-local"
+                  aria-pressed={mode === "local"}
+                  title={
+                    isGithubLinked
+                      ? "GitHub imports keep their original app; local yawB preview is disabled"
+                      : "Show local preview"
+                  }
+                  className={cn(
+                    "flex-1 h-7 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
+                    mode === "local"
+                      ? "bg-white/10 text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                    !effectiveLocalAvailable && "opacity-40 cursor-not-allowed",
+                  )}
+                >
+                  Local
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onModeChange("live")}
+                  disabled={!liveAvailable}
+                  data-testid="preview-mode-live"
+                  aria-pressed={mode === "live"}
+                  title={liveAvailable ? "Show live deploy" : "No live deploy yet"}
+                  className={cn(
+                    "flex-1 h-7 px-2 rounded text-[11px] uppercase tracking-[0.14em] transition touch-manipulation",
+                    mode === "live"
+                      ? "bg-white/10 text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                    !liveAvailable && "opacity-40 cursor-not-allowed",
+                  )}
+                >
+                  Live
+                </button>
+              </div>
+            </div>
+
+            {onRegenerateDesign && !isGithubLinked && (
+              <div>
+                <label className="px-1 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground block">
+                  Design variant
+                </label>
+                <select
+                  data-testid="preview-design-angle"
+                  aria-label="Design angle"
+                  value={designAngle}
+                  onChange={(e) => {
+                    const next = e.target.value as DesignAngle;
+                    console.info("[yawb] preview.designAngle.changed", {
+                      projectId: project.id,
+                      angle: next,
+                    });
+                    setDesignAngle(next);
+                  }}
+                  className="w-full h-8 rounded-md bg-white/[0.04] border border-white/10 px-2 text-[12px] text-foreground touch-manipulation"
+                >
+                  {DESIGN_ANGLES.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1 pt-1 border-t border-white/5">
+              {onRefreshLocalPreview && !isGithubLinked && (
+                <button
+                  type="button"
+                  data-testid="preview-refresh-local"
+                  onClick={() => {
+                    console.info("[yawb] preview.refreshLocal.clicked", {
+                      projectId: project.id,
+                    });
+                    onRefreshLocalPreview();
+                  }}
+                  className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-white/[0.05]"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                  Refresh local preview
+                </button>
+              )}
+              <a
+                href={`/versions/${project.id}`}
+                data-testid="preview-revert-version"
+                className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-white/[0.05]"
+              >
+                <History className="h-3.5 w-3.5 text-muted-foreground" />
+                Revert to earlier version
+              </a>
+            </div>
+
+            <details className="pt-1 border-t border-white/5">
+              <summary className="cursor-pointer px-2 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground">
+                Diagnostics
+              </summary>
+              <div className="px-1 pt-1">
+                <DesignProofPill
+                  html={localSrcDoc ?? null}
+                  fallbackAngle={designAngle}
+                  githubLinked={isGithubLinked}
+                  inline
+                />
+              </div>
+            </details>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <DesignProofPill
