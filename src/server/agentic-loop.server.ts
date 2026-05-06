@@ -288,7 +288,20 @@ async function generateFile(input: {
 
 // ---------- 3. Verify ----------
 
-const BANNED = ["Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum"];
+const BANNED = [
+  "Luxury Editorial",
+  "Clean Minimal",
+  "Money operations",
+  "Lorem ipsum",
+  "Manifesto",
+  "Atelier",
+  "Journal",
+  "Sovereignty",
+  "Aeterna",
+  "Lex Scripta",
+  "Examine Briefing",
+  "Private Tier",
+];
 
 function checkFile(file: { path: string; content: string }): CheckResult[] {
   const out: CheckResult[] = [];
@@ -705,8 +718,10 @@ export async function runAgenticBuild(input: {
     }
   }
 
-  // Visual quality gate (shared with monster orchestrator). On banned/weak
-  // hits, ask the AI to repair the offending files once.
+  // Visual quality gate (shared with monster orchestrator). Repair index.html
+  // up to two times when banned strings appear OR when key gates fail
+  // (workflow-above-fold, hero-not-oversized, law-firm-tokens-present,
+  // no-image-before-workflow, contrast-ok, no-blog-terms).
   let visualQuality: VisualQualityReport = evaluateVisualQuality({
     files: files.map((f) => ({
       path: f.path,
@@ -717,12 +732,34 @@ export async function runAgenticBuild(input: {
     brief: briefToVisualQualityShape(designBrief),
     previousIndexHtml: null,
   });
-  if (!visualQuality.passed && visualQuality.bannedHits.length > 0) {
-    const hint = `Visual quality gate failed. Remove banned template strings: ${visualQuality.bannedHits.join(", ")}. Use the design brief instead (category=${designBrief.productCategory}, brand=${designBrief.brandFeel}).`;
+
+  const REPAIR_GATE_IDS = new Set([
+    "no-banned-template",
+    "no-blog-terms",
+    "workflow-above-fold",
+    "hero-not-oversized",
+    "law-firm-tokens-present",
+    "no-image-before-workflow",
+    "contrast-ok",
+  ]);
+
+  for (let attempt = 0; attempt < 2 && !visualQuality.passed; attempt++) {
+    const failingGates = visualQuality.checks.filter(
+      (c) => !c.passed && REPAIR_GATE_IDS.has(c.id),
+    );
+    if (failingGates.length === 0 && visualQuality.bannedHits.length === 0) break;
+    const hint = `Visual quality gate failed (attempt ${attempt + 1}). Fix ALL of: ${failingGates.map((g) => `${g.label} — ${g.detail}`).join("; ")}.${visualQuality.bannedHits.length ? ` Remove banned strings: ${visualQuality.bannedHits.join(", ")}.` : ""} Use the design brief (category=${designBrief.productCategory}, brand=${designBrief.brandFeel}). The first viewport MUST be a real app surface — case cockpit / matter board, client intake queue, invoices/payments, admin/roles, supabase/RLS — not a hero, not a blog, not a stock image.`;
+    // Always repair index.html on visual failures; also repair any other file
+    // that contains a banned string.
+    const targets = new Set<string>(["index.html"]);
     for (const f of files) {
-      if (!visualQuality.bannedHits.some((b) => f.content.includes(b))) continue;
-      const spec = plan.files.find((p) => p.path === f.path) ?? {
-        path: f.path,
+      if (visualQuality.bannedHits.some((b) => f.content.includes(b))) targets.add(f.path);
+    }
+    for (const path of targets) {
+      const f = files.find((x) => x.path === path);
+      if (!f) continue;
+      const spec = plan.files.find((p) => p.path === path) ?? {
+        path,
         purpose: "repair",
         language: f.language,
       };
@@ -734,7 +771,7 @@ export async function runAgenticBuild(input: {
       });
       if (regen.ok) {
         f.content = regen.content;
-        repairs.push({ path: f.path, reason: hint, attempt: 99, ok: true });
+        repairs.push({ path, reason: hint, attempt: 90 + attempt, ok: true });
       }
     }
     visualQuality = evaluateVisualQuality({
@@ -749,9 +786,13 @@ export async function runAgenticBuild(input: {
     });
   }
 
-  // Persist files
+  // Persist files. If the visual quality gate did NOT pass, do NOT persist
+  // index.html (we refuse to ship a bad app shell to project_files). Other
+  // supporting files (SQL, README, scaffold) are still useful and persist.
+  const visualOk = visualQuality.passed && visualQuality.bannedHits.length === 0;
   const written: string[] = [];
   for (const f of files) {
+    if (!visualOk && f.path === "index.html") continue;
     const { error } = await input.sb.from("project_files").upsert(
       {
         project_id: input.projectId,
@@ -801,7 +842,7 @@ export async function runAgenticBuild(input: {
     visual_quality: visualQuality,
     preview_source: index?.content ?? null,
     limitations,
-    ok: written.length > 0 && Boolean(index) && visualQuality.bannedHits.length === 0,
+    ok: visualOk && Boolean(index) && written.includes("index.html"),
   };
   try {
     await input.sb.from("project_proofs").insert(proofRow);
@@ -810,12 +851,9 @@ export async function runAgenticBuild(input: {
   }
 
   const allChecksPassed = checks.every((c) => c.ok);
+  const indexPersisted = written.includes("index.html");
   return {
-    ok:
-      written.length > 0 &&
-      Boolean(index) &&
-      allChecksPassed &&
-      visualQuality.bannedHits.length === 0,
+    ok: indexPersisted && visualOk && allChecksPassed,
     generator: "agentic-loop-v1",
     userRequest: input.userRequest,
     plan,

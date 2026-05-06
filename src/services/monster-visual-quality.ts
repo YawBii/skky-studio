@@ -31,6 +31,22 @@ const BANNED_TEMPLATE_STRINGS = [
   "Atelier",
   "Journal",
   "The Sovereignty of Law",
+  "Sovereignty",
+  "Aeterna",
+  "Lex Scripta",
+  "Examine Briefing",
+  "Private Tier",
+];
+
+// Editorial / blog / publication nouns. Case-sensitive whole-word match in the
+// generated body. These must never appear in a SaaS app shell.
+const BLOG_TERMS = [
+  "Briefing",
+  "Article",
+  "Library",
+  "Publication",
+  "Volume",
+  "Archive",
 ];
 
 const WEAK_PLACEHOLDER_STRINGS = [
@@ -130,21 +146,69 @@ export function evaluateVisualQuality(input: {
     ) || /font-size:\s*clamp\([^)]*,\s*[7-9]\d?px,\s*\d+px\)/i.test(allText);
 
   // Law-firm / matter-product token gate (only enforced when the brief or
-  // index hints at the legal domain).
+  // index hints at the legal domain). Tokens MUST appear above the fold.
   const legalContext =
     /\b(law|legal|firm|matter|case|attorney|counsel|client intake)\b/i.test(index) ||
     /\b(law|legal|firm|matter|case|attorney|counsel)\b/i.test(input.brief.productCategory);
-  const lowerAll = allText.toLowerCase();
   const lawTokens = {
-    intake: /client intake/.test(lowerAll),
-    cockpit: /case cockpit|matter board/.test(lowerAll),
-    billing: /invoices|payments/.test(lowerAll),
-    admin: /\badmin\b|\broles\b/.test(lowerAll),
-    supabase: /supabase|\brls\b/.test(lowerAll),
+    "client-intake": /client intake/i.test(aboveFold),
+    "case-cockpit": /case cockpit|matter board/i.test(aboveFold),
+    "invoices-payments": /invoices|payments/i.test(aboveFold),
+    "admin-roles": /\badmin\b|\broles\b/i.test(aboveFold),
+    "supabase-rls": /supabase|\brls\b/i.test(aboveFold),
   };
   const lawTokenMisses = Object.entries(lawTokens)
     .filter(([, v]) => !v)
     .map(([k]) => k);
+
+  // Detect <img> or background-image above the first workflow surface.
+  const bodyOpen = index.search(/<body[\s>]/i);
+  const bodyText = bodyOpen >= 0 ? index.slice(bodyOpen) : index;
+  const firstWorkflowIdx = (() => {
+    let min = -1;
+    for (const h of ABOVE_FOLD_HINTS) {
+      const i = bodyText.toLowerCase().indexOf(h.toLowerCase());
+      if (i >= 0 && (min < 0 || i < min)) min = i;
+    }
+    return min;
+  })();
+  const beforeWorkflow = firstWorkflowIdx >= 0 ? bodyText.slice(0, firstWorkflowIdx) : bodyText;
+  const hasImgBeforeWorkflow =
+    /<img[\s>]/i.test(beforeWorkflow) ||
+    /background-image\s*:\s*url\(/i.test(beforeWorkflow) ||
+    /<picture[\s>]/i.test(beforeWorkflow);
+
+  // Blog / publication / library nouns — case-insensitive whole-word.
+  const blogHits = BLOG_TERMS.filter((t) => new RegExp(`\\b${t}\\b`, "i").test(index));
+
+  // Cheap contrast guard: dark text on dark background within the same rule.
+  const darkOnDark = (() => {
+    const isDarkHex = (hex: string): boolean => {
+      const m = hex.replace("#", "");
+      if (m.length !== 3 && m.length !== 6) return false;
+      const full =
+        m.length === 3
+          ? m
+              .split("")
+              .map((c) => c + c)
+              .join("")
+          : m;
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return lum < 0.35;
+    };
+    const ruleRe = /\{([^}]{0,400})\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = ruleRe.exec(allText))) {
+      const rule = m[1];
+      const colorM = rule.match(/(?:^|;|\s)color\s*:\s*(#[0-9a-fA-F]{3,6})/);
+      const bgM = rule.match(/background(?:-color)?\s*:\s*(?:[^;]*?)(#[0-9a-fA-F]{3,6})/);
+      if (colorM && bgM && isDarkHex(colorM[1]) && isDarkHex(bgM[1])) return true;
+    }
+    return false;
+  })();
 
   const checks: VisualQualityCheck[] = [
     check(
@@ -160,6 +224,12 @@ export function evaluateVisualQuality(input: {
       weakHits.length ? `Weak: ${weakHits.join(", ")}` : "Clean",
     ),
     check(
+      "no-blog-terms",
+      "No blog/article/publication wording",
+      blogHits.length === 0,
+      blogHits.length ? `Blog terms: ${blogHits.join(", ")}` : "Clean",
+    ),
+    check(
       "real-workflow-surface",
       "Has real workflow surface (table/board/queue/etc.)",
       workflowHits.length >= 2,
@@ -172,6 +242,20 @@ export function evaluateVisualQuality(input: {
       aboveFoldHits.length
         ? `Above-fold: ${aboveFoldHits.join(", ")}`
         : "Only hero/landing content detected — needs cockpit/intake/queue/timeline above the fold",
+    ),
+    check(
+      "no-image-before-workflow",
+      "No <img>/background-image before the first workflow surface",
+      !hasImgBeforeWorkflow,
+      hasImgBeforeWorkflow
+        ? "Found stock image / hero image before the first workflow section"
+        : "Workflow surface comes first",
+    ),
+    check(
+      "contrast-ok",
+      "Text/background contrast not dark-on-dark",
+      !darkOnDark,
+      darkOnDark ? "Found dark text on dark background" : "OK",
     ),
     check(
       "mobile-ready",
@@ -221,12 +305,12 @@ export function evaluateVisualQuality(input: {
     ),
     check(
       "law-firm-tokens-present",
-      "Law-firm app surfaces present (intake/cockpit/billing/admin/supabase)",
+      "Law-firm app surfaces present above the fold (intake/cockpit/billing/admin/supabase)",
       !legalContext || lawTokenMisses.length === 0,
       legalContext
         ? lawTokenMisses.length === 0
-          ? "All law-firm tokens present"
-          : `Missing: ${lawTokenMisses.join(", ")}`
+          ? "All law-firm tokens present above the fold"
+          : `Missing above the fold: ${lawTokenMisses.join(", ")}`
         : "Not a legal-domain project — skipped",
     ),
   ];
