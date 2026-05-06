@@ -19,6 +19,34 @@ describe("Monster custom preview generator", () => {
     expect(index).not.toContain("Money operations");
   });
 
+  it("puts the required legal SaaS app surfaces in the first viewport without editorial artifacts", () => {
+    const blueprint = createMonsterBlueprint({
+      project,
+      chatRequest:
+        "Build a premium AI law firm app with auth, client intake, case cockpit, invoices, payments, admin panel, and Supabase backend.",
+    });
+    const files = generateMonsterCustomPreviewFiles(blueprint);
+    const index = files.find((file) => file.path === "index.html")?.content ?? "";
+    const styles = files.find((file) => file.path === "styles.css")?.content ?? "";
+    const bodyStart = index.search(/<body[\s>]/i);
+    const firstViewport = index.slice(bodyStart, bodyStart + 3000);
+    const firstWorkflow = index.search(/Case cockpit|Matter board|Client intake/i);
+    const firstImage = index.search(/<img[\s>]/i);
+
+    expect(firstViewport).toMatch(/left|top|navigation|sidebar/i);
+    expect(firstViewport).toMatch(/Case cockpit|Matter board/i);
+    expect(firstViewport).toMatch(/Client intake/i);
+    expect(firstViewport).toMatch(/Invoices|Payments/i);
+    expect(firstViewport).toMatch(/Admin|Roles/i);
+    expect(firstViewport).toMatch(/Supabase|RLS/i);
+    expect(index).not.toMatch(
+      /stock image|stock photo|article|briefing|library|publication|archive|manifesto|atelier|journal|sovereignty|luxury editorial|Lex Scripta|Private Tier/i,
+    );
+    expect(firstImage).toBe(-1);
+    expect(firstWorkflow).toBeGreaterThan(-1);
+    expect(styles).toMatch(/glass|backdrop-filter|grid|table/i);
+  });
+
   it("generates identity prompts with trust radar layout", () => {
     const blueprint = createMonsterBlueprint({
       project: { id: "p2", name: "Proofly", description: "identity verification" },
