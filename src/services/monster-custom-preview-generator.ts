@@ -358,7 +358,8 @@ function css(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
 }
 
 function js(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
-  return `window.__YAWB_MONSTER_PREVIEW__=${JSON.stringify({ generator: "monster-custom-preview-v1", appType: blueprint.appType, designMode: blueprint.design.mode, routes: blueprint.routes.map((r) => r.path), tables: blueprint.backend.tables.map((t) => t.table), brief: brief?.varianceSeed }, null, 2)};`;
+  return `window.__YAWB_MONSTER_PREVIEW__=${JSON.stringify({ generator: "monster-custom-preview-v1", appType: blueprint.appType, designMode: blueprint.design.mode, routes: blueprint.routes.map((r) => r.path), tables: blueprint.backend.tables.map((t) => t.table), brief: brief?.varianceSeed }, null, 2)};
+(function(){var b=document.body;var t=document.querySelector('[data-nav-toggle]');if(window.matchMedia&&window.matchMedia('(max-width:1050px)').matches){b.setAttribute('data-nav-open','false');}if(t){t.addEventListener('click',function(){var open=b.getAttribute('data-nav-open')==='true';b.setAttribute('data-nav-open',open?'false':'true');});}})();`;
 }
 
 export function generateMonsterCustomPreviewFiles(
