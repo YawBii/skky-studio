@@ -388,6 +388,7 @@ async function runMonsterGenerateChanges(input: {
         status: "failed",
         error: reason,
       };
+      }
     } catch (e) {
       console.warn(
         "[yawb] agentic-loop.threw_falling_back",
