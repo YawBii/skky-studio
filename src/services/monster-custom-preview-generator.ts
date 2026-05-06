@@ -146,25 +146,12 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const cardStyle = brief?.cardStyle ?? "glass";
   const spacing = brief?.spacingRhythm ?? "balanced";
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="yawb-generator" content="monster-custom-preview-v1" />
-  <meta name="yawb-design-mode" content="${esc(blueprint.design.mode)}" />
-  <meta name="yawb-app-type" content="${esc(blueprint.appType)}" />
-  <meta name="yawb-layout" content="${layout}" />
-  <meta name="yawb-category" content="${category}" />
-  <meta name="yawb-nav-pattern" content="${navPattern}" />
-  <meta name="yawb-card-style" content="${cardStyle}" />
-  <meta name="yawb-spacing" content="${spacing}" />
-  <title>${app}</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
 <body data-layout="${layout}" data-nav="${navPattern}" data-cards="${cardStyle}" data-spacing="${spacing}">
+  <button class="mobile-nav-toggle" aria-label="Open menu" aria-controls="left-rail" data-nav-toggle>
+    <span></span><span></span><span></span>
+  </button>
   <main class="shell">
-    <aside class="left-rail">
+    <aside class="left-rail" id="left-rail">
       <div class="mark">${app.slice(0, 2).toUpperCase()}</div>
       <nav>${s.routes.map((route) => `<a href="#${slug(route.label)}">${esc(route.label)}</a>`).join("")}</nav>
       <div class="proof-dot">${category}</div>
@@ -177,26 +164,130 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
       <div class="actions"><button>${primaryCta(layout)}</button><button class="ghost">View workflow</button></div>
     </section>
 
-    <section class="cockpit">
+    <section class="cockpit" id="cockpit">
       <div class="cockpit-head">
-        <span>${esc(s.noun)} workflow board</span>
+        <span>${esc(s.noun)} cockpit · workflow board</span>
         <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
       </div>
       <div class="data-grid">${tableCards}</div>
     </section>
 
-    <section class="route-map">
+    <section class="intake-queue" id="intake">
+      <div class="cockpit-head"><span>${intakeLabel(layout)} queue</span><b>4 pending</b></div>
+      <table class="queue-table" role="grid">
+        <thead><tr><th>Name</th><th>Stage</th><th>Owner</th><th>Updated</th></tr></thead>
+        <tbody>${intakeRows(s.noun)}</tbody>
+      </table>
+      <form class="intake-form" aria-label="Quick intake">
+        <input placeholder="Add new ${esc(s.noun)}…" />
+        <button type="button">Add</button>
+      </form>
+    </section>
+
+    <section class="billing-panel" id="billing">
+      <div class="cockpit-head"><span>${billingLabel(layout)}</span><b>USD 12,480 outstanding</b></div>
+      <ul class="billing-list">${billingRows(layout)}</ul>
+    </section>
+
+    <section class="admin-panel" id="admin">
+      <div class="cockpit-head"><span>Admin · roles &amp; access</span><b>3 roles · 8 members</b></div>
+      <ul class="role-list">
+        <li><b>Owner</b><span>Full access · billing, members, exports</span></li>
+        <li><b>Operator</b><span>Workflow access · no billing</span></li>
+        <li><b>Viewer</b><span>Read-only timeline + reports</span></li>
+      </ul>
+    </section>
+
+    <section class="data-model" id="data-model">
+      <div class="cockpit-head"><span>Supabase data model</span><b>${blueprint.backend.tables.length} tables · RLS drafted</b></div>
+      <ul class="schema-list">${blueprint.backend.tables
+        .slice(0, 6)
+        .map(
+          (t) =>
+            `<li><code>public.${esc(t.table)}</code><span>${esc(t.purpose)}</span><small>${t.rlsPolicies.length} RLS policies</small></li>`,
+        )
+        .join("")}</ul>
+    </section>
+
+    <section class="route-map" id="screens">
       <h2>Key screens</h2>
       <ul>${screensList}</ul>
     </section>
 
-    <section class="workflow-board">
+    <section class="workflow-board" id="workflows">
       <div><h2>Real workflows wired</h2><ol>${workflowList}</ol></div>
       <div><h2>Acceptance proof</h2><ol>${tests}</ol></div>
     </section>
   </main>
+  <script src="app.js"></script>
 </body>
 </html>`;
+}
+
+function intakeLabel(layout: ReturnType<typeof layoutFor>): string {
+  switch (layout) {
+    case "case-cockpit":
+      return "Client intake";
+    case "trust-radar":
+      return "Verification";
+    case "ledger-room":
+      return "Approvals";
+    case "market-map":
+      return "Listing review";
+    default:
+      return "Intake";
+  }
+}
+
+function billingLabel(layout: ReturnType<typeof layoutFor>): string {
+  switch (layout) {
+    case "case-cockpit":
+      return "Invoices &amp; payments";
+    case "ledger-room":
+      return "Ledger &amp; payments";
+    case "market-map":
+      return "Payouts";
+    case "trust-radar":
+      return "Plan &amp; billing";
+    default:
+      return "Billing";
+  }
+}
+
+function intakeRows(noun: string): string {
+  const samples = [
+    { name: `New ${noun} · Acme Co.`, stage: "Triage", owner: "AR", when: "2m ago" },
+    { name: `Follow-up · J. Patel`, stage: "Awaiting docs", owner: "MK", when: "1h ago" },
+    { name: `Conflict check · Hill Group`, stage: "In review", owner: "AR", when: "3h ago" },
+    { name: `Onboarding · Vega LLC`, stage: "Signed", owner: "JS", when: "Yesterday" },
+  ];
+  return samples
+    .map(
+      (r) =>
+        `<tr><td>${esc(r.name)}</td><td>${esc(r.stage)}</td><td>${esc(r.owner)}</td><td>${esc(r.when)}</td></tr>`,
+    )
+    .join("");
+}
+
+function billingRows(layout: ReturnType<typeof layoutFor>): string {
+  const items =
+    layout === "case-cockpit"
+      ? [
+          { ref: "INV-1041", who: "Acme Co.", amt: "$4,200", st: "Sent" },
+          { ref: "INV-1040", who: "Hill Group", amt: "$2,180", st: "Paid" },
+          { ref: "TIME-22", who: "J. Patel · 6.5h", amt: "$2,275", st: "Draft" },
+        ]
+      : [
+          { ref: "INV-2008", who: "Customer 21", amt: "$890", st: "Sent" },
+          { ref: "PAYOUT-12", who: "Seller 4", amt: "$1,200", st: "Pending" },
+          { ref: "REFUND-3", who: "Order 91", amt: "-$120", st: "Issued" },
+        ];
+  return items
+    .map(
+      (i) =>
+        `<li><b>${esc(i.ref)}</b><span>${esc(i.who)}</span><span>${esc(i.amt)}</span><em>${esc(i.st)}</em></li>`,
+    )
+    .join("");
 }
 
 function headline(blueprint: MonsterBlueprint, layout: ReturnType<typeof layoutFor>): string {
