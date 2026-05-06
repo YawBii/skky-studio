@@ -8,15 +8,15 @@ import {
 const project = { id: "p1", name: "yawB", description: "prompt first app builder" };
 
 describe("Monster Director", () => {
-  it("infers a premium law firm as luxury editorial without template selection", () => {
+  it("infers a premium law firm as an app dashboard, not editorial-luxury", () => {
     const input = {
       project,
       chatRequest: "Build a premium AI law firm with auth, dashboard, admin and payments",
     };
     expect(inferMonsterAppType(input)).toBe("professional-services");
-    expect(inferMonsterDesignMode(input)).toBe("editorial-luxury");
+    expect(inferMonsterDesignMode(input)).toBe("glass-dashboard");
     const blueprint = createMonsterBlueprint(input);
-    expect(blueprint.design.mode).toBe("editorial-luxury");
+    expect(blueprint.design.mode).toBe("glass-dashboard");
     expect(blueprint.routes.some((r) => r.path === "/dashboard")).toBe(true);
     expect(blueprint.routes.some((r) => r.path === "/admin" && r.auth === "role")).toBe(true);
     expect(blueprint.backend.mode).toBe("supabase");
