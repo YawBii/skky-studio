@@ -786,9 +786,13 @@ export async function runAgenticBuild(input: {
     });
   }
 
-  // Persist files
+  // Persist files. If the visual quality gate did NOT pass, do NOT persist
+  // index.html (we refuse to ship a bad app shell to project_files). Other
+  // supporting files (SQL, README, scaffold) are still useful and persist.
+  const visualOk = visualQuality.passed && visualQuality.bannedHits.length === 0;
   const written: string[] = [];
   for (const f of files) {
+    if (!visualOk && f.path === "index.html") continue;
     const { error } = await input.sb.from("project_files").upsert(
       {
         project_id: input.projectId,
@@ -838,7 +842,7 @@ export async function runAgenticBuild(input: {
     visual_quality: visualQuality,
     preview_source: index?.content ?? null,
     limitations,
-    ok: written.length > 0 && Boolean(index) && visualQuality.bannedHits.length === 0,
+    ok: visualOk && Boolean(index) && written.includes("index.html"),
   };
   try {
     await input.sb.from("project_proofs").insert(proofRow);
