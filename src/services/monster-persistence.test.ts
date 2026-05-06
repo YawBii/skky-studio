@@ -8,8 +8,8 @@ function fakeSupabase() {
     rows,
     from(table: string) {
       return {
-        upsert(payload: Record<string, unknown>) {
-          rows.push({ table, ...payload });
+        upsert(payload: Record<string, unknown>, options?: Record<string, unknown>) {
+          rows.push({ table, ...payload, options });
           return Promise.resolve({ error: null });
         },
       };
