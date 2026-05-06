@@ -25,6 +25,12 @@ const BANNED_TEMPLATE_STRINGS = [
   "REPLACE this",
   "TODO: copy",
   "Insert headline",
+  // Editorial / brand-magazine nav labels that signal a marketing site rather
+  // than a SaaS app shell. yawB previews must not present these as primary nav.
+  "Manifesto",
+  "Atelier",
+  "Journal",
+  "The Sovereignty of Law",
 ];
 
 const WEAK_PLACEHOLDER_STRINGS = [
