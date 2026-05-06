@@ -304,7 +304,7 @@ async function runMonsterGenerateChanges(input: {
         projectName: String(project.name ?? ""),
         userRequest: chatRequest || input.job.title || "Build the requested product.",
       });
-      if (agentic.ok) {
+      {
       const sectionRepairs = (agentic.repairs ?? []).map((r) => ({
         path: r.path,
         reason: r.reason,
