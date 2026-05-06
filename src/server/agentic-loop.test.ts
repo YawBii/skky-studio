@@ -101,7 +101,7 @@ function makeGatewayMock() {
 
 function fakeFileFor(path: string): string {
   if (path === "index.html") {
-    return `<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="yawb-generator" content="agentic-loop-v1" /><title>Lex Cockpit</title><link rel="stylesheet" href="./styles.css" /></head><body><header><nav><a href="/intake">Intake</a><a href="/cases">Cases</a></nav></header><main><h1>Lex Cockpit for modern law firms</h1><p>Client intake, case cockpit, invoices.</p><a href="/intake" class="cta">Start intake</a></main></body></html>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="yawb-generator" content="agentic-loop-v1" /><title>Lex Cockpit</title><link rel="stylesheet" href="./styles.css" /></head><body><aside aria-label="menu" class="nav-toggle"></aside><main><section class="cockpit"><h2>Case cockpit</h2><table role="grid"><tr><th>Matter</th></tr></table></section><section><h2>Client intake</h2><div class="queue">queue</div></section><section><h2>Invoices &amp; Payments</h2></section><section><h2>Admin · Roles</h2></section><section><h2>Supabase · RLS</h2></section><h1>Lex Cockpit</h1><style>@media(max-width:600px){body{padding:1rem}}</style></main></body></html>`;
   }
   if (path === "styles.css") {
     return `:root{--navy:#0b1f3a;--brass:#b08d3a}body{font-family:Georgia,serif;background:#fff;color:var(--navy)}`;
