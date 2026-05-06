@@ -802,7 +802,7 @@ export async function runAgenticBuild(input: {
     visual_quality: visualQuality,
     preview_source: index?.content ?? null,
     limitations,
-    ok: written.length > 0 && Boolean(index) && visualQuality.passed,
+    ok: written.length > 0 && Boolean(index) && visualQuality.bannedHits.length === 0,
   };
   try {
     await input.sb.from("project_proofs").insert(proofRow);
