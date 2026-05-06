@@ -8,6 +8,7 @@ import {
   Play,
   RefreshCw,
   Smartphone,
+  Sparkles,
   Tablet,
 } from "lucide-react";
 import { toast } from "sonner";
