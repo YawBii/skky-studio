@@ -56,6 +56,7 @@ export interface AgenticBuildResult {
   generator: "agentic-loop-v1";
   userRequest: string;
   plan: AgenticPlan;
+  designBrief: AgenticDesignBrief | null;
   files: Array<{ path: string; content: string; language: string }>;
   written: string[];
   checks: CheckResult[];
@@ -66,6 +67,8 @@ export interface AgenticBuildResult {
     issues: string[];
     redesigned: boolean;
   };
+  visualQuality: VisualQualityReport | null;
+  provider: { name: string; model: string } | null;
   previewSource: string | null;
   limitations: string[];
   error?: string;
@@ -76,6 +79,7 @@ export interface AgenticBuildResult {
 const PLAN_MODEL_HINT = process.env.YAWB_AI_PLAN_MODEL || undefined;
 const CODE_MODEL_HINT = process.env.YAWB_AI_CODE_MODEL || undefined;
 const CRITIC_MODEL_HINT = process.env.YAWB_AI_CRITIC_MODEL || undefined;
+const BRIEF_MODEL_HINT = process.env.YAWB_AI_BRIEF_MODEL || undefined;
 
 export function isAgenticLoopConfigured(): boolean {
   return resolveProvider().configured;
