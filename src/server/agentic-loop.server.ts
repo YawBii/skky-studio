@@ -612,6 +612,7 @@ function isLegalSaasRequest(text: string): boolean {
 function forceLegalAppPreviewFiles(input: {
   projectName: string;
   userRequest: string;
+  designBrief: AgenticDesignBrief;
   files: Array<{ path: string; content: string; language: string }>;
 }): string[] {
   const blueprint = createMonsterBlueprint({
@@ -620,7 +621,7 @@ function forceLegalAppPreviewFiles(input: {
     requestedDesignMode: "glass-dashboard",
     production: true,
   });
-  const brief = generateMonsterDesignBrief(blueprint, "agentic-legal-app-shell");
+  const brief = briefToVisualQualityShape(input.designBrief);
   const previewFiles = generateMonsterCustomPreviewFiles(blueprint, brief).map((file) => ({
     path: file.path,
     content: file.content,
@@ -758,6 +759,7 @@ export async function runAgenticBuild(input: {
     const forced = forceLegalAppPreviewFiles({
       projectName: input.projectName,
       userRequest: input.userRequest,
+      designBrief,
       files,
     });
     repairs.push({
