@@ -12,14 +12,14 @@ export interface BuildIntentResult {
   reason: string;
 }
 
-const PLAN_ONLY = /\b(rollout plan|migration strategy|implementation plan|project plan|go[- ]to[- ]market plan|roadmap|strategy|proposal|spec|prd|requirements|architecture review|explain|summari[sz]e|compare|audit|review)\b/i;
+const PLAN_ONLY =
+  /\b(rollout plan|migration strategy|implementation plan|project plan|go[- ]to[- ]market plan|roadmap|strategy|proposal|spec|prd|requirements|architecture review|explain|summari[sz]e|compare|audit|review)\b/i;
 
-const STRONG_BUILD = /\b(build|create|make|ship|scaffold|implement|generate|design|redesign)\b[\s\S]{0,80}\b(app|site|website|web app|dashboard|admin panel|portal|landing page|saas|marketplace|crm|tool|backend|frontend|first version|first screen|prototype|mvp|platform)\b/i;
+const STRONG_BUILD =
+  /\b(build|create|make|ship|scaffold|implement|generate|design|redesign)\b[\s\S]{0,80}\b(app|site|website|web app|dashboard|admin panel|portal|landing page|saas|marketplace|crm|tool|backend|frontend|first version|first screen|prototype|mvp|platform)\b/i;
 
-const COMBO_BUILD =
-  /\b(auth|supabase|backend|database|admin panel|payments?|stripe|checkout)\b/i;
-const PRODUCT_NOUN =
-  /\b(app|site|website|dashboard|portal|platform|saas|marketplace|crm)\b/i;
+const COMBO_BUILD = /\b(auth|supabase|backend|database|admin panel|payments?|stripe|checkout)\b/i;
+const PRODUCT_NOUN = /\b(app|site|website|dashboard|portal|platform|saas|marketplace|crm)\b/i;
 
 const SHORT_BUILD = /^\s*(build|create|generate|design|make|scaffold)\b/i;
 
