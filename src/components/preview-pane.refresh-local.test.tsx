@@ -84,7 +84,13 @@ describe("PreviewPane — Regenerate design is one-shot, Refresh local is manual
         onRefreshLocalPreview={onRefresh}
       />,
     );
-    const btn = c.querySelector('[data-testid="preview-refresh-local"]') as HTMLButtonElement;
+    const more = c.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const btn = document.querySelector(
+      '[data-testid="preview-refresh-local"]',
+    ) as HTMLButtonElement;
     expect(btn).toBeTruthy();
     act(() => {
       btn.click();
