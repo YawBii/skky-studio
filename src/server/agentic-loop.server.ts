@@ -7,6 +7,25 @@
 import type { MonsterSupabaseLike } from "@/services/monster-persistence";
 import { runToolCall } from "./ai/tool-call";
 import { resolveProvider } from "./ai/resolver";
+import {
+  evaluateVisualQuality,
+  type VisualQualityReport,
+} from "@/services/monster-visual-quality";
+import { generateMonsterDesignBrief } from "@/services/monster-design-brief";
+import { createMonsterBlueprint } from "@/services/monster-director";
+
+export interface AgenticDesignBrief {
+  productCategory: string;
+  targetUser: string;
+  brandFeel: string;
+  layoutDirection: string;
+  navigationPattern: string;
+  typography: { display: string; body: string };
+  palette: { name: string; bg: string; surface: string; ink: string; accent: string };
+  interactionStyle: string;
+  keyScreens: string[];
+  source: "ai" | "deterministic";
+}
 
 export interface AgenticPlan {
   appType: string;
