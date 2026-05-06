@@ -78,7 +78,13 @@ describe("PreviewPane — Design Angle selector", () => {
         onRegenerateDesign={() => {}}
       />,
     );
-    const sel = c.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
+    const more = c.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const sel = document.querySelector(
+      '[data-testid="preview-design-angle"]',
+    ) as HTMLSelectElement;
     expect(sel).toBeTruthy();
     expect(sel.querySelectorAll("option")).toHaveLength(7);
   });
