@@ -7,10 +7,7 @@
 import type { MonsterSupabaseLike } from "@/services/monster-persistence";
 import { runToolCall } from "./ai/tool-call";
 import { resolveProvider } from "./ai/resolver";
-import {
-  evaluateVisualQuality,
-  type VisualQualityReport,
-} from "@/services/monster-visual-quality";
+import { evaluateVisualQuality, type VisualQualityReport } from "@/services/monster-visual-quality";
 import { generateMonsterDesignBrief } from "@/services/monster-design-brief";
 import { createMonsterBlueprint } from "@/services/monster-director";
 
@@ -454,8 +451,7 @@ async function critique(input: {
 
 const BRIEF_TOOL = {
   name: "submit_design_brief",
-  description:
-    "Produce a custom design brief for the user's product BEFORE files are generated.",
+  description: "Produce a custom design brief for the user's product BEFORE files are generated.",
   parameters: {
     type: "object",
     properties: {
@@ -575,12 +571,15 @@ function briefToVisualQualityShape(b: AgenticDesignBrief) {
     targetUser: b.targetUser,
     brandFeel: b.brandFeel,
     layoutDirection: b.layoutDirection,
-    navigationPattern:
-      (["left-rail", "top-nav", "split-pane", "tabbed-shell", "sidebar-stack"].includes(
-        b.navigationPattern,
-      )
-        ? b.navigationPattern
-        : "top-nav") as "left-rail" | "top-nav" | "split-pane" | "tabbed-shell" | "sidebar-stack",
+    navigationPattern: ([
+      "left-rail",
+      "top-nav",
+      "split-pane",
+      "tabbed-shell",
+      "sidebar-stack",
+    ].includes(b.navigationPattern)
+      ? b.navigationPattern
+      : "top-nav") as "left-rail" | "top-nav" | "split-pane" | "tabbed-shell" | "sidebar-stack",
     typographyPairing: b.typography,
     colorPalette: { ...b.palette, accent2: b.palette.accent },
     interactionStyle: b.interactionStyle,

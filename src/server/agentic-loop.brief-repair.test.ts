@@ -78,18 +78,16 @@ describe("agentic loop — AI brief + banned-string repair", () => {
           users: ["parents"],
           workflows: ["chores"],
           pages: [{ path: "/", name: "Home", purpose: "Today view" }],
-          dataModel: [
-            { table: "tasks", columns: ["id", "owner"], purpose: "chores" },
-          ],
+          dataModel: [{ table: "tasks", columns: ["id", "owner"], purpose: "chores" }],
           integrations: [],
           backendNeeds: ["Auth"],
           files: [],
           designDirection: "warm",
         };
       } else if (toolName === "submit_file") {
-        const userMsg = JSON.parse(
-          body.messages[body.messages.length - 1].content,
-        ) as { file: { path: string } };
+        const userMsg = JSON.parse(body.messages[body.messages.length - 1].content) as {
+          file: { path: string };
+        };
         const path = userMsg.file.path;
         if (path === "index.html") {
           args = {
@@ -209,9 +207,10 @@ describe("agentic loop — AI brief + banned-string repair", () => {
           designDirection: "navy + brass",
         };
       } else if (toolName === "submit_file") {
-        const userMsg = JSON.parse(
-          body.messages[body.messages.length - 1].content,
-        ) as { file: { path: string }; repairHint?: string | null };
+        const userMsg = JSON.parse(body.messages[body.messages.length - 1].content) as {
+          file: { path: string };
+          repairHint?: string | null;
+        };
         if (userMsg.file.path === "index.html") {
           fileCalls++;
           // First call: poison with a banned string. Second call (repair): clean.
