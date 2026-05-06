@@ -553,7 +553,7 @@ export function PreviewPane({
             type="button"
             variant="soft"
             size="sm"
-            className="h-7 px-2.5 text-[12px] touch-manipulation shrink-0"
+            className="h-7 px-2 lg:px-2.5 text-[12px] touch-manipulation shrink-0 gap-1"
             data-testid="preview-regenerate-design"
             onClick={() => {
               console.info("[yawb] preview.regenerate.clicked", {
@@ -564,21 +564,29 @@ export function PreviewPane({
             }}
             disabled={regenerating}
             title="Rewrite project_files with the selected design angle"
+            aria-label="Regenerate design"
           >
-            {regenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-            Regenerate design
+            {regenerating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3 lg:hidden" />
+            )}
+            <span className="hidden md:inline lg:hidden">Regenerate</span>
+            <span className="hidden lg:inline">Regenerate design</span>
           </Button>
         )}
 
         <div
           data-testid="preview-url-bar"
-          className="flex-1 min-w-0 mx-1 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 hidden sm:flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono overflow-hidden"
+          className="flex-1 min-w-0 mx-1 h-7 rounded-md bg-white/[0.04] border border-white/5 px-2.5 hidden sm:flex items-center text-[11.5px] text-muted-foreground gap-2 font-mono overflow-hidden max-w-[180px] md:max-w-[260px] lg:max-w-none"
         >
           <ExternalLink className="h-3 w-3 shrink-0" />
           {resolved.kind === "live" && activeDeployUrl ? (
             <>
               <span className="truncate text-foreground/80">{activeDeployUrl}</span>
-              <span className="text-muted-foreground/50 shrink-0">{selectedPage}</span>
+              <span className="text-muted-foreground/50 shrink-0 hidden lg:inline">
+                {selectedPage}
+              </span>
             </>
           ) : resolved.kind === "local" ? (
             <>
