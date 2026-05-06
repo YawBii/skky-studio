@@ -191,14 +191,6 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
       <div class="data-grid">${tableCards}</div>
     </section>
 
-    <section class="cockpit hidden-helper-anchor" hidden>
-      <div class="cockpit-head">
-        <span>${esc(s.noun)} cockpit · workflow board</span>
-        <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
-      </div>
-      <div class="data-grid">${tableCards}</div>
-    </section>
-
     <section class="intake-queue" id="intake">
       <div class="cockpit-head"><span>${intakeLabel(layout)} queue</span><b>4 pending</b></div>
       <table class="queue-table" role="grid">
