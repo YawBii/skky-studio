@@ -569,12 +569,21 @@ export function AssistantPanel({
 
     if (!project || !workspace) return;
 
+    // Route real build prompts to the agentic build loop instead of stopping
+    // at ai.plan. Plan-only / audit / review requests still use ai.plan.
+    const intent = detectBuildIntent(text);
+    const jobType: JobType = intent.isBuild ? "ai.generate_changes" : "ai.plan";
     const r = await enqueueJob({
       projectId: project.id,
       workspaceId: workspace.id,
-      type: "ai.plan",
+      type: jobType,
       title: text.slice(0, 80),
-      input: { prompt: text, source: "chat_send" },
+      input: {
+        prompt: text,
+        chatRequest: text,
+        source: "chat_send",
+        intent: intent.reason,
+      },
     });
     if (!r.ok) {
       console.error("[yawb] chat.send.enqueue.error", r);
