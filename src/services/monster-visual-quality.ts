@@ -112,6 +112,24 @@ export function evaluateVisualQuality(input: {
       `viewport=${mobileMeta}, mediaQuery=${mobileCss}`,
     ),
     check(
+      "no-fixed-large-width",
+      "No fixed desktop-only widths",
+      !hasFixedPxWidth,
+      hasFixedPxWidth ? "Found fixed >=1000px width" : "Fluid widths",
+    ),
+    check(
+      "mobile-nav-component",
+      "Mobile-friendly nav (toggle/hamburger)",
+      hasMobileNav || !mobileCss,
+      hasMobileNav ? "Mobile nav detected" : "No mobile nav toggle found",
+    ),
+    check(
+      "responsive-units",
+      "Uses responsive units (rem/%/vw/vh/fr)",
+      usesResponsiveUnits,
+      usesResponsiveUnits ? "Responsive units used" : "Only px units detected",
+    ),
+    check(
       "differs-from-previous",
       "Differs from previous generation",
       !sameAsPrevious,
