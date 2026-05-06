@@ -773,24 +773,20 @@ export function PreviewPane({
               <summary className="cursor-pointer px-2 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground">
                 Diagnostics
               </summary>
-              <div className="px-1 pt-1">
-                <DesignProofPill
-                  html={localSrcDoc ?? null}
-                  fallbackAngle={designAngle}
-                  githubLinked={isGithubLinked}
-                  inline
-                />
-              </div>
+              <div className="px-1 pt-1" />
             </details>
           </PopoverContent>
         </Popover>
       </div>
 
-      <DesignProofPill
-        html={localSrcDoc ?? null}
-        fallbackAngle={designAngle}
-        githubLinked={isGithubLinked}
-      />
+      {/* Hidden design proof — kept in DOM for diagnostics/tests but not visible. */}
+      <div className="sr-only">
+        <DesignProofPill
+          html={localSrcDoc ?? null}
+          fallbackAngle={designAngle}
+          githubLinked={isGithubLinked}
+        />
+      </div>
 
       <div
         className={cn(
