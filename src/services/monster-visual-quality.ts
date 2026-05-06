@@ -36,6 +36,8 @@ const BANNED_TEMPLATE_STRINGS = [
   "Lex Scripta",
   "Examine Briefing",
   "Private Tier",
+  "stock image",
+  "stock photo",
 ];
 
 // Editorial / blog / publication nouns. Case-sensitive whole-word match in the
@@ -114,7 +116,9 @@ export function evaluateVisualQuality(input: {
     .map((f) => f.content)
     .join("\n");
 
-  const bannedHits = BANNED_TEMPLATE_STRINGS.filter((s) => allText.includes(s));
+  const bannedHits = BANNED_TEMPLATE_STRINGS.filter((s) =>
+    allText.toLowerCase().includes(s.toLowerCase()),
+  );
   const weakHits = WEAK_PLACEHOLDER_STRINGS.filter((s) =>
     allText.toLowerCase().includes(s.toLowerCase()),
   );
@@ -131,11 +135,11 @@ export function evaluateVisualQuality(input: {
   const briefBakedIn =
     index.includes(input.brief.colorPalette.accent) ||
     index.toLowerCase().includes(input.brief.productCategory.replace(/-/g, " "));
-  // Above-the-fold workflow detection: take the first ~3500 chars after <body>
+  // Above-the-fold workflow detection: take the first ~3000 chars after <body>
   // and require at least one app workflow signal — a landing-only hero is not
   // enough.
-  const bodyMatch = index.match(/<body[\s\S]{0,3500}/i);
-  const aboveFold = (bodyMatch ? bodyMatch[0] : index.slice(0, 3500)).toLowerCase();
+  const bodyMatch = index.match(/<body[\s\S]{0,3000}/i);
+  const aboveFold = (bodyMatch ? bodyMatch[0] : index.slice(0, 3000)).toLowerCase();
   const aboveFoldHits = ABOVE_FOLD_HINTS.filter((h) => aboveFold.includes(h.toLowerCase()));
 
   // Hero must NOT dominate the first screen. A giant editorial h1 (font-size
