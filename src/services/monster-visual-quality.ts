@@ -211,6 +211,24 @@ export function evaluateVisualQuality(input: {
         ? `Found palette accent ${input.brief.colorPalette.accent} or category`
         : "Design brief not visibly applied to preview",
     ),
+    check(
+      "hero-not-oversized",
+      "Hero typography stays compact (no editorial-magazine h1)",
+      !heroOversize,
+      heroOversize
+        ? "Found large h1 font-size (>=64px) — hero dominates the first screen"
+        : "Hero kept compact",
+    ),
+    check(
+      "law-firm-tokens-present",
+      "Law-firm app surfaces present (intake/cockpit/billing/admin/supabase)",
+      !legalContext || lawTokenMisses.length === 0,
+      legalContext
+        ? lawTokenMisses.length === 0
+          ? "All law-firm tokens present"
+          : `Missing: ${lawTokenMisses.join(", ")}`
+        : "Not a legal-domain project — skipped",
+    ),
   ];
 
   return {
