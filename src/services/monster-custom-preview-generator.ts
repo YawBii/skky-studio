@@ -146,6 +146,7 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const cardStyle = brief?.cardStyle ?? "glass";
   const spacing = brief?.spacingRhythm ?? "balanced";
 
+  const cockpitTitle = layout === "case-cockpit" ? "Case cockpit · Matter board" : `${esc(s.noun)} cockpit · workflow board`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -173,14 +174,24 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
       <div class="proof-dot">${category}</div>
     </aside>
 
-    <section class="hero-panel">
-      <p class="kicker">${category} · for ${targetUser}</p>
-      <h1>${headline(blueprint, layout)}</h1>
-      <p class="lede">${heroLine || prompt}</p>
+    <section class="hero-panel hero-compact">
+      <div class="hero-text">
+        <p class="kicker">${category} · for ${targetUser}</p>
+        <h1>${headline(blueprint, layout)}</h1>
+        <p class="lede">${heroLine || prompt}</p>
+      </div>
       <div class="actions"><button>${primaryCta(layout)}</button><button class="ghost">View workflow</button></div>
     </section>
 
-    <section class="cockpit" id="cockpit">
+    <section class="cockpit" id="cockpit" data-app-surface="cockpit">
+      <div class="cockpit-head">
+        <span>${cockpitTitle}</span>
+        <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
+      </div>
+      <div class="data-grid">${tableCards}</div>
+    </section>
+
+    <section class="cockpit hidden-helper-anchor" hidden>
       <div class="cockpit-head">
         <span>${esc(s.noun)} cockpit · workflow board</span>
         <b>${blueprint.backend.tables.length} tables · ${blueprint.routes.length} routes</b>
