@@ -78,7 +78,11 @@ describe("PreviewPane — Design Angle selector", () => {
         onRegenerateDesign={() => {}}
       />,
     );
-    const sel = c.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
+    const more = c.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const sel = document.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
     expect(sel).toBeTruthy();
     expect(sel.querySelectorAll("option")).toHaveLength(7);
   });
@@ -97,7 +101,11 @@ describe("PreviewPane — Design Angle selector", () => {
         onRegenerateDesign={onRegenerate}
       />,
     );
-    const sel = c.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
+    const more = c.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const sel = document.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
     act(() => {
       sel.value = "neon-command";
       sel.dispatchEvent(new Event("change", { bubbles: true }));
@@ -142,7 +150,11 @@ describe("PreviewPane — Design Angle selector", () => {
         onRegenerateDesign={() => {}}
       />,
     );
-    const sel = c.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
+    const more = c.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const sel = document.querySelector('[data-testid="preview-design-angle"]') as HTMLSelectElement;
     expect(sel.value).toBe("brutalist-data");
   });
 });

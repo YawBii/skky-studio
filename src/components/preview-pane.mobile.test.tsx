@@ -66,16 +66,14 @@ describe("PreviewPane — mobile responsive", () => {
           onRefreshLocalPreview={() => {}}
         />,
       );
-      // Toolbar exists, mode toggle present, iframe present.
-      expect(c.querySelector('[data-testid="preview-mode-toggle"]')).toBeTruthy();
+      // Toolbar exists with regenerate + more button reachable.
       expect(c.querySelector('[data-testid="preview-iframe"]')).toBeTruthy();
-      // Regenerate + Refresh buttons reachable
       expect(c.querySelector('[data-testid="preview-regenerate-design"]')).toBeTruthy();
-      expect(c.querySelector('[data-testid="preview-refresh-local"]')).toBeTruthy();
+      expect(c.querySelector('[data-testid="preview-more"]')).toBeTruthy();
     });
   }
 
-  it("toolbar wrapper is horizontally scrollable to avoid wrapping", () => {
+  it("toolbar fits in one row without horizontal scroll on narrow screens", () => {
     const c = renderAtWidth(
       320,
       <PreviewPane
@@ -88,8 +86,9 @@ describe("PreviewPane — mobile responsive", () => {
         activeDeployUrl={null}
       />,
     );
-    const toolbar = c.querySelector('[data-testid="preview-mode-toggle"]')?.parentElement;
-    expect(toolbar?.className).toMatch(/overflow-x-auto/);
+    const moreBtn = c.querySelector('[data-testid="preview-more"]');
+    expect(moreBtn).toBeTruthy();
+    const toolbar = moreBtn?.parentElement;
     expect(toolbar?.className).toMatch(/flex-nowrap/);
   });
 

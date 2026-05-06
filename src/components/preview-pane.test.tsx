@@ -276,7 +276,11 @@ describe("PreviewPane — local preview", () => {
     ) as HTMLIFrameElement | null;
     expect(iframe!.getAttribute("data-preview-kind")).toBe("live");
 
-    const localBtn = container.querySelector(
+    const more = container.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const localBtn = document.querySelector(
       '[data-testid="preview-mode-local"]',
     ) as HTMLButtonElement | null;
     expect(localBtn).not.toBeNull();
@@ -302,7 +306,11 @@ describe("PreviewPane — local preview", () => {
         activeDeployUrl={null}
       />,
     );
-    const liveBtn = container.querySelector(
+    const more = container.querySelector('[data-testid="preview-more"]') as HTMLButtonElement;
+    act(() => {
+      more.click();
+    });
+    const liveBtn = document.querySelector(
       '[data-testid="preview-mode-live"]',
     ) as HTMLButtonElement | null;
     expect(liveBtn).not.toBeNull();
