@@ -13,7 +13,7 @@ describe("Monster orchestrator", () => {
     expect(result.generator).toBe("monster-orchestrator-v1");
     expect(result.output.previewGenerator).toBe("monster-custom-preview-v1");
     expect(result.blueprint.appType).toBe("professional-services");
-    expect(result.blueprint.design.mode).toBe("editorial-luxury");
+    expect(result.blueprint.design.mode).toBe("glass-dashboard");
     expect(result.output.previewReady).toBe(true);
     expect(result.files.some((file) => file.path === "index.html")).toBe(true);
     expect(result.files.some((file) => file.path.endsWith("_monster_backend.md"))).toBe(true);
