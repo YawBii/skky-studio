@@ -288,7 +288,20 @@ async function generateFile(input: {
 
 // ---------- 3. Verify ----------
 
-const BANNED = ["Luxury Editorial", "Clean Minimal", "Money operations", "Lorem ipsum"];
+const BANNED = [
+  "Luxury Editorial",
+  "Clean Minimal",
+  "Money operations",
+  "Lorem ipsum",
+  "Manifesto",
+  "Atelier",
+  "Journal",
+  "Sovereignty",
+  "Aeterna",
+  "Lex Scripta",
+  "Examine Briefing",
+  "Private Tier",
+];
 
 function checkFile(file: { path: string; content: string }): CheckResult[] {
   const out: CheckResult[] = [];
