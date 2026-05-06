@@ -23,9 +23,14 @@ export function summariseAutoLink(r: AutoLinkResult | null): AutoLinkBadgeStatus
 export function AutoLinkStatusBadge({
   status,
   className = "",
+  noMatchLabel,
 }: {
   status: AutoLinkBadgeStatus;
   className?: string;
+  /** Override the displayed label when status is "no-match". The Builder
+   * topbar passes "Local-only project" when local project_files exist,
+   * instead of the alarming "No match found" used on the Health screen. */
+  noMatchLabel?: string;
 }) {
   const map: Record<AutoLinkBadgeStatus, { label: string; tone: string; Icon: typeof Check }> = {
     "auto-linked": {
@@ -39,7 +44,7 @@ export function AutoLinkStatusBadge({
       Icon: Triangle,
     },
     "no-match": {
-      label: "No match found",
+      label: noMatchLabel ?? "No match found",
       tone: "text-muted-foreground border-white/10 bg-white/[0.02]",
       Icon: AlertCircle,
     },

@@ -51,6 +51,30 @@ const WORKFLOW_HINTS = [
   "board",
   "dashboard",
   "approvals",
+  "intake",
+  "cockpit",
+  "matter",
+  "invoice",
+  "admin",
+];
+
+// Substrings that, if found in the first ~3500 chars of <body>, count as a
+// real app workflow surface above the fold (vs. landing-only marketing).
+const ABOVE_FOLD_HINTS = [
+  "<table",
+  "<form",
+  'role="grid"',
+  'role="list"',
+  "queue",
+  "cockpit",
+  "intake",
+  "pipeline",
+  "timeline",
+  "dashboard",
+  "ledger",
+  "approvals",
+  "data-grid",
+  "workflow-board",
 ];
 
 function check(id: string, label: string, passed: boolean, detail: string): VisualQualityCheck {
@@ -85,6 +109,12 @@ export function evaluateVisualQuality(input: {
   const briefBakedIn =
     index.includes(input.brief.colorPalette.accent) ||
     index.toLowerCase().includes(input.brief.productCategory.replace(/-/g, " "));
+  // Above-the-fold workflow detection: take the first ~3500 chars after <body>
+  // and require at least one app workflow signal — a landing-only hero is not
+  // enough.
+  const bodyMatch = index.match(/<body[\s\S]{0,3500}/i);
+  const aboveFold = (bodyMatch ? bodyMatch[0] : index.slice(0, 3500)).toLowerCase();
+  const aboveFoldHits = ABOVE_FOLD_HINTS.filter((h) => aboveFold.includes(h.toLowerCase()));
 
   const checks: VisualQualityCheck[] = [
     check(
@@ -104,6 +134,14 @@ export function evaluateVisualQuality(input: {
       "Has real workflow surface (table/board/queue/etc.)",
       workflowHits.length >= 2,
       workflowHits.length ? `Surfaces: ${workflowHits.join(", ")}` : "No workflow surface detected",
+    ),
+    check(
+      "workflow-above-fold",
+      "Workflow surface visible above the fold (not landing-only)",
+      aboveFoldHits.length >= 1,
+      aboveFoldHits.length
+        ? `Above-fold: ${aboveFoldHits.join(", ")}`
+        : "Only hero/landing content detected — needs cockpit/intake/queue/timeline above the fold",
     ),
     check(
       "mobile-ready",
