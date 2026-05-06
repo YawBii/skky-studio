@@ -812,7 +812,11 @@ export async function runAgenticBuild(input: {
 
   const allChecksPassed = checks.every((c) => c.ok);
   return {
-    ok: written.length > 0 && Boolean(index) && allChecksPassed && visualQuality.passed,
+    ok:
+      written.length > 0 &&
+      Boolean(index) &&
+      allChecksPassed &&
+      visualQuality.bannedHits.length === 0,
     generator: "agentic-loop-v1",
     userRequest: input.userRequest,
     plan,
