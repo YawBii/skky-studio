@@ -227,7 +227,7 @@ function html(blueprint: MonsterBlueprint, brief?: MonsterDesignBrief): string {
   const cardStyle = brief?.cardStyle ?? "glass";
   const spacing = brief?.spacingRhythm ?? "balanced";
 
-  const cockpitTitle = layout === "case-cockpit" ? "Case cockpit · Matter board" : `${esc(s.noun)} cockpit · workflow board`;
+  const cockpitTitle = `${esc(s.noun)} cockpit · workflow board`;
   return `<!doctype html>
 <html lang="en">
 <head>
