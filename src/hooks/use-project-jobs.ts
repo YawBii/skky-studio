@@ -78,20 +78,20 @@ export function useProjectJobs(
     void reportProviderConnections(projectId);
   }, [enabled, projectId]);
 
-  const refreshSteps = useCallback(async (jobId: string) => {
-    if (!detailsEnabled) return;
+  const refreshSteps = useCallback(async (jobId: string, force = false) => {
+    if (!detailsEnabled && !force) return;
     const r = await listJobSteps(jobId);
     setStepsByJob((prev) => ({ ...prev, [jobId]: r.steps }));
   }, [detailsEnabled]);
 
-  const refreshQuestions = useCallback(async (jobId: string) => {
-    if (!detailsEnabled) return;
+  const refreshQuestions = useCallback(async (jobId: string, force = false) => {
+    if (!detailsEnabled && !force) return;
     const r = await listJobQuestions(jobId);
     setQuestionsByJob((prev) => ({ ...prev, [jobId]: r.questions }));
   }, [detailsEnabled]);
 
-  const refreshAttempts = useCallback(async (jobId: string) => {
-    if (!detailsEnabled) return;
+  const refreshAttempts = useCallback(async (jobId: string, force = false) => {
+    if (!detailsEnabled && !force) return;
     const r = await listJobStepAttempts(jobId);
     setAttemptsByJob((prev) => ({ ...prev, [jobId]: r.attempts }));
   }, [detailsEnabled]);
