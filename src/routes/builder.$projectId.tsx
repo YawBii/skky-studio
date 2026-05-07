@@ -712,6 +712,8 @@ function Builder() {
             projectId={project.id}
             workspaceId={project.workspaceId}
             initialExpandedJobId={focusJobId}
+            previewBlocked={Boolean(previewBlocked)}
+            hasActiveJob={anyJobActive}
           />
         )}
         {tab === "history" && (
@@ -724,7 +726,7 @@ function Builder() {
 
         {/* Command Center: compact pill + collapsible drawer.
             Hidden on the Jobs tab (full panel already visible there). */}
-        {tab !== "jobs" && (
+        {tab !== "jobs" && !lowPowerMode && (
           <>
             <CommandCenterPill
               state={{ ...ccState, mode: ccMode }}
