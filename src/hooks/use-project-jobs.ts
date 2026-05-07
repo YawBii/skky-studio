@@ -28,6 +28,7 @@ const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_
 
 interface UseProjectJobsOptions {
   enabled?: boolean;
+  pollEnabled?: boolean;
   detailsEnabled?: boolean;
 }
 
@@ -37,6 +38,7 @@ export function useProjectJobs(
   options: UseProjectJobsOptions = {},
 ) {
   const enabled = (options.enabled ?? true) && !isSafeMode();
+  const pollEnabled = enabled && (options.pollEnabled ?? true);
   const detailsEnabled = options.detailsEnabled ?? true;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [source, setSource] = useState<JobsSource>("no-project");
@@ -100,7 +102,7 @@ export function useProjectJobs(
   // hook has refreshed. The idle refresh catches those newly queued jobs and
   // the next loop triggers the server runner.
   useEffect(() => {
-    if (!enabled || !projectId) return;
+    if (!pollEnabled || !projectId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -159,7 +161,7 @@ export function useProjectJobs(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [enabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
+  }, [pollEnabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
   useEffect(() => {
