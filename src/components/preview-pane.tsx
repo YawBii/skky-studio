@@ -918,6 +918,7 @@ function PreviewPaneImpl({
                   : "min-h-[inherit] rounded-2xl border border-white/10 shadow-elevated",
               )}
             >
+              <IframeMountedCounter />
               <iframe
                 key={iframeKey}
                 title={`${sanitizeText(project.name, 200) || "Project"} preview`}
@@ -1110,6 +1111,14 @@ function PreviewPaneImpl({
 }
 
 export const PreviewPane = memo(PreviewPaneImpl);
+
+function IframeMountedCounter() {
+  useEffect(() => {
+    setPerf("iframeMounted", 1);
+    return () => setPerf("iframeMounted", 0);
+  }, []);
+  return null;
+}
 
 function DesignProofPill({
   html,
