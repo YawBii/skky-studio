@@ -134,6 +134,7 @@ function Builder() {
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const userPickedDeviceRef = useRef(false);
 
   // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
@@ -187,8 +188,11 @@ function Builder() {
 
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
-  const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null);
+  const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
+    detailsEnabled: !tabletOrMobile || ccOpen,
+  });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
+  const previewBlocked = useMemo(() => extractFailedVisualQuality(ccJobs.jobs), [ccJobs.jobs]);
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
