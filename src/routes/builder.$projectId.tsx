@@ -742,6 +742,8 @@ function Builder() {
                 projectId={project.id}
                 workspaceId={project.workspaceId}
                 focusJobId={ccState.activeJob?.id ?? focusJobId}
+                previewBlocked={Boolean(previewBlocked)}
+                hasActiveJob={anyJobActive}
                 onOpenJobsTab={() => {
                   setCcOpen(false);
                   setTab("jobs");
