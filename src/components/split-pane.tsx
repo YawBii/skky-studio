@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { GripVertical, MessageSquare, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { bumpPerf, isTabletOrMobile } from "@/lib/perf-mode";
+import { isTabletOrMobile } from "@/lib/perf-mode";
 
 interface Props {
   left: React.ReactNode;
