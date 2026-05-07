@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
   History,
@@ -14,11 +14,13 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/services/projects";
 import type { ProjectConnection } from "@/services/project-connections";
 import type { Job, JobStep } from "@/services/jobs";
 import { PreviewSummaryStrip } from "@/components/preview-summary-strip";
+import { isTabletOrMobile, bumpPerf } from "@/lib/perf-mode";
 import {
   resolvePreviewSource,
   hasLocalPreview,
