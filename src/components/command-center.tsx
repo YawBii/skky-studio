@@ -145,6 +145,8 @@ interface DrawerProps {
   workspaceId: string;
   focusJobId?: string | null;
   onOpenJobsTab: () => void;
+  previewBlocked?: boolean;
+  hasActiveJob?: boolean;
 }
 
 const HEIGHT_KEY = "yawb:command-center:height";
@@ -174,6 +176,8 @@ export function CommandCenterDrawer({
   workspaceId,
   focusJobId,
   onOpenJobsTab,
+  previewBlocked,
+  hasActiveJob,
 }: DrawerProps) {
   // Default height: ~45vh, clamped between min and 85vh.
   const defaultPx = typeof window !== "undefined" ? Math.round(window.innerHeight * 0.45) : 480;
@@ -239,6 +243,8 @@ export function CommandCenterDrawer({
         height={height}
         onHandlePointerDown={onHandlePointerDown}
         lightweight={lightweight}
+        previewBlocked={previewBlocked}
+        hasActiveJob={hasActiveJob}
       />
     </>
   );
@@ -262,6 +268,8 @@ export function CommandCenterDrawerContent({
   workspaceId,
   focusJobId,
   lightweight,
+  previewBlocked,
+  hasActiveJob,
 }: DrawerProps & {
   height: number;
   onHandlePointerDown: (e: React.PointerEvent) => void;
@@ -317,6 +325,8 @@ export function CommandCenterDrawerContent({
           pollEnabled={open}
           detailsEnabled={open}
           activePollingEnabled={open}
+          previewBlocked={previewBlocked}
+          hasActiveJob={hasActiveJob}
         />
       </div>
     </div>

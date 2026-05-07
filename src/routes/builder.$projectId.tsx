@@ -22,7 +22,7 @@ import { getProjectById, type Project } from "@/services/projects";
 import { rememberDirectProject } from "@/lib/project-selection";
 import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
-import { enqueueJob, type Job } from "@/services/jobs";
+import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
@@ -38,6 +38,7 @@ import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
 import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
 import { bumpPerf, isSafeMode, isTabletOrMobile } from "@/lib/perf-mode";
+import { getVisualQualityBlock, hasActiveJob } from "@/lib/job-guards";
 import { RefreshCw } from "lucide-react";
 
 import { resolveDeployUrl } from "@/lib/deploy-url";
@@ -87,34 +88,6 @@ export const Route = createFileRoute("/builder/$projectId")({
 type Tab = "preview" | "code" | "database" | "deploy" | "jobs" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
-function extractFailedVisualQuality(jobs: Job[]) {
-  const latest = [...jobs]
-    .filter((j) => j.type === "ai.generate_changes" || j.type === "build.production")
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
-  if (!latest || latest.status !== "failed") return null;
-  const output = (latest.output ?? {}) as Record<string, unknown>;
-  const failedGates = Array.isArray(output.failedGates)
-    ? output.failedGates.filter((v): v is string => typeof v === "string")
-    : Array.isArray((output.visualQuality as { checks?: unknown[] } | undefined)?.checks)
-      ? (
-          output.visualQuality as {
-            checks: Array<{ passed?: unknown; label?: unknown; detail?: unknown }>;
-          }
-        ).checks
-          .filter((c) => c.passed === false)
-          .map((c) => `${String(c.label ?? "Visual quality")}: ${String(c.detail ?? "failed")}`)
-      : [];
-  const error = latest.error ?? "";
-  const looksVisual =
-    failedGates.length > 0 || /visualQuality|visual quality|failed gates|Needs repair/i.test(error);
-  if (!looksVisual) return null;
-  return {
-    jobId: latest.id,
-    failedGates: failedGates.length > 0 ? failedGates : [error || "Visual quality failed"],
-    error: latest.error,
-  };
-}
-
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "preview", label: "Preview", icon: Eye },
   { id: "code", label: "Code", icon: Code2 },
@@ -142,6 +115,7 @@ function Builder() {
   const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const lowPowerMode = tabletOrMobile;
   const userPickedDeviceRef = useRef(false);
+  const [blockedPollingPaused, setBlockedPollingPaused] = useState(false);
 
   // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
   // Once the user picks a device manually we stop overriding.
@@ -195,12 +169,17 @@ function Builder() {
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
-    detailsEnabled: !lowPowerMode || tab === "jobs" || focusJobId !== null,
+    pollEnabled: !blockedPollingPaused,
+    detailsEnabled: !lowPowerMode || tab === "jobs",
     activePollingEnabled: !lowPowerMode || tab === "jobs",
   });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
-  const previewBlocked = useMemo(() => extractFailedVisualQuality(ccJobs.jobs), [ccJobs.jobs]);
+  const previewBlocked = useMemo(() => getVisualQualityBlock(ccJobs.jobs), [ccJobs.jobs]);
   const jobRunning = ccState.mode === "running" || ccState.mode === "waiting";
+  const anyJobActive = useMemo(() => hasActiveJob(ccJobs.jobs), [ccJobs.jobs]);
+  useEffect(() => {
+    setBlockedPollingPaused(Boolean(lowPowerMode && tab !== "jobs" && previewBlocked));
+  }, [lowPowerMode, previewBlocked, tab]);
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
@@ -237,7 +216,7 @@ function Builder() {
 
   // Per-project generated files for Local Preview.
   const filesApi = useProjectFiles(project?.id ?? null, {
-    enabled: tab === "preview" && !jobRunning,
+    enabled: tab === "preview" && !anyJobActive && !previewBlocked,
   });
 
   // GitHub-linked projects are treated as the source of truth — yawB must
@@ -323,7 +302,10 @@ function Builder() {
 
   const onStartBuild = async () => {
     console.info("[yawb] startBuild.clicked", { projectId: project.id });
-    if (starting) return;
+    if (starting || anyJobActive || previewBlocked) {
+      toast("Build is paused until the active job finishes or the blocked preview is repaired.");
+      return;
+    }
     setStarting(true);
     try {
       console.info("[yawb] startBuild.enqueue.start", { projectId: project.id });
@@ -621,6 +603,7 @@ function Builder() {
             regenerating={false}
             jobRunning={ccState.mode === "running" || ccState.mode === "waiting"}
             previewBlocked={previewBlocked}
+            startBuildDisabled={anyJobActive || Boolean(previewBlocked)}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
             onLoadJobDetails={(jobId) => {
@@ -639,6 +622,7 @@ function Builder() {
               window.dispatchEvent(new CustomEvent("yawb:focus-summary", { detail: { jobId } }));
             }}
             onRefreshLocalPreview={() => {
+              if (anyJobActive || previewBlocked) return;
               console.info("[yawb] preview.localRefresh.clicked", { projectId: project.id });
               void filesApi.refresh().then(() => {
                 toast.success("Local preview refreshed");
@@ -730,6 +714,8 @@ function Builder() {
             projectId={project.id}
             workspaceId={project.workspaceId}
             initialExpandedJobId={focusJobId}
+            previewBlocked={Boolean(previewBlocked)}
+            hasActiveJob={anyJobActive}
           />
         )}
         {tab === "history" && (
@@ -742,7 +728,7 @@ function Builder() {
 
         {/* Command Center: compact pill + collapsible drawer.
             Hidden on the Jobs tab (full panel already visible there). */}
-        {tab !== "jobs" && (
+        {tab !== "jobs" && !lowPowerMode && (
           <>
             <CommandCenterPill
               state={{ ...ccState, mode: ccMode }}
@@ -756,6 +742,8 @@ function Builder() {
                 projectId={project.id}
                 workspaceId={project.workspaceId}
                 focusJobId={ccState.activeJob?.id ?? focusJobId}
+                previewBlocked={Boolean(previewBlocked)}
+                hasActiveJob={anyJobActive}
                 onOpenJobsTab={() => {
                   setCcOpen(false);
                   setTab("jobs");

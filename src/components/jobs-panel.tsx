@@ -43,6 +43,8 @@ interface JobsPanelProps {
   pollEnabled?: boolean;
   detailsEnabled?: boolean;
   activePollingEnabled?: boolean;
+  previewBlocked?: boolean;
+  hasActiveJob?: boolean;
 }
 
 const QUICK_JOBS: { type: JobType; title: string }[] = [
@@ -60,6 +62,8 @@ export function JobsPanel({
   pollEnabled = true,
   detailsEnabled = true,
   activePollingEnabled = true,
+  previewBlocked = false,
+  hasActiveJob = false,
 }: JobsPanelProps) {
   const {
     jobs,
@@ -117,6 +121,7 @@ export function JobsPanel({
   };
 
   const onQuick = async (q: { type: JobType; title: string }) => {
+    if (q.type === "build.production" && (hasActiveJob || previewBlocked)) return;
     setEnqueuing(q.type);
     await enqueue({ type: q.type, title: q.title });
     setEnqueuing(null);
@@ -149,7 +154,11 @@ export function JobsPanel({
               key={q.type}
               size="sm"
               variant="outline"
-              disabled={enqueuing === q.type || !workspaceId}
+              disabled={
+                enqueuing === q.type ||
+                !workspaceId ||
+                (q.type === "build.production" && (hasActiveJob || previewBlocked))
+              }
               onClick={() => onQuick(q)}
               className="h-7 text-[11.5px]"
             >
