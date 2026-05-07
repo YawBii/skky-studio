@@ -89,6 +89,8 @@ export interface PreviewPaneProps {
   previewBlocked?: PreviewBlockedState | null;
   /** Enqueue a focused repair for the latest failed visual quality job. */
   onRepairPreview?: (failedGates: string[]) => void;
+  /** Runtime guard: prevent production build enqueue while jobs/preview are blocked. */
+  startBuildDisabled?: boolean;
 }
 
 export interface PreviewBlockedState {
@@ -246,6 +248,7 @@ function PreviewPaneImpl({
   jobRunning,
   previewBlocked,
   onRepairPreview,
+  startBuildDisabled,
 }: PreviewPaneProps) {
   const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const viewport = DEVICE_VIEWPORTS[device];
@@ -551,7 +554,7 @@ function PreviewPaneImpl({
 
   return (
     <div className="h-full flex flex-col">
-      {jobs && jobs.length > 0 && onJumpToJob && onOpenSummaryInChat && (
+      {jobs && jobs.length > 0 && onJumpToJob && onOpenSummaryInChat && !previewBlockedActive && (
         <PreviewSummaryStrip
           jobs={jobs}
           stepsByJob={stepsByJob ?? {}}
@@ -783,7 +786,7 @@ function PreviewPaneImpl({
             )}
 
             <div className="flex flex-col gap-1 pt-1 border-t border-white/5">
-              {onRefreshLocalPreview && !isGithubLinked && (
+              {onRefreshLocalPreview && !isGithubLinked && !previewBlockedActive && (
                 <button
                   type="button"
                   data-testid="preview-refresh-local"
@@ -1080,7 +1083,7 @@ function PreviewPaneImpl({
                         variant="hero"
                         className="touch-manipulation"
                         onClick={onStartBuild}
-                        disabled={starting}
+                        disabled={starting || startBuildDisabled}
                       >
                         {starting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
