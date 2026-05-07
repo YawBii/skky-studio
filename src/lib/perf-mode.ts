@@ -79,6 +79,10 @@ export function bumpPerf<K extends keyof YawbPerfCounters>(key: K, delta = 1): v
   (perfCounters[key] as number) = (perfCounters[key] as number) + delta;
 }
 
+export function setPerf<K extends keyof YawbPerfCounters>(key: K, value: number): void {
+  perfCounters[key] = value;
+}
+
 interface CallRecord {
   times: number[];
 }
