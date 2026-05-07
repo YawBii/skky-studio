@@ -268,6 +268,8 @@ export function CommandCenterDrawerContent({
   workspaceId,
   focusJobId,
   lightweight,
+  previewBlocked,
+  hasActiveJob,
 }: DrawerProps & {
   height: number;
   onHandlePointerDown: (e: React.PointerEvent) => void;
