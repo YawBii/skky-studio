@@ -603,6 +603,7 @@ function Builder() {
             regenerating={false}
             jobRunning={ccState.mode === "running" || ccState.mode === "waiting"}
             previewBlocked={previewBlocked}
+            startBuildDisabled={anyJobActive || Boolean(previewBlocked)}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
             onLoadJobDetails={(jobId) => {
@@ -621,6 +622,7 @@ function Builder() {
               window.dispatchEvent(new CustomEvent("yawb:focus-summary", { detail: { jobId } }));
             }}
             onRefreshLocalPreview={() => {
+              if (anyJobActive || previewBlocked) return;
               console.info("[yawb] preview.localRefresh.clicked", { projectId: project.id });
               void filesApi.refresh().then(() => {
                 toast.success("Local preview refreshed");
