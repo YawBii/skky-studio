@@ -121,7 +121,7 @@ export function useProjectJobs(
       noteFetchCall(`useProjectJobs:reportProviders:${projectId}`);
       void reportProviderConnections(projectId);
 
-      const hasActive = latest.jobs.some((j) => j.status === "queued" || j.status === "running");
+      const hasActive = latest.jobs.some((j) => !TERMINAL_STATUSES.has(j.status));
       if (!hasActive) {
         if (perfCounters.activePolls > 0) bumpPerf("activePolls", -1);
         setTicking(false);
@@ -131,7 +131,7 @@ export function useProjectJobs(
       }
       if (!tickingRef.current) bumpPerf("activePolls");
       if (tickingRef.current) {
-        schedule(TICK_MS);
+        schedule(ACTIVE_POLL_MS);
         return;
       }
       tickingRef.current = true;
@@ -145,7 +145,7 @@ export function useProjectJobs(
         await refreshQuestions(r.jobId);
         await refreshAttempts(r.jobId);
       }
-      schedule(TICK_MS);
+      schedule(ACTIVE_POLL_MS);
     };
 
     void loop();
