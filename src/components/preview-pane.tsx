@@ -877,7 +877,10 @@ function PreviewPaneImpl({
               {iframeState === "loading" && resolved.kind === "live" && (
                 <div
                   data-testid="preview-iframe-loading"
-                  className="absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-sm pointer-events-none"
+                  className={cn(
+                    "absolute inset-0 grid place-items-center bg-background/40 pointer-events-none",
+                    !tabletOrMobile && "backdrop-blur-sm",
+                  )}
                 >
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
