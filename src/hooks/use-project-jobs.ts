@@ -20,7 +20,7 @@ import {
   type JobType,
   type StepAttempt,
 } from "@/services/jobs";
-import { isSafeMode, noteFetchCall } from "@/lib/perf-mode";
+import { isSafeMode, noteFetchCall, bumpPerf, perfCounters } from "@/lib/perf-mode";
 
 const TICK_MS = 1500;
 const IDLE_REFRESH_MS = 2500;
