@@ -360,7 +360,12 @@ function Builder() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative z-40 h-11 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto min-w-0 flex-nowrap overflow-hidden">
+      <div
+        className={cn(
+          "relative z-40 h-11 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2 bg-background/85 pointer-events-auto min-w-0 flex-nowrap overflow-hidden",
+          !tabletOrMobile && "backdrop-blur-xl",
+        )}
+      >
         {/* Project selector — currently jumps to the project list, will become a switcher. */}
         <button
           type="button"
@@ -604,8 +609,14 @@ function Builder() {
             generated={mergedGenerated}
             regenerating={false}
             jobRunning={ccState.mode === "running" || ccState.mode === "waiting"}
+            previewBlocked={previewBlocked}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
+            onLoadJobDetails={(jobId) => {
+              void ccJobs.refreshSteps(jobId, true);
+              void ccJobs.refreshQuestions(jobId, true);
+              void ccJobs.refreshAttempts(jobId, true);
+            }}
             onJumpToJob={(jobId) => {
               console.info("[yawb] preview.summary.jumpToJob", { jobId });
               setFocusJobId(jobId);
@@ -621,6 +632,32 @@ function Builder() {
               void filesApi.refresh().then(() => {
                 toast.success("Local preview refreshed");
               });
+            }}
+            onRepairPreview={async (failedGates) => {
+              const regenerationSeed =
+                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID()
+                  : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              const r = await enqueueJob({
+                projectId: project.id,
+                workspaceId: project.workspaceId,
+                type: "ai.generate_changes",
+                title: "Repair preview",
+                input: {
+                  source: "preview_visual_quality_repair",
+                  regenerationSeed,
+                  forceVariant: true,
+                  failedGates,
+                  failedJobId: previewBlocked?.jobId ?? null,
+                },
+              });
+              if (!r.ok) {
+                toast.error(`Couldn't repair preview: ${r.error}`);
+                return;
+              }
+              toast.success("Repair queued");
+              setFocusJobId(r.job.id);
+              void ccJobs.refresh();
             }}
             onRegenerateDesign={async (designMode) => {
               const regenerationSeed =
