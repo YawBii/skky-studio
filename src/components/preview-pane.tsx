@@ -241,6 +241,8 @@ function PreviewPaneImpl({
   onJumpToJob,
   onOpenSummaryInChat,
   jobRunning,
+  previewBlocked,
+  onRepairPreview,
 }: PreviewPaneProps) {
   const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const viewport = DEVICE_VIEWPORTS[device];
@@ -536,6 +538,8 @@ function PreviewPaneImpl({
     setMode(next);
   };
 
+  const failedGates = previewBlocked?.failedGates ?? [];
+  const previewBlockedActive = Boolean(previewBlocked);
   const showFallbackCard = resolved.kind === "live" && iframeSrc && iframeState === "failed";
   const showLocalEmpty =
     resolved.kind === "local" && !generatedHasContent && !iframeSrc && !localSrcDoc;
