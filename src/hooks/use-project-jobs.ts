@@ -129,7 +129,7 @@ export function useProjectJobs(
         schedule(IDLE_REFRESH_MS);
         return;
       }
-      if (!tickingRef.current) bumpPerf("activePolls");
+      if (!tickingRef.current && perfCounters.activePolls === 0) bumpPerf("activePolls");
       if (tickingRef.current) {
         schedule(ACTIVE_POLL_MS);
         return;
@@ -144,6 +144,12 @@ export function useProjectJobs(
         await refreshSteps(r.jobId);
         await refreshQuestions(r.jobId);
         await refreshAttempts(r.jobId);
+      }
+      if (r.status && TERMINAL_STATUSES.has(r.status)) {
+        if (perfCounters.activePolls > 0) bumpPerf("activePolls", -1);
+        setTicking(false);
+        schedule(IDLE_REFRESH_MS);
+        return;
       }
       schedule(ACTIVE_POLL_MS);
     };
