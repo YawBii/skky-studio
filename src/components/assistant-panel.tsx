@@ -32,7 +32,7 @@ import {
 import { SmartSuggestionChips } from "@/components/smart-suggestion-chips";
 import { useBuilderUIState } from "@/hooks/use-builder-ui-state";
 import { TaskSummaryCard } from "@/components/task-summary-card";
-import { isSafeMode, noteRender } from "@/lib/perf-mode";
+import { isSafeMode, noteRender, setPerf } from "@/lib/perf-mode";
 import type { Project } from "@/services/projects";
 import type { Workspace } from "@/services/workspaces";
 
@@ -140,6 +140,10 @@ export function AssistantPanel({
   enabled?: boolean;
 }) {
   noteRender("AssistantPanel");
+  useEffect(() => {
+    setPerf("chatMounted", 1);
+    return () => setPerf("chatMounted", 0);
+  }, []);
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Msg[]>(INITIAL);
   const [queuedSummaryJobs, setQueuedSummaryJobs] = useState<Record<string, Job>>({});

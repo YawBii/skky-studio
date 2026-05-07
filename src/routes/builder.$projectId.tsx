@@ -37,7 +37,7 @@ import { useProjectFiles } from "@/hooks/use-project-files";
 import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
 import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
-import { isSafeMode, isTabletOrMobile } from "@/lib/perf-mode";
+import { bumpPerf, isSafeMode, isTabletOrMobile } from "@/lib/perf-mode";
 import { RefreshCw } from "lucide-react";
 
 import { resolveDeployUrl } from "@/lib/deploy-url";
@@ -125,6 +125,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
 ];
 
 function Builder() {
+  bumpPerf("builderRenders");
   const { projectId } = Route.useParams();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,6 +140,7 @@ function Builder() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
+  const lowPowerMode = tabletOrMobile;
   const userPickedDeviceRef = useRef(false);
 
   // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
@@ -193,10 +195,12 @@ function Builder() {
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
-    detailsEnabled: !tabletOrMobile,
+    detailsEnabled: !lowPowerMode || tab === "jobs" || focusJobId !== null,
+    activePollingEnabled: !lowPowerMode || tab === "jobs",
   });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
   const previewBlocked = useMemo(() => extractFailedVisualQuality(ccJobs.jobs), [ccJobs.jobs]);
+  const jobRunning = ccState.mode === "running" || ccState.mode === "waiting";
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
@@ -232,7 +236,9 @@ function Builder() {
   }, [activeDeployUrl, activeDeployResolved.source, project]);
 
   // Per-project generated files for Local Preview.
-  const filesApi = useProjectFiles(project?.id ?? null);
+  const filesApi = useProjectFiles(project?.id ?? null, {
+    enabled: tab === "preview" && !jobRunning,
+  });
 
   // GitHub-linked projects are treated as the source of truth — yawB must
   // NOT synthesize a preview from raw repo HTML (relative asset paths like
@@ -254,6 +260,7 @@ function Builder() {
     setOpen: setCcOpen,
     effectiveMode: ccMode,
   } = useCommandCenterAutoOpen(ccState, {
+    autoOpen: !lowPowerMode,
     onJobSucceeded: (j) => {
       // After a successful build, return focus to Preview + flash a toast.
       if (j.type === "build.production" || j.type === "build.typecheck") {
@@ -742,17 +749,19 @@ function Builder() {
               open={ccOpen}
               onToggle={() => setCcOpen(!ccOpen)}
             />
-            <CommandCenterDrawer
-              open={ccOpen}
-              onClose={() => setCcOpen(false)}
-              projectId={project.id}
-              workspaceId={project.workspaceId}
-              focusJobId={ccState.activeJob?.id ?? focusJobId}
-              onOpenJobsTab={() => {
-                setCcOpen(false);
-                setTab("jobs");
-              }}
-            />
+            {ccOpen && (
+              <CommandCenterDrawer
+                open={ccOpen}
+                onClose={() => setCcOpen(false)}
+                projectId={project.id}
+                workspaceId={project.workspaceId}
+                focusJobId={ccState.activeJob?.id ?? focusJobId}
+                onOpenJobsTab={() => {
+                  setCcOpen(false);
+                  setTab("jobs");
+                }}
+              />
+            )}
           </>
         )}
       </div>

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { JobsPanel } from "@/components/jobs-panel";
 import type { Job } from "@/services/jobs";
 import { isFailedJobResolved } from "@/lib/job-resolution";
-import { isTabletOrMobile } from "@/lib/perf-mode";
+import { isTabletOrMobile, setPerf } from "@/lib/perf-mode";
 
 export type CommandCenterMode = "idle" | "running" | "waiting" | "failed" | "succeeded";
 
@@ -227,13 +227,55 @@ export function CommandCenterDrawer({
 
   if (!open) return null;
   return (
+    <>
+      <CommandCenterMountedCounter />
+      <CommandCenterDrawerContent
+        open={open}
+        onClose={onClose}
+        projectId={projectId}
+        workspaceId={workspaceId}
+        focusJobId={focusJobId}
+        onOpenJobsTab={onOpenJobsTab}
+        height={height}
+        onHandlePointerDown={onHandlePointerDown}
+        lightweight={lightweight}
+      />
+    </>
+  );
+}
+
+function CommandCenterMountedCounter() {
+  useEffect(() => {
+    setPerf("commandCenterMounted", 1);
+    return () => setPerf("commandCenterMounted", 0);
+  }, []);
+  return null;
+}
+
+export function CommandCenterDrawerContent({
+  open,
+  height,
+  onHandlePointerDown,
+  onOpenJobsTab,
+  onClose,
+  projectId,
+  workspaceId,
+  focusJobId,
+  lightweight,
+}: DrawerProps & {
+  height: number;
+  onHandlePointerDown: (e: React.PointerEvent) => void;
+  lightweight: boolean;
+}) {
+  return (
     <div
       role="dialog"
       aria-label="Command Center"
       style={{ height: `${height}px` }}
       className={cn(
         "absolute left-3 right-3 bottom-14 z-30 flex flex-col",
-        "rounded-xl border border-white/10 bg-sidebar/95 backdrop-blur-xl shadow-elevated",
+        "rounded-xl border border-white/10 bg-sidebar/95",
+        !lightweight && "backdrop-blur-xl shadow-elevated",
         "overflow-hidden",
       )}
     >
@@ -272,8 +314,9 @@ export function CommandCenterDrawer({
           projectId={projectId}
           workspaceId={workspaceId}
           initialExpandedJobId={focusJobId ?? undefined}
-          pollEnabled={!lightweight}
-          detailsEnabled={!lightweight || open}
+          pollEnabled={open}
+          detailsEnabled={open}
+          activePollingEnabled={open}
         />
       </div>
     </div>
@@ -292,6 +335,7 @@ export function useCommandCenterAutoOpen(
   opts: {
     onJobSucceeded?: (job: Job) => void;
     onJobFailed?: (job: Job) => void;
+    autoOpen?: boolean;
   } = {},
 ) {
   const [open, setOpen] = useState(false);
@@ -303,8 +347,9 @@ export function useCommandCenterAutoOpen(
 
   // Auto-open when running/waiting/failed.
   useEffect(() => {
+    if (opts.autoOpen === false) return;
     if (mode === "waiting" || mode === "failed") setOpen(true);
-  }, [mode]);
+  }, [mode, opts.autoOpen]);
 
   // Detect job-just-completed transitions to fire callbacks + transient "Done".
   useEffect(() => {

@@ -18,7 +18,15 @@ export interface UseProjectFiles {
   error?: string;
 }
 
-export function useProjectFiles(projectId: string | null | undefined): UseProjectFiles {
+interface UseProjectFilesOptions {
+  enabled?: boolean;
+}
+
+export function useProjectFiles(
+  projectId: string | null | undefined,
+  options: UseProjectFilesOptions = {},
+): UseProjectFiles {
+  const enabled = options.enabled ?? true;
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [version, setVersion] = useState(0);
@@ -27,7 +35,7 @@ export function useProjectFiles(projectId: string | null | undefined): UseProjec
   const cancelledRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    if (!projectId) {
+    if (!enabled || !projectId) {
       setFiles([]);
       return;
     }
@@ -51,7 +59,7 @@ export function useProjectFiles(projectId: string | null | undefined): UseProjec
     setError(r.error);
     setLoading(false);
     setVersion((v) => v + 1);
-  }, [projectId]);
+  }, [enabled, projectId]);
 
   useEffect(() => {
     cancelledRef.current = false;

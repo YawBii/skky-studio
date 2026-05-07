@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { GripVertical, MessageSquare, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isTabletOrMobile } from "@/lib/perf-mode";
 
 interface Props {
   left: React.ReactNode;
@@ -30,7 +31,7 @@ export function SplitPane({
   const [rightWidth, setRightWidth] = useState(initialRightWidth);
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => isTabletOrMobile());
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
@@ -42,8 +43,8 @@ export function SplitPane({
   // bottom-sheet drawer on true phone widths. Match that behavior so users
   // don't lose the live preview when the window is narrow.
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    const apply = () => setIsMobile(mq.matches);
+    const mq = window.matchMedia("(max-width: 1180px)");
+    const apply = () => setIsMobile(mq.matches || isTabletOrMobile());
     apply();
     mq.addEventListener("change", apply);
     const openChat = () => setChatOpen(true);
@@ -206,14 +207,14 @@ function MobileChatLayout({
         onClick={() => onOpenChange(true)}
         data-testid="mobile-chat-fab"
         className={cn(
-          "fixed right-4 z-40 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-4 py-3 text-[13px] font-medium text-primary-foreground shadow-glow transition-opacity",
+          "fixed right-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-[13px] font-medium text-primary-foreground transition-opacity",
           "bottom-[calc(env(safe-area-inset-bottom)+72px)]",
           open && "opacity-0 pointer-events-none",
         )}
-        aria-label="Open yawB chat"
+        aria-label="Open chat"
         aria-expanded={open}
       >
-        <MessageSquare className="h-4 w-4" /> Chat
+        <MessageSquare className="h-4 w-4" /> Open chat
       </button>
 
       {/* Bottom-sheet chat drawer with swipe-to-dismiss */}
@@ -226,13 +227,13 @@ function MobileChatLayout({
         >
           <button
             aria-label="Close chat"
-            className="flex-1 bg-black/50 backdrop-blur-sm"
+            className="flex-1 bg-background/70"
             onClick={() => onOpenChange(false)}
           />
           <div
             ref={sheetRef}
             data-testid="mobile-chat-sheet"
-            className="relative h-[88dvh] w-full bg-sidebar border-t border-white/10 rounded-t-2xl flex flex-col overflow-hidden shadow-elevated pb-[env(safe-area-inset-bottom)]"
+            className="relative h-[88dvh] w-full bg-sidebar border-t border-white/10 rounded-t-2xl flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
             style={{
               transform: `translateY(${dragY}px)`,
               transition: dragY === 0 ? "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)" : "none",
@@ -256,7 +257,7 @@ function MobileChatLayout({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 min-h-0">{right}</div>
+            <div className="flex-1 min-h-0">{open ? right : null}</div>
           </div>
         </div>
       )}

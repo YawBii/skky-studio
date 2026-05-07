@@ -23,13 +23,14 @@ import {
 import { isSafeMode, noteFetchCall, bumpPerf, perfCounters } from "@/lib/perf-mode";
 
 const ACTIVE_POLL_MS = 2000;
-const IDLE_REFRESH_MS = 6000;
+const IDLE_REFRESH_MS = 45000;
 const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
 
 interface UseProjectJobsOptions {
   enabled?: boolean;
   pollEnabled?: boolean;
   detailsEnabled?: boolean;
+  activePollingEnabled?: boolean;
 }
 
 export function useProjectJobs(
@@ -40,6 +41,7 @@ export function useProjectJobs(
   const enabled = (options.enabled ?? true) && !isSafeMode();
   const pollEnabled = enabled && (options.pollEnabled ?? true);
   const detailsEnabled = options.detailsEnabled ?? true;
+  const activePollingEnabled = options.activePollingEnabled ?? true;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [source, setSource] = useState<JobsSource>("no-project");
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +135,7 @@ export function useProjectJobs(
       void reportProviderConnections(projectId);
 
       const hasActive = latest.jobs.some((j) => !TERMINAL_STATUSES.has(j.status));
-      if (!hasActive) {
+      if (!hasActive || !activePollingEnabled) {
         if (perfCounters.activePolls > 0) bumpPerf("activePolls", -1);
         setTicking(false);
         tickingRef.current = false;
@@ -170,7 +172,7 @@ export function useProjectJobs(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [pollEnabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
+  }, [pollEnabled, activePollingEnabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
   useEffect(() => {

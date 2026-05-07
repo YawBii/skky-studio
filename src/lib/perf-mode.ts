@@ -46,16 +46,24 @@ export function isTabletOrMobile(): boolean {
  * Read with `(window as any).__yawbPerf` in the browser.
  */
 export interface YawbPerfCounters {
+  chatMounted: number;
+  commandCenterMounted: number;
+  iframeMounted: number;
   activePolls: number;
   iframeReloads: number;
   projectFilesFetches: number;
+  builderRenders: number;
   lastRenderAt: number;
 }
 
 export const perfCounters: YawbPerfCounters = {
+  chatMounted: 0,
+  commandCenterMounted: 0,
+  iframeMounted: 0,
   activePolls: 0,
   iframeReloads: 0,
   projectFilesFetches: 0,
+  builderRenders: 0,
   lastRenderAt: 0,
 };
 
@@ -69,6 +77,10 @@ export function bumpPerf<K extends keyof YawbPerfCounters>(key: K, delta = 1): v
     return;
   }
   (perfCounters[key] as number) = (perfCounters[key] as number) + delta;
+}
+
+export function setPerf<K extends keyof YawbPerfCounters>(key: K, value: number): void {
+  perfCounters[key] = value;
 }
 
 interface CallRecord {

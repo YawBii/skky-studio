@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Job, JobStep } from "@/services/jobs";
 import { cn } from "@/lib/utils";
+import { isTabletOrMobile } from "@/lib/perf-mode";
 
 interface Props {
   jobs: Job[];
@@ -66,6 +67,7 @@ export function PreviewSummaryStrip({
   onOpenInChat,
   onRequestDetails,
 }: Props) {
+  const lowPower = useMemo(() => isTabletOrMobile(), []);
   // Pick the most recent job (running OR terminal). Sort by createdAt desc.
   const latest = useMemo(() => {
     const sorted = [...jobs].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
@@ -89,8 +91,9 @@ export function PreviewSummaryStrip({
       data-testid="preview-summary-strip"
       data-job-id={latest.id}
       className={cn(
-        "border-b border-white/5 bg-background/60 backdrop-blur-xl",
-        expanded && "shadow-elevated",
+        "border-b border-white/5 bg-background/60",
+        !lowPower && "backdrop-blur-xl",
+        expanded && !lowPower && "shadow-elevated",
       )}
     >
       <div className="px-2 sm:px-4 h-10 flex items-center gap-2 min-w-0">
