@@ -81,6 +81,8 @@ export interface PreviewPaneProps {
   onJumpToJob?: (jobId: string) => void;
   /** Open the chat sheet and reveal the full TaskSummaryCard. */
   onOpenSummaryInChat?: (jobId: string) => void;
+  /** True while a build/regenerate job is running — show a skeleton instead of remounting the iframe. */
+  jobRunning?: boolean;
 }
 
 /** Parse yawb-* meta tags out of an index.html string for the proof pill. */
