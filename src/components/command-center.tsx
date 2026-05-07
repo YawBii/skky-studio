@@ -274,7 +274,8 @@ export function CommandCenterDrawerContent({
       style={{ height: `${height}px` }}
       className={cn(
         "absolute left-3 right-3 bottom-14 z-30 flex flex-col",
-        "rounded-xl border border-white/10 bg-sidebar/95 backdrop-blur-xl shadow-elevated",
+        "rounded-xl border border-white/10 bg-sidebar/95",
+        !lightweight && "backdrop-blur-xl shadow-elevated",
         "overflow-hidden",
       )}
     >
