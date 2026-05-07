@@ -168,13 +168,13 @@ function Builder() {
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
-    pollEnabled: !(lowPowerMode && tab !== "jobs" && getVisualQualityBlock(ccJobs?.jobs ?? [])),
     detailsEnabled: !lowPowerMode || tab === "jobs" || focusJobId !== null,
     activePollingEnabled: !lowPowerMode || tab === "jobs",
   });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
-  const previewBlocked = useMemo(() => extractFailedVisualQuality(ccJobs.jobs), [ccJobs.jobs]);
+  const previewBlocked = useMemo(() => getVisualQualityBlock(ccJobs.jobs), [ccJobs.jobs]);
   const jobRunning = ccState.mode === "running" || ccState.mode === "waiting";
+  const anyJobActive = useMemo(() => hasActiveJob(ccJobs.jobs), [ccJobs.jobs]);
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
@@ -211,7 +211,7 @@ function Builder() {
 
   // Per-project generated files for Local Preview.
   const filesApi = useProjectFiles(project?.id ?? null, {
-    enabled: tab === "preview" && !jobRunning,
+    enabled: tab === "preview" && !anyJobActive && !previewBlocked,
   });
 
   // GitHub-linked projects are treated as the source of truth — yawB must
