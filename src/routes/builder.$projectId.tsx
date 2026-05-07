@@ -22,7 +22,7 @@ import { getProjectById, type Project } from "@/services/projects";
 import { rememberDirectProject } from "@/lib/project-selection";
 import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
-import { enqueueJob, type Job } from "@/services/jobs";
+import { enqueueJob } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
@@ -170,7 +170,7 @@ function Builder() {
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
     pollEnabled: !blockedPollingPaused,
-    detailsEnabled: !lowPowerMode || tab === "jobs" || focusJobId !== null,
+    detailsEnabled: !lowPowerMode || tab === "jobs",
     activePollingEnabled: !lowPowerMode || tab === "jobs",
   });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
@@ -302,7 +302,10 @@ function Builder() {
 
   const onStartBuild = async () => {
     console.info("[yawb] startBuild.clicked", { projectId: project.id });
-    if (starting) return;
+    if (starting || anyJobActive || previewBlocked) {
+      toast("Build is paused until the active job finishes or the blocked preview is repaired.");
+      return;
+    }
     setStarting(true);
     try {
       console.info("[yawb] startBuild.enqueue.start", { projectId: project.id });
