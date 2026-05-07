@@ -843,7 +843,44 @@ function PreviewPaneImpl({
           }}
           className={cn("transition-all overflow-hidden", device === "desktop" && "w-full h-full")}
         >
-          {jobRunning && tabletOrMobile ? (
+          {previewBlockedActive ? (
+            <div
+              data-testid="preview-blocked-repair"
+              className="h-full min-h-[inherit] w-full bg-background p-5 sm:p-8 flex items-center justify-center"
+              role="status"
+            >
+              <div className="w-full max-w-xl rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-left shadow-elevated">
+                <div className="text-[10.5px] uppercase tracking-[0.18em] text-destructive">
+                  Preview blocked — needs repair
+                </div>
+                <h2 className="mt-3 text-2xl font-display font-bold tracking-tight">
+                  Failed visual quality checks
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  yawB refused to show the previous preview because the latest generation failed quality gates.
+                </p>
+                {failedGates.length > 0 && (
+                  <ul className="mt-4 grid gap-2 text-[12.5px] text-foreground/85">
+                    {failedGates.slice(0, 6).map((gate) => (
+                      <li key={gate} className="rounded-md border border-white/10 bg-background/45 px-3 py-2">
+                        {gate}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Button
+                  type="button"
+                  variant="hero"
+                  className="mt-5 touch-manipulation"
+                  onClick={() => onRepairPreview?.(failedGates)}
+                  data-testid="preview-repair-button"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Repair preview
+                </Button>
+              </div>
+            </div>
+          ) : jobRunning && tabletOrMobile ? (
             <div
               data-testid="preview-job-skeleton"
               className="h-full w-full p-4 sm:p-6 flex flex-col gap-3 bg-background"
