@@ -20,7 +20,7 @@ import {
   type JobType,
   type StepAttempt,
 } from "@/services/jobs";
-import { isSafeMode, noteFetchCall, bumpPerf, perfCounters } from "@/lib/perf-mode";
+import { isSafeMode, noteFetchCall, bumpPerf, perfCounters, setPerf } from "@/lib/perf-mode";
 
 const ACTIVE_POLL_MS = 2000;
 const IDLE_REFRESH_MS = 45000;
@@ -113,7 +113,12 @@ export function useProjectJobs(
   // hook has refreshed. The idle refresh catches those newly queued jobs and
   // the next loop triggers the server runner.
   useEffect(() => {
-    if (!pollEnabled || !projectId) return;
+    if (!pollEnabled || !projectId) {
+      setPerf("activePolls", 0);
+      setTicking(false);
+      tickingRef.current = false;
+      return;
+    }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -171,6 +176,8 @@ export function useProjectJobs(
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      setPerf("activePolls", 0);
+      tickingRef.current = false;
     };
   }, [
     pollEnabled,
