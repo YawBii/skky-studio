@@ -402,6 +402,8 @@ function PreviewPaneImpl({
     [resolved.kind, project.id, localSrcDoc, iframeSrc],
   );
   useEffect(() => {
+    bumpPerf("iframeReloads");
+    bumpPerf("lastRenderAt");
     console.info("[yawb] preview.iframe.remount", { key: iframeKey });
   }, [iframeKey]);
 
