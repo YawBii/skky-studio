@@ -22,11 +22,13 @@ import {
 } from "@/services/jobs";
 import { isSafeMode, noteFetchCall, bumpPerf, perfCounters } from "@/lib/perf-mode";
 
-const TICK_MS = 1500;
-const IDLE_REFRESH_MS = 2500;
+const ACTIVE_POLL_MS = 2000;
+const IDLE_REFRESH_MS = 6000;
+const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
 
 interface UseProjectJobsOptions {
   enabled?: boolean;
+  detailsEnabled?: boolean;
 }
 
 export function useProjectJobs(
@@ -35,6 +37,7 @@ export function useProjectJobs(
   options: UseProjectJobsOptions = {},
 ) {
   const enabled = (options.enabled ?? true) && !isSafeMode();
+  const detailsEnabled = options.detailsEnabled ?? true;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [source, setSource] = useState<JobsSource>("no-project");
   const [error, setError] = useState<string | null>(null);
@@ -74,19 +77,22 @@ export function useProjectJobs(
   }, [enabled, projectId]);
 
   const refreshSteps = useCallback(async (jobId: string) => {
+    if (!detailsEnabled) return;
     const r = await listJobSteps(jobId);
     setStepsByJob((prev) => ({ ...prev, [jobId]: r.steps }));
-  }, []);
+  }, [detailsEnabled]);
 
   const refreshQuestions = useCallback(async (jobId: string) => {
+    if (!detailsEnabled) return;
     const r = await listJobQuestions(jobId);
     setQuestionsByJob((prev) => ({ ...prev, [jobId]: r.questions }));
-  }, []);
+  }, [detailsEnabled]);
 
   const refreshAttempts = useCallback(async (jobId: string) => {
+    if (!detailsEnabled) return;
     const r = await listJobStepAttempts(jobId);
     setAttemptsByJob((prev) => ({ ...prev, [jobId]: r.attempts }));
-  }, []);
+  }, [detailsEnabled]);
 
   // Driver: keep polling while the project is open. This is intentionally
   // not limited to the current `jobs` array being active, because chat sends
