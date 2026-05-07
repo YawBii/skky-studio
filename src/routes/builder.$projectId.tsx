@@ -575,6 +575,7 @@ function Builder() {
             connections={connectionsApi.connections}
             generated={mergedGenerated}
             regenerating={false}
+            jobRunning={ccState.mode === "running" || ccState.mode === "waiting"}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
             onJumpToJob={(jobId) => {
