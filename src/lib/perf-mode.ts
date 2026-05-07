@@ -15,6 +15,62 @@ export function isSafeMode(): boolean {
   }
 }
 
+/**
+ * Coarse iPad / tablet / mobile detection. Used to disable expensive visual
+ * effects (backdrop-blur) and avoid heavy iframe remounts on Safari iPad,
+ * where the builder was hitting "page not responding" warnings.
+ */
+export function isTabletOrMobile(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const w = window.innerWidth || 0;
+    if (w > 0 && w <= 1180) return true;
+    const ua = window.navigator?.userAgent ?? "";
+    if (/iPad|iPhone|iPod|Android|Mobile/i.test(ua)) return true;
+    // iPadOS 13+ reports as Mac with touch points.
+    if (
+      /Macintosh/i.test(ua) &&
+      typeof window.navigator?.maxTouchPoints === "number" &&
+      window.navigator.maxTouchPoints > 1
+    ) {
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/**
+ * Lightweight runtime perf counters for builder debugging.
+ * Read with `(window as any).__yawbPerf` in the browser.
+ */
+export interface YawbPerfCounters {
+  activePolls: number;
+  iframeReloads: number;
+  projectFilesFetches: number;
+  lastRenderAt: number;
+}
+
+export const perfCounters: YawbPerfCounters = {
+  activePolls: 0,
+  iframeReloads: 0,
+  projectFilesFetches: 0,
+  lastRenderAt: 0,
+};
+
+if (typeof window !== "undefined") {
+  (window as unknown as { __yawbPerf?: YawbPerfCounters }).__yawbPerf = perfCounters;
+}
+
+export function bumpPerf<K extends keyof YawbPerfCounters>(key: K, delta = 1): void {
+  if (key === "lastRenderAt") {
+    perfCounters.lastRenderAt = Date.now();
+    return;
+  }
+  (perfCounters[key] as number) = (perfCounters[key] as number) + delta;
+}
+
 interface CallRecord {
   times: number[];
 }

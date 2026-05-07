@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
   History,
@@ -14,11 +14,13 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/services/projects";
 import type { ProjectConnection } from "@/services/project-connections";
 import type { Job, JobStep } from "@/services/jobs";
 import { PreviewSummaryStrip } from "@/components/preview-summary-strip";
+import { isTabletOrMobile, bumpPerf } from "@/lib/perf-mode";
 import {
   resolvePreviewSource,
   hasLocalPreview,
@@ -79,6 +81,8 @@ export interface PreviewPaneProps {
   onJumpToJob?: (jobId: string) => void;
   /** Open the chat sheet and reveal the full TaskSummaryCard. */
   onOpenSummaryInChat?: (jobId: string) => void;
+  /** True while a build/regenerate job is running — show a skeleton instead of remounting the iframe. */
+  jobRunning?: boolean;
 }
 
 /** Parse yawb-* meta tags out of an index.html string for the proof pill. */
@@ -209,7 +213,7 @@ export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "descript
 </html>`;
 }
 
-export function PreviewPane({
+function PreviewPaneImpl({
   device,
   setDevice,
   project,
@@ -226,7 +230,9 @@ export function PreviewPane({
   stepsByJob,
   onJumpToJob,
   onOpenSummaryInChat,
+  jobRunning,
 }: PreviewPaneProps) {
+  const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const viewport = DEVICE_VIEWPORTS[device];
 
   // Effective connection list — synthesize a vercel row if the parent only
@@ -396,6 +402,8 @@ export function PreviewPane({
     [resolved.kind, project.id, localSrcDoc, iframeSrc],
   );
   useEffect(() => {
+    bumpPerf("iframeReloads");
+    bumpPerf("lastRenderAt");
     console.info("[yawb] preview.iframe.remount", { key: iframeKey });
   }, [iframeKey]);
 
@@ -671,7 +679,10 @@ export function PreviewPane({
           </PopoverTrigger>
           <PopoverContent
             align="end"
-            className="w-72 p-2 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-2"
+            className={cn(
+              "w-72 p-2 bg-background/95 border-white/10 z-50 space-y-2",
+              !tabletOrMobile && "backdrop-blur-xl",
+            )}
           >
             {/* Local | Live toggle */}
             <div>
@@ -818,7 +829,24 @@ export function PreviewPane({
           }}
           className={cn("transition-all overflow-hidden", device === "desktop" && "w-full h-full")}
         >
-          {(iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
+          {jobRunning && tabletOrMobile ? (
+            <div
+              data-testid="preview-job-skeleton"
+              className="h-full w-full p-4 sm:p-6 flex flex-col gap-3 bg-background"
+              aria-busy="true"
+              aria-label="Generating preview"
+            >
+              <Skeleton className="h-8 w-2/3" />
+              <Skeleton className="h-4 w-1/2" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+              <Skeleton className="h-48 w-full mt-2" />
+            </div>
+          ) : (iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
             <div
               className={cn(
                 "bg-background h-full overflow-hidden relative",
@@ -849,7 +877,10 @@ export function PreviewPane({
               {iframeState === "loading" && resolved.kind === "live" && (
                 <div
                   data-testid="preview-iframe-loading"
-                  className="absolute inset-0 grid place-items-center bg-background/40 backdrop-blur-sm pointer-events-none"
+                  className={cn(
+                    "absolute inset-0 grid place-items-center bg-background/40 pointer-events-none",
+                    !tabletOrMobile && "backdrop-blur-sm",
+                  )}
                 >
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
@@ -873,7 +904,10 @@ export function PreviewPane({
               {softHintVisible && resolved.kind === "live" && activeDeployUrl && (
                 <div
                   data-testid="preview-iframe-soft-hint"
-                  className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 backdrop-blur px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated"
+                  className={cn(
+                    "absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated",
+                    !tabletOrMobile && "backdrop-blur",
+                  )}
                 >
                   <span className="flex-1">
                     If preview looks blank or blocked, open live preview.
@@ -1011,6 +1045,8 @@ export function PreviewPane({
     </div>
   );
 }
+
+export const PreviewPane = memo(PreviewPaneImpl);
 
 function DesignProofPill({
   html,

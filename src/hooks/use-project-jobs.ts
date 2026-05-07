@@ -20,7 +20,7 @@ import {
   type JobType,
   type StepAttempt,
 } from "@/services/jobs";
-import { isSafeMode, noteFetchCall } from "@/lib/perf-mode";
+import { isSafeMode, noteFetchCall, bumpPerf, perfCounters } from "@/lib/perf-mode";
 
 const TICK_MS = 1500;
 const IDLE_REFRESH_MS = 2500;
@@ -117,11 +117,13 @@ export function useProjectJobs(
 
       const hasActive = latest.jobs.some((j) => j.status === "queued" || j.status === "running");
       if (!hasActive) {
+        if (perfCounters.activePolls > 0) bumpPerf("activePolls", -1);
         setTicking(false);
         tickingRef.current = false;
         schedule(IDLE_REFRESH_MS);
         return;
       }
+      if (!tickingRef.current) bumpPerf("activePolls");
       if (tickingRef.current) {
         schedule(TICK_MS);
         return;
