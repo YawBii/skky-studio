@@ -679,7 +679,10 @@ function PreviewPaneImpl({
           </PopoverTrigger>
           <PopoverContent
             align="end"
-            className="w-72 p-2 bg-background/95 backdrop-blur-xl border-white/10 z-50 space-y-2"
+            className={cn(
+              "w-72 p-2 bg-background/95 border-white/10 z-50 space-y-2",
+              !tabletOrMobile && "backdrop-blur-xl",
+            )}
           >
             {/* Local | Live toggle */}
             <div>
