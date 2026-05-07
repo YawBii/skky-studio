@@ -211,10 +211,10 @@ function MobileChatLayout({
           "bottom-[calc(env(safe-area-inset-bottom)+72px)]",
           open && "opacity-0 pointer-events-none",
         )}
-        aria-label="Open yawB chat"
+        aria-label="Open chat"
         aria-expanded={open}
       >
-        <MessageSquare className="h-4 w-4" /> Chat
+        <MessageSquare className="h-4 w-4" /> Open chat
       </button>
 
       {/* Bottom-sheet chat drawer with swipe-to-dismiss */}
