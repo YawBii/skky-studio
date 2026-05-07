@@ -749,17 +749,19 @@ function Builder() {
               open={ccOpen}
               onToggle={() => setCcOpen(!ccOpen)}
             />
-            <CommandCenterDrawer
-              open={ccOpen}
-              onClose={() => setCcOpen(false)}
-              projectId={project.id}
-              workspaceId={project.workspaceId}
-              focusJobId={ccState.activeJob?.id ?? focusJobId}
-              onOpenJobsTab={() => {
-                setCcOpen(false);
-                setTab("jobs");
-              }}
-            />
+            {ccOpen && (
+              <CommandCenterDrawer
+                open={ccOpen}
+                onClose={() => setCcOpen(false)}
+                projectId={project.id}
+                workspaceId={project.workspaceId}
+                focusJobId={ccState.activeJob?.id ?? focusJobId}
+                onOpenJobsTab={() => {
+                  setCcOpen(false);
+                  setTab("jobs");
+                }}
+              />
+            )}
           </>
         )}
       </div>
