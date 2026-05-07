@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { JobsPanel } from "@/components/jobs-panel";
 import type { Job } from "@/services/jobs";
 import { isFailedJobResolved } from "@/lib/job-resolution";
-import { isTabletOrMobile } from "@/lib/perf-mode";
+import { isTabletOrMobile, setPerf } from "@/lib/perf-mode";
 
 export type CommandCenterMode = "idle" | "running" | "waiting" | "failed" | "succeeded";
 
@@ -226,6 +226,33 @@ export function CommandCenterDrawer({
   };
 
   if (!open) return null;
+  return (
+    <CommandCenterMountedCounter />
+  );
+}
+
+function CommandCenterMountedCounter() {
+  useEffect(() => {
+    setPerf("commandCenterMounted", 1);
+    return () => setPerf("commandCenterMounted", 0);
+  }, []);
+  return null;
+}
+
+export function CommandCenterDrawerContent({
+  height,
+  onHandlePointerDown,
+  onOpenJobsTab,
+  onClose,
+  projectId,
+  workspaceId,
+  focusJobId,
+  lightweight,
+}: DrawerProps & {
+  height: number;
+  onHandlePointerDown: (e: React.PointerEvent) => void;
+  lightweight: boolean;
+}) {
   return (
     <div
       role="dialog"
