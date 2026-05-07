@@ -22,7 +22,7 @@ import { getProjectById, type Project } from "@/services/projects";
 import { rememberDirectProject } from "@/lib/project-selection";
 import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
-import { enqueueJob } from "@/services/jobs";
+import { enqueueJob, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
@@ -87,7 +87,7 @@ export const Route = createFileRoute("/builder/$projectId")({
 type Tab = "preview" | "code" | "database" | "deploy" | "jobs" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
-function extractFailedVisualQuality(jobs: ReturnType<typeof deriveCommandCenterState> extends never ? never : import("@/services/jobs").Job[]) {
+function extractFailedVisualQuality(jobs: Job[]) {
   const latest = [...jobs]
     .filter((j) => j.type === "ai.generate_changes" || j.type === "build.production")
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
