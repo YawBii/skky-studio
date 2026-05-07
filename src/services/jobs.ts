@@ -11,6 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
 import { runNextJobStep } from "@/services/jobs-runner.functions";
+import { ACTIVE_JOB_STATUSES } from "@/lib/job-guards";
 
 export type JobStatus =
   | "queued"
@@ -265,7 +266,7 @@ export async function listJobSteps(jobId: string): Promise<{ steps: JobStep[]; e
 }
 
 export type EnqueueResult =
-  | { ok: true; job: Job }
+  | { ok: true; job: Job; existing?: boolean }
   | { ok: false; error: string; code?: string; tableMissing?: boolean; sqlFile?: string };
 
 export async function enqueueJob(input: {
@@ -288,6 +289,37 @@ export async function enqueueJob(input: {
       created_by: u.user.id,
     };
     pushDiag("job.enqueue", payload);
+
+    const { data: existingRows, error: existingErr } = await supabase
+      .from("project_jobs")
+      .select("*")
+      .eq("project_id", input.projectId)
+      .eq("type", input.type)
+      .in("status", [...ACTIVE_JOB_STATUSES])
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (existingErr) {
+      if (isMissingTable(existingErr)) {
+        return {
+          ok: false,
+          error: existingErr.message,
+          code: existingErr.code,
+          tableMissing: true,
+          sqlFile: JOBS_SQL_FILE,
+        };
+      }
+      return { ok: false, error: existingErr.message, code: existingErr.code };
+    }
+    const existing = existingRows?.[0] ? rowToJob(existingRows[0]) : null;
+    if (existing) {
+      pushDiag("job.enqueue.single_flight", {
+        projectId: input.projectId,
+        type: input.type,
+        existingJobId: existing.id,
+        existingStatus: existing.status,
+      });
+      return { ok: true, job: existing, existing: true };
+    }
 
     const { data: jobRow, error: jobErr } = await supabase
       .from("project_jobs")
