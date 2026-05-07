@@ -333,6 +333,7 @@ export function useCommandCenterAutoOpen(
   opts: {
     onJobSucceeded?: (job: Job) => void;
     onJobFailed?: (job: Job) => void;
+    autoOpen?: boolean;
   } = {},
 ) {
   const [open, setOpen] = useState(false);
@@ -344,8 +345,9 @@ export function useCommandCenterAutoOpen(
 
   // Auto-open when running/waiting/failed.
   useEffect(() => {
+    if (opts.autoOpen === false) return;
     if (mode === "waiting" || mode === "failed") setOpen(true);
-  }, [mode]);
+  }, [mode, opts.autoOpen]);
 
   // Detect job-just-completed transitions to fire callbacks + transient "Done".
   useEffect(() => {
