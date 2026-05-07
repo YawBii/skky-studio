@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listProjectFiles, type ProjectFile } from "@/services/project-files";
 import type { GeneratedFiles } from "@/lib/preview-source";
+import { bumpPerf } from "@/lib/perf-mode";
 
 export interface UseProjectFiles {
   files: ProjectFile[];
