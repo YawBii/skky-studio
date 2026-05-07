@@ -115,6 +115,7 @@ function Builder() {
   const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const lowPowerMode = tabletOrMobile;
   const userPickedDeviceRef = useRef(false);
+  const [blockedPollingPaused, setBlockedPollingPaused] = useState(false);
 
   // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
   // Once the user picks a device manually we stop overriding.
@@ -168,6 +169,7 @@ function Builder() {
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
+    pollEnabled: !blockedPollingPaused,
     detailsEnabled: !lowPowerMode || tab === "jobs" || focusJobId !== null,
     activePollingEnabled: !lowPowerMode || tab === "jobs",
   });
@@ -175,6 +177,9 @@ function Builder() {
   const previewBlocked = useMemo(() => getVisualQualityBlock(ccJobs.jobs), [ccJobs.jobs]);
   const jobRunning = ccState.mode === "running" || ccState.mode === "waiting";
   const anyJobActive = useMemo(() => hasActiveJob(ccJobs.jobs), [ccJobs.jobs]);
+  useEffect(() => {
+    setBlockedPollingPaused(Boolean(lowPowerMode && tab !== "jobs" && previewBlocked));
+  }, [lowPowerMode, previewBlocked, tab]);
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
