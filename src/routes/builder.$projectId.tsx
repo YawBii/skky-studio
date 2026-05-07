@@ -189,7 +189,7 @@ function Builder() {
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
   const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
-    detailsEnabled: !tabletOrMobile || ccOpen,
+    detailsEnabled: !tabletOrMobile,
   });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
   const previewBlocked = useMemo(() => extractFailedVisualQuality(ccJobs.jobs), [ccJobs.jobs]);
