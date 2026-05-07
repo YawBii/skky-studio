@@ -1018,6 +1018,8 @@ function PreviewPaneImpl({
   );
 }
 
+export const PreviewPane = memo(PreviewPaneImpl);
+
 function DesignProofPill({
   html,
   fallbackAngle,
