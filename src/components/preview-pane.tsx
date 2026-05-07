@@ -20,7 +20,7 @@ import type { Project } from "@/services/projects";
 import type { ProjectConnection } from "@/services/project-connections";
 import type { Job, JobStep } from "@/services/jobs";
 import { PreviewSummaryStrip } from "@/components/preview-summary-strip";
-import { isTabletOrMobile, bumpPerf } from "@/lib/perf-mode";
+import { isTabletOrMobile, bumpPerf, setPerf } from "@/lib/perf-mode";
 import {
   resolvePreviewSource,
   hasLocalPreview,
@@ -249,6 +249,8 @@ function PreviewPaneImpl({
 }: PreviewPaneProps) {
   const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const viewport = DEVICE_VIEWPORTS[device];
+  const failedGates = previewBlocked?.failedGates ?? [];
+  const previewBlockedActive = Boolean(previewBlocked);
 
   // Effective connection list — synthesize a vercel row if the parent only
   // passed activeDeployUrl (back-compat with existing tests/callers).
@@ -369,6 +371,7 @@ function PreviewPaneImpl({
   );
 
   const localSrcDoc = useMemo(() => {
+    if (previewBlockedActive) return undefined;
     if (resolved.kind !== "local") return undefined;
     // For GitHub-linked projects, never fall back to the synthesized
     // "No generated screens yet" placeholder — it misleadingly looks like a
@@ -376,7 +379,7 @@ function PreviewPaneImpl({
     // instead so the user knows the real preview lives in the repo / deploy.
     if (isGithubLinked && !resolved.srcDoc) return undefined;
     return resolved.srcDoc ?? makeLocalPreviewSrcDoc(project);
-  }, [resolved.kind, resolved.srcDoc, project, isGithubLinked]);
+  }, [previewBlockedActive, resolved.kind, resolved.srcDoc, project, isGithubLinked]);
 
   useEffect(() => {
     console.info("[yawb] preview.source.resolved", {
@@ -417,10 +420,11 @@ function PreviewPaneImpl({
     [resolved.kind, project.id, localSrcDoc, iframeSrc],
   );
   useEffect(() => {
+    if (previewBlockedActive || (jobRunning && tabletOrMobile)) return;
     bumpPerf("iframeReloads");
     bumpPerf("lastRenderAt");
     console.info("[yawb] preview.iframe.remount", { key: iframeKey });
-  }, [iframeKey]);
+  }, [iframeKey, jobRunning, previewBlockedActive, tabletOrMobile]);
 
   const [iframeState, setIframeState] = useState<IframeState>("idle");
   const [softHintVisible, setSoftHintVisible] = useState(false);
@@ -541,8 +545,6 @@ function PreviewPaneImpl({
     setMode(next);
   };
 
-  const failedGates = previewBlocked?.failedGates ?? [];
-  const previewBlockedActive = Boolean(previewBlocked);
   const showFallbackCard = resolved.kind === "live" && iframeSrc && iframeState === "failed";
   const showLocalEmpty =
     resolved.kind === "local" && !generatedHasContent && !iframeSrc && !localSrcDoc;
