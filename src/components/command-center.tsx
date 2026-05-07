@@ -313,8 +313,9 @@ export function CommandCenterDrawerContent({
           projectId={projectId}
           workspaceId={workspaceId}
           initialExpandedJobId={focusJobId ?? undefined}
-          pollEnabled={open && !lightweight}
+          pollEnabled={open}
           detailsEnabled={open}
+          activePollingEnabled={open}
         />
       </div>
     </div>
