@@ -81,6 +81,8 @@ export interface PreviewPaneProps {
   onJumpToJob?: (jobId: string) => void;
   /** Open the chat sheet and reveal the full TaskSummaryCard. */
   onOpenSummaryInChat?: (jobId: string) => void;
+  /** Lazy-load proof/timeline details only after the user opens the summary. */
+  onLoadJobDetails?: (jobId: string) => void;
   /** True while a build/regenerate job is running — show a skeleton instead of remounting the iframe. */
   jobRunning?: boolean;
   /** Latest failed visual quality gate should block stale/ugly preview rendering. */
@@ -240,6 +242,7 @@ function PreviewPaneImpl({
   stepsByJob,
   onJumpToJob,
   onOpenSummaryInChat,
+  onLoadJobDetails,
   jobRunning,
   previewBlocked,
   onRepairPreview,
@@ -552,6 +555,7 @@ function PreviewPaneImpl({
           stepsByJob={stepsByJob ?? {}}
           onJumpToJob={onJumpToJob}
           onOpenInChat={onOpenSummaryInChat}
+          onRequestDetails={onLoadJobDetails}
         />
       )}
       <div className="h-11 border-b border-white/5 px-2 sm:px-4 flex items-center gap-2 flex-nowrap min-w-0">
