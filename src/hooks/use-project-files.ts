@@ -32,6 +32,7 @@ export function useProjectFiles(projectId: string | null | undefined): UseProjec
       return;
     }
     setLoading(true);
+    bumpPerf("projectFilesFetches");
     const r = await listProjectFiles(projectId);
     if (cancelledRef.current) return;
     console.info("[yawb] project_files.loaded", {
