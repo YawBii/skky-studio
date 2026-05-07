@@ -83,6 +83,16 @@ export interface PreviewPaneProps {
   onOpenSummaryInChat?: (jobId: string) => void;
   /** True while a build/regenerate job is running — show a skeleton instead of remounting the iframe. */
   jobRunning?: boolean;
+  /** Latest failed visual quality gate should block stale/ugly preview rendering. */
+  previewBlocked?: PreviewBlockedState | null;
+  /** Enqueue a focused repair for the latest failed visual quality job. */
+  onRepairPreview?: (failedGates: string[]) => void;
+}
+
+export interface PreviewBlockedState {
+  jobId: string;
+  failedGates: string[];
+  error?: string | null;
 }
 
 /** Parse yawb-* meta tags out of an index.html string for the proof pill. */
