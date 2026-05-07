@@ -96,7 +96,11 @@ function extractFailedVisualQuality(jobs: Job[]) {
   const failedGates = Array.isArray(output.failedGates)
     ? output.failedGates.filter((v): v is string => typeof v === "string")
     : Array.isArray((output.visualQuality as { checks?: unknown[] } | undefined)?.checks)
-      ? ((output.visualQuality as { checks: Array<{ passed?: unknown; label?: unknown; detail?: unknown }> }).checks)
+      ? (
+          output.visualQuality as {
+            checks: Array<{ passed?: unknown; label?: unknown; detail?: unknown }>;
+          }
+        ).checks
           .filter((c) => c.passed === false)
           .map((c) => `${String(c.label ?? "Visual quality")}: ${String(c.detail ?? "failed")}`)
       : [];

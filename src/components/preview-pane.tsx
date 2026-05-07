@@ -861,12 +861,16 @@ function PreviewPaneImpl({
                   Failed visual quality checks
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  yawB refused to show the previous preview because the latest generation failed quality gates.
+                  yawB refused to show the previous preview because the latest generation failed
+                  quality gates.
                 </p>
                 {failedGates.length > 0 && (
                   <ul className="mt-4 grid gap-2 text-[12.5px] text-foreground/85">
                     {failedGates.slice(0, 6).map((gate) => (
-                      <li key={gate} className="rounded-md border border-white/10 bg-background/45 px-3 py-2">
+                      <li
+                        key={gate}
+                        className="rounded-md border border-white/10 bg-background/45 px-3 py-2"
+                      >
                         {gate}
                       </li>
                     ))}
@@ -901,7 +905,9 @@ function PreviewPaneImpl({
               </div>
               <Skeleton className="h-48 w-full mt-2" />
             </div>
-          ) : (iframeSrc || localSrcDoc || resolved.srcDoc) && !showFallbackCard && !showLocalEmpty ? (
+          ) : (iframeSrc || localSrcDoc || resolved.srcDoc) &&
+            !showFallbackCard &&
+            !showLocalEmpty ? (
             <div
               className={cn(
                 "bg-background h-full overflow-hidden relative",
