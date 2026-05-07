@@ -172,7 +172,14 @@ export function useProjectJobs(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [pollEnabled, activePollingEnabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
+  }, [
+    pollEnabled,
+    activePollingEnabled,
+    projectId,
+    refreshSteps,
+    refreshQuestions,
+    refreshAttempts,
+  ]);
 
   // Initial load + when project changes.
   useEffect(() => {
