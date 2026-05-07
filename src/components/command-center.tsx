@@ -227,7 +227,20 @@ export function CommandCenterDrawer({
 
   if (!open) return null;
   return (
-    <CommandCenterMountedCounter />
+    <>
+      <CommandCenterMountedCounter />
+      <CommandCenterDrawerContent
+        open={open}
+        onClose={onClose}
+        projectId={projectId}
+        workspaceId={workspaceId}
+        focusJobId={focusJobId}
+        onOpenJobsTab={onOpenJobsTab}
+        height={height}
+        onHandlePointerDown={onHandlePointerDown}
+        lightweight={lightweight}
+      />
+    </>
   );
 }
 
@@ -240,6 +253,7 @@ function CommandCenterMountedCounter() {
 }
 
 export function CommandCenterDrawerContent({
+  open,
   height,
   onHandlePointerDown,
   onOpenJobsTab,
