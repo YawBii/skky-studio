@@ -213,7 +213,7 @@ export function makeLocalPreviewSrcDoc(project: Pick<Project, "name" | "descript
 </html>`;
 }
 
-export function PreviewPane({
+function PreviewPaneImpl({
   device,
   setDevice,
   project,
@@ -230,7 +230,9 @@ export function PreviewPane({
   stepsByJob,
   onJumpToJob,
   onOpenSummaryInChat,
+  jobRunning,
 }: PreviewPaneProps) {
+  const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const viewport = DEVICE_VIEWPORTS[device];
 
   // Effective connection list — synthesize a vercel row if the parent only
