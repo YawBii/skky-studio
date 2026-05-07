@@ -40,6 +40,8 @@ interface JobsPanelProps {
   workspaceId: string | null;
   className?: string;
   initialExpandedJobId?: string | null;
+  pollEnabled?: boolean;
+  detailsEnabled?: boolean;
 }
 
 const QUICK_JOBS: { type: JobType; title: string }[] = [
@@ -54,6 +56,8 @@ export function JobsPanel({
   workspaceId,
   className,
   initialExpandedJobId,
+  pollEnabled = true,
+  detailsEnabled = true,
 }: JobsPanelProps) {
   const {
     jobs,
@@ -74,7 +78,7 @@ export function JobsPanel({
     refreshSteps,
     refreshQuestions,
     refreshAttempts,
-  } = useProjectJobs(projectId, workspaceId);
+  } = useProjectJobs(projectId, workspaceId, { pollEnabled, detailsEnabled });
   const diag = useDiagnostics();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [enqueuing, setEnqueuing] = useState<string | null>(null);

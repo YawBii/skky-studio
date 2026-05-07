@@ -22,6 +22,7 @@ interface Props {
   stepsByJob: Record<string, JobStep[]>;
   onJumpToJob: (jobId: string) => void;
   onOpenInChat: (jobId: string) => void;
+  onRequestDetails?: (jobId: string) => void;
 }
 
 const TERMINAL = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
@@ -58,7 +59,13 @@ function statusMeta(j: Job) {
   }
 }
 
-export function PreviewSummaryStrip({ jobs, stepsByJob, onJumpToJob, onOpenInChat }: Props) {
+export function PreviewSummaryStrip({
+  jobs,
+  stepsByJob,
+  onJumpToJob,
+  onOpenInChat,
+  onRequestDetails,
+}: Props) {
   // Pick the most recent job (running OR terminal). Sort by createdAt desc.
   const latest = useMemo(() => {
     const sorted = [...jobs].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
@@ -120,7 +127,11 @@ export function PreviewSummaryStrip({ jobs, stepsByJob, onJumpToJob, onOpenInCha
         <button
           type="button"
           data-testid="preview-summary-toggle"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => {
+            const next = !expanded;
+            setExpanded(next);
+            if (next) onRequestDetails?.(latest.id);
+          }}
           aria-expanded={expanded}
           className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/[0.05] touch-manipulation shrink-0"
           aria-label={expanded ? "Hide proof timeline" : "Show proof timeline"}

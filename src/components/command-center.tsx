@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { JobsPanel } from "@/components/jobs-panel";
 import type { Job } from "@/services/jobs";
 import { isFailedJobResolved } from "@/lib/job-resolution";
+import { isTabletOrMobile } from "@/lib/perf-mode";
 
 export type CommandCenterMode = "idle" | "running" | "waiting" | "failed" | "succeeded";
 
@@ -176,6 +177,7 @@ export function CommandCenterDrawer({
 }: DrawerProps) {
   // Default height: ~45vh, clamped between min and 85vh.
   const defaultPx = typeof window !== "undefined" ? Math.round(window.innerHeight * 0.45) : 480;
+  const lightweight = useMemo(() => isTabletOrMobile(), []);
   const [height, setHeight] = useState<number>(() => loadHeight(defaultPx));
   const draggingRef = useRef(false);
   const startRef = useRef<{ y: number; h: number } | null>(null);
@@ -270,6 +272,8 @@ export function CommandCenterDrawer({
           projectId={projectId}
           workspaceId={workspaceId}
           initialExpandedJobId={focusJobId ?? undefined}
+          pollEnabled={!lightweight}
+          detailsEnabled={!lightweight || open}
         />
       </div>
     </div>

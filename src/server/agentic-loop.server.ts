@@ -764,7 +764,8 @@ export async function runAgenticBuild(input: {
     });
     repairs.push({
       path: forced.join(", "),
-      reason: "Forced deterministic legal SaaS app-shell preview; quarantined agentic editorial/website output.",
+      reason:
+        "Forced deterministic legal SaaS app-shell preview; quarantined agentic editorial/website output.",
       attempt: 88,
       ok: true,
     });
@@ -797,9 +798,7 @@ export async function runAgenticBuild(input: {
   ]);
 
   for (let attempt = 0; attempt < 2 && !visualQuality.passed; attempt++) {
-    const failingGates = visualQuality.checks.filter(
-      (c) => !c.passed && REPAIR_GATE_IDS.has(c.id),
-    );
+    const failingGates = visualQuality.checks.filter((c) => !c.passed && REPAIR_GATE_IDS.has(c.id));
     if (failingGates.length === 0 && visualQuality.bannedHits.length === 0) break;
     const hint = `Visual quality gate failed (attempt ${attempt + 1}). Fix ALL of: ${failingGates.map((g) => `${g.label} — ${g.detail}`).join("; ")}.${visualQuality.bannedHits.length ? ` Remove banned strings: ${visualQuality.bannedHits.join(", ")}.` : ""} Use the design brief (category=${designBrief.productCategory}, brand=${designBrief.brandFeel}). The first viewport MUST be a real app surface — case cockpit / matter board, client intake queue, invoices/payments, admin/roles, supabase/RLS — not a hero, not a blog, not a stock image.`;
     // Always repair index.html on visual failures; also repair any other file

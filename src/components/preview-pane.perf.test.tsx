@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, afterEach, beforeEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { PreviewPane } from "./preview-pane";
@@ -63,6 +63,34 @@ describe("PreviewPane — perf mode (iPad)", () => {
     );
     expect(c.querySelector('[data-testid="preview-job-skeleton"]')).toBeTruthy();
     expect(c.querySelector('[data-testid="preview-iframe"]')).toBeNull();
+  });
+
+  it("blocks stale iframe when latest visualQuality failed and offers one repair action", () => {
+    const onRepair = vi.fn();
+    const c = render(
+      <PreviewPane
+        device="tablet"
+        setDevice={() => {}}
+        project={project}
+        onStartBuild={() => {}}
+        starting={false}
+        selectedPage="/"
+        activeDeployUrl={null}
+        generated={{ indexHtml: "<!doctype html><body>old ugly preview</body>", hasFiles: true }}
+        previewBlocked={{
+          jobId: "j-failed",
+          failedGates: ["Workflow surface visible above the fold"],
+          error: "visualQuality failed",
+        }}
+        onRepairPreview={onRepair}
+      />,
+    );
+    expect(c.querySelector('[data-testid="preview-blocked-repair"]')).toBeTruthy();
+    expect(c.querySelector('[data-testid="preview-iframe"]')).toBeNull();
+    const button = c.querySelector('[data-testid="preview-repair-button"]') as HTMLButtonElement;
+    act(() => button.click());
+    expect(onRepair).toHaveBeenCalledOnce();
+    expect(onRepair).toHaveBeenCalledWith(["Workflow surface visible above the fold"]);
   });
 
   it("only reloads iframe once per file content change, not on every render", () => {

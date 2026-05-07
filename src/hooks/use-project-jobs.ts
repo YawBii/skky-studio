@@ -22,11 +22,14 @@ import {
 } from "@/services/jobs";
 import { isSafeMode, noteFetchCall, bumpPerf, perfCounters } from "@/lib/perf-mode";
 
-const TICK_MS = 1500;
-const IDLE_REFRESH_MS = 2500;
+const ACTIVE_POLL_MS = 2000;
+const IDLE_REFRESH_MS = 6000;
+const TERMINAL_STATUSES = new Set(["succeeded", "failed", "cancelled", "waiting_for_input"]);
 
 interface UseProjectJobsOptions {
   enabled?: boolean;
+  pollEnabled?: boolean;
+  detailsEnabled?: boolean;
 }
 
 export function useProjectJobs(
@@ -35,6 +38,8 @@ export function useProjectJobs(
   options: UseProjectJobsOptions = {},
 ) {
   const enabled = (options.enabled ?? true) && !isSafeMode();
+  const pollEnabled = enabled && (options.pollEnabled ?? true);
+  const detailsEnabled = options.detailsEnabled ?? true;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [source, setSource] = useState<JobsSource>("no-project");
   const [error, setError] = useState<string | null>(null);
@@ -73,20 +78,32 @@ export function useProjectJobs(
     void reportProviderConnections(projectId);
   }, [enabled, projectId]);
 
-  const refreshSteps = useCallback(async (jobId: string) => {
-    const r = await listJobSteps(jobId);
-    setStepsByJob((prev) => ({ ...prev, [jobId]: r.steps }));
-  }, []);
+  const refreshSteps = useCallback(
+    async (jobId: string, force = false) => {
+      if (!detailsEnabled && !force) return;
+      const r = await listJobSteps(jobId);
+      setStepsByJob((prev) => ({ ...prev, [jobId]: r.steps }));
+    },
+    [detailsEnabled],
+  );
 
-  const refreshQuestions = useCallback(async (jobId: string) => {
-    const r = await listJobQuestions(jobId);
-    setQuestionsByJob((prev) => ({ ...prev, [jobId]: r.questions }));
-  }, []);
+  const refreshQuestions = useCallback(
+    async (jobId: string, force = false) => {
+      if (!detailsEnabled && !force) return;
+      const r = await listJobQuestions(jobId);
+      setQuestionsByJob((prev) => ({ ...prev, [jobId]: r.questions }));
+    },
+    [detailsEnabled],
+  );
 
-  const refreshAttempts = useCallback(async (jobId: string) => {
-    const r = await listJobStepAttempts(jobId);
-    setAttemptsByJob((prev) => ({ ...prev, [jobId]: r.attempts }));
-  }, []);
+  const refreshAttempts = useCallback(
+    async (jobId: string, force = false) => {
+      if (!detailsEnabled && !force) return;
+      const r = await listJobStepAttempts(jobId);
+      setAttemptsByJob((prev) => ({ ...prev, [jobId]: r.attempts }));
+    },
+    [detailsEnabled],
+  );
 
   // Driver: keep polling while the project is open. This is intentionally
   // not limited to the current `jobs` array being active, because chat sends
@@ -94,7 +111,7 @@ export function useProjectJobs(
   // hook has refreshed. The idle refresh catches those newly queued jobs and
   // the next loop triggers the server runner.
   useEffect(() => {
-    if (!enabled || !projectId) return;
+    if (!pollEnabled || !projectId) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -115,7 +132,7 @@ export function useProjectJobs(
       noteFetchCall(`useProjectJobs:reportProviders:${projectId}`);
       void reportProviderConnections(projectId);
 
-      const hasActive = latest.jobs.some((j) => j.status === "queued" || j.status === "running");
+      const hasActive = latest.jobs.some((j) => !TERMINAL_STATUSES.has(j.status));
       if (!hasActive) {
         if (perfCounters.activePolls > 0) bumpPerf("activePolls", -1);
         setTicking(false);
@@ -123,9 +140,9 @@ export function useProjectJobs(
         schedule(IDLE_REFRESH_MS);
         return;
       }
-      if (!tickingRef.current) bumpPerf("activePolls");
+      if (!tickingRef.current && perfCounters.activePolls === 0) bumpPerf("activePolls");
       if (tickingRef.current) {
-        schedule(TICK_MS);
+        schedule(ACTIVE_POLL_MS);
         return;
       }
       tickingRef.current = true;
@@ -139,7 +156,13 @@ export function useProjectJobs(
         await refreshQuestions(r.jobId);
         await refreshAttempts(r.jobId);
       }
-      schedule(TICK_MS);
+      if (r.status && TERMINAL_STATUSES.has(r.status)) {
+        if (perfCounters.activePolls > 0) bumpPerf("activePolls", -1);
+        setTicking(false);
+        schedule(IDLE_REFRESH_MS);
+        return;
+      }
+      schedule(ACTIVE_POLL_MS);
     };
 
     void loop();
@@ -147,7 +170,7 @@ export function useProjectJobs(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [enabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
+  }, [pollEnabled, projectId, refreshSteps, refreshQuestions, refreshAttempts]);
 
   // Initial load + when project changes.
   useEffect(() => {

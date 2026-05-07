@@ -42,14 +42,7 @@ const BANNED_TEMPLATE_STRINGS = [
 
 // Editorial / blog / publication nouns. Case-sensitive whole-word match in the
 // generated body. These must never appear in a SaaS app shell.
-const BLOG_TERMS = [
-  "Briefing",
-  "Article",
-  "Library",
-  "Publication",
-  "Volume",
-  "Archive",
-];
+const BLOG_TERMS = ["Briefing", "Article", "Library", "Publication", "Volume", "Archive"];
 
 const WEAK_PLACEHOLDER_STRINGS = [
   "Welcome to your app",
@@ -123,10 +116,15 @@ export function evaluateVisualQuality(input: {
     allText.toLowerCase().includes(s.toLowerCase()),
   );
   const workflowHits = WORKFLOW_HINTS.filter((h) => index.toLowerCase().includes(h));
+  const visibleIndexText = index
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ");
   const mobileMeta = /viewport[^>]+width=device-width/i.test(index);
   const mobileCss = /@media\s*\([^)]*max-width/.test(allText);
   const hasFixedPxWidth =
-    /width:\s*\d{4,}px/i.test(allText) || /min-width:\s*1[2-9]\d{2}px/i.test(allText);
+    /(^|[;{\s])width:\s*\d{4,}px/i.test(allText) ||
+    /(^|[;{\s])min-width:\s*1[2-9]\d{2}px/i.test(allText);
   const hasMobileNav =
     /aria-label=["'](?:menu|navigation|open menu)["']/i.test(allText) ||
     /(?:hamburger|menu-toggle|mobile-nav|nav-toggle)/i.test(allText);
@@ -183,7 +181,7 @@ export function evaluateVisualQuality(input: {
     /<picture[\s>]/i.test(beforeWorkflow);
 
   // Blog / publication / library nouns — case-insensitive whole-word.
-  const blogHits = BLOG_TERMS.filter((t) => new RegExp(`\\b${t}\\b`, "i").test(index));
+  const blogHits = BLOG_TERMS.filter((t) => new RegExp(`\\b${t}\\b`, "i").test(visibleIndexText));
 
   // Cheap contrast guard: dark text on dark background within the same rule.
   const darkOnDark = (() => {

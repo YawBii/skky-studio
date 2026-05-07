@@ -22,7 +22,7 @@ import { getProjectById, type Project } from "@/services/projects";
 import { rememberDirectProject } from "@/lib/project-selection";
 import { JobsPanel } from "@/components/jobs-panel";
 import { PreviewPane } from "@/components/preview-pane";
-import { enqueueJob } from "@/services/jobs";
+import { enqueueJob, type Job } from "@/services/jobs";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { setBuilderUIState, type BuilderEnvironment } from "@/hooks/use-builder-ui-state";
@@ -37,7 +37,7 @@ import { useProjectFiles } from "@/hooks/use-project-files";
 import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
 import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
 import { AutoLinkPicker } from "@/components/auto-link-picker";
-import { isSafeMode } from "@/lib/perf-mode";
+import { isSafeMode, isTabletOrMobile } from "@/lib/perf-mode";
 import { RefreshCw } from "lucide-react";
 
 import { resolveDeployUrl } from "@/lib/deploy-url";
@@ -87,6 +87,34 @@ export const Route = createFileRoute("/builder/$projectId")({
 type Tab = "preview" | "code" | "database" | "deploy" | "jobs" | "history";
 type Device = "desktop" | "tablet" | "mobile";
 
+function extractFailedVisualQuality(jobs: Job[]) {
+  const latest = [...jobs]
+    .filter((j) => j.type === "ai.generate_changes" || j.type === "build.production")
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+  if (!latest || latest.status !== "failed") return null;
+  const output = (latest.output ?? {}) as Record<string, unknown>;
+  const failedGates = Array.isArray(output.failedGates)
+    ? output.failedGates.filter((v): v is string => typeof v === "string")
+    : Array.isArray((output.visualQuality as { checks?: unknown[] } | undefined)?.checks)
+      ? (
+          output.visualQuality as {
+            checks: Array<{ passed?: unknown; label?: unknown; detail?: unknown }>;
+          }
+        ).checks
+          .filter((c) => c.passed === false)
+          .map((c) => `${String(c.label ?? "Visual quality")}: ${String(c.detail ?? "failed")}`)
+      : [];
+  const error = latest.error ?? "";
+  const looksVisual =
+    failedGates.length > 0 || /visualQuality|visual quality|failed gates|Needs repair/i.test(error);
+  if (!looksVisual) return null;
+  return {
+    jobId: latest.id,
+    failedGates: failedGates.length > 0 ? failedGates : [error || "Visual quality failed"],
+    error: latest.error,
+  };
+}
+
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "preview", label: "Preview", icon: Eye },
   { id: "code", label: "Code", icon: Code2 },
@@ -110,6 +138,7 @@ function Builder() {
   const [selectedEnvironment, setSelectedEnvironment] = useState<BuilderEnvironment>("production");
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const tabletOrMobile = useMemo(() => isTabletOrMobile(), []);
   const userPickedDeviceRef = useRef(false);
 
   // Default the preview device to "mobile" when on a phone, "desktop" otherwise.
@@ -163,8 +192,11 @@ function Builder() {
 
   // Live job state for the Command Center pill/drawer. Polling only runs
   // while there is active work (handled inside useProjectJobs).
-  const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null);
+  const ccJobs = useProjectJobs(project?.id ?? null, project?.workspaceId ?? null, {
+    detailsEnabled: !tabletOrMobile,
+  });
   const ccState = useMemo(() => deriveCommandCenterState(ccJobs.jobs), [ccJobs.jobs]);
+  const previewBlocked = useMemo(() => extractFailedVisualQuality(ccJobs.jobs), [ccJobs.jobs]);
 
   // Project connections drive the active deploy URL for PreviewPane.
   const connectionsApi = useProjectConnections(project?.id ?? null);
@@ -332,7 +364,12 @@ function Builder() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative z-40 h-11 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2 bg-background/70 backdrop-blur-xl pointer-events-auto min-w-0 flex-nowrap overflow-hidden">
+      <div
+        className={cn(
+          "relative z-40 h-11 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2 bg-background/85 pointer-events-auto min-w-0 flex-nowrap overflow-hidden",
+          !tabletOrMobile && "backdrop-blur-xl",
+        )}
+      >
         {/* Project selector — currently jumps to the project list, will become a switcher. */}
         <button
           type="button"
@@ -576,8 +613,14 @@ function Builder() {
             generated={mergedGenerated}
             regenerating={false}
             jobRunning={ccState.mode === "running" || ccState.mode === "waiting"}
+            previewBlocked={previewBlocked}
             jobs={ccJobs.jobs}
             stepsByJob={ccJobs.stepsByJob}
+            onLoadJobDetails={(jobId) => {
+              void ccJobs.refreshSteps(jobId, true);
+              void ccJobs.refreshQuestions(jobId, true);
+              void ccJobs.refreshAttempts(jobId, true);
+            }}
             onJumpToJob={(jobId) => {
               console.info("[yawb] preview.summary.jumpToJob", { jobId });
               setFocusJobId(jobId);
@@ -593,6 +636,32 @@ function Builder() {
               void filesApi.refresh().then(() => {
                 toast.success("Local preview refreshed");
               });
+            }}
+            onRepairPreview={async (failedGates) => {
+              const regenerationSeed =
+                typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID()
+                  : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+              const r = await enqueueJob({
+                projectId: project.id,
+                workspaceId: project.workspaceId,
+                type: "ai.generate_changes",
+                title: "Repair preview",
+                input: {
+                  source: "preview_visual_quality_repair",
+                  regenerationSeed,
+                  forceVariant: true,
+                  failedGates,
+                  failedJobId: previewBlocked?.jobId ?? null,
+                },
+              });
+              if (!r.ok) {
+                toast.error(`Couldn't repair preview: ${r.error}`);
+                return;
+              }
+              toast.success("Repair queued");
+              setFocusJobId(r.job.id);
+              void ccJobs.refresh();
             }}
             onRegenerateDesign={async (designMode) => {
               const regenerationSeed =
