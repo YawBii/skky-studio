@@ -904,7 +904,10 @@ function PreviewPaneImpl({
               {softHintVisible && resolved.kind === "live" && activeDeployUrl && (
                 <div
                   data-testid="preview-iframe-soft-hint"
-                  className="absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 backdrop-blur px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated"
+                  className={cn(
+                    "absolute bottom-3 left-3 right-3 mx-auto max-w-md rounded-md border border-white/10 bg-background/80 px-3 py-2 text-[11.5px] text-muted-foreground flex items-center gap-2 shadow-elevated",
+                    !tabletOrMobile && "backdrop-blur",
+                  )}
                 >
                   <span className="flex-1">
                     If preview looks blank or blocked, open live preview.
