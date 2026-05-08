@@ -3,7 +3,7 @@ import { verifyArtifact } from "./verify";
 import { buildLawFirmHomepage } from "./homepage-builder";
 
 describe("verifyArtifact — homepage gate", () => {
-  it("passes for the deterministic law-firm homepage", () => {
+  it("passes for 'Redesign homepage for law firm' deterministic homepage output", () => {
     const out = buildLawFirmHomepage({ project: { id: "p", name: "Pillar" } });
     const r = verifyArtifact({
       artifactType: "homepage",
@@ -13,13 +13,18 @@ describe("verifyArtifact — homepage gate", () => {
     expect(r.failedGates).toEqual([]);
   });
 
-  it("fails for a dashboard/cockpit first-screen page", () => {
-    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{}</style></head><body><h1>Case cockpit</h1><div>Matter board command center</div></body></html>`;
+  it("rejects homepage output containing Matter board / Case cockpit / LexOS / Active matters / RLS / Supabase locked", () => {
+    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{min-height:100vh}</style></head><body><nav>Home</nav><section class="hero"><a class="cta">Schedule</a></section><section>Practice Areas</section><section>Our Team</section><section>Pricing</section><section>Contact</section><h1>LexOS — Case cockpit</h1><div>Matter board</div><p>Active matters</p><p>RLS policies</p><p>Supabase locked</p></body></html>`;
     const r = verifyArtifact({
       artifactType: "homepage",
       files: { indexHtml: html, stylesCss: null },
     });
     expect(r.passed).toBe(false);
+    expect(r.failedGates).toEqual([
+      "Homepage contains forbidden dashboard tokens: Matter board, Case cockpit, Active matters, RLS policies, Supabase locked, LexOS",
+    ]);
+    expect(r.failedGates.join(", ")).not.toContain("No cockpit/matter board first-screen");
+    expect(r.failedGates.join(", ")).not.toContain("No app-dashboard/admin shell");
   });
 
   it("fails for blog/article/library framing", () => {
@@ -48,11 +53,9 @@ describe("verifyArtifact — homepage gate", () => {
       files: { indexHtml: out.indexHtml, stylesCss: out.stylesCss },
     });
     expect(r.passed).toBe(true);
-    const requiredLabels = r.checks
-      .filter((c) => c.id !== "no-cockpit" && c.id !== "no-app-shell" && c.id !== "no-blog")
-      .map((c) => c.label.toLowerCase())
-      .join("|");
-    expect(requiredLabels).not.toMatch(/cockpit|matter board|rls|supabase|admin panel|kpi/);
+    expect(r.failedGates).toEqual([]);
+    expect(r.checks.map((c) => c.label)).not.toContain("No cockpit/matter board first-screen");
+    expect(r.checks.map((c) => c.label)).not.toContain("No app-dashboard/admin shell");
   });
 
   it("generated homepage contains none of the banned dashboard tokens", () => {
@@ -90,5 +93,29 @@ describe("verifyArtifact — homepage gate", () => {
     ]) {
       expect(ids).toContain(id);
     }
+  });
+
+  it("regression: clean homepage never reports observed bad cockpit/admin-shell failure labels", () => {
+    const out = buildLawFirmHomepage({ project: { id: "p", name: "Pillar" } });
+    const r = verifyArtifact({
+      artifactType: "homepage",
+      files: { indexHtml: out.indexHtml, stylesCss: out.stylesCss },
+    });
+    expect(r.passed).toBe(true);
+    const failureText = r.failedGates.join("\n");
+    expect(failureText).not.toContain("No cockpit/matter board first-screen");
+    expect(failureText).not.toContain("No app-dashboard/admin shell");
+  });
+
+  it("dashboard verification can require cockpit/admin shell separately", () => {
+    const r = verifyArtifact({
+      artifactType: "app_dashboard",
+      files: {
+        indexHtml: `<!doctype html><html><body><nav>App</nav><main><h1>Case cockpit</h1><section class="matter-board"><div class="kpi-grid">Metrics</div></section><section>Admin panel <button>Action</button></section></main></body></html>`,
+        stylesCss: null,
+      },
+    });
+    expect(r.passed).toBe(true);
+    expect(r.checks.map((c) => c.id)).toEqual(["nav", "cockpit", "data", "admin-shell"]);
   });
 });
