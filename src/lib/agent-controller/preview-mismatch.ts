@@ -23,6 +23,7 @@ export const FORBIDDEN_DASHBOARD_TOKENS: Array<{ id: string; re: RegExp }> = [
 export interface PreviewMismatchInput {
   expectedArtifact: ArtifactType;
   html: string | null | undefined;
+  css?: string | null | undefined;
 }
 
 export interface PreviewMismatchResult {
@@ -32,8 +33,8 @@ export interface PreviewMismatchResult {
 }
 
 export function detectPreviewMismatch(input: PreviewMismatchInput): PreviewMismatchResult {
-  const html = (input.html ?? "").toString();
-  if (input.expectedArtifact !== "homepage" || !html) {
+  const output = `${input.html ?? ""}\n${input.css ?? ""}`;
+  if (input.expectedArtifact !== "homepage" || !output.trim()) {
     return {
       expectedArtifact: input.expectedArtifact,
       previewMismatch: false,
@@ -42,7 +43,7 @@ export function detectPreviewMismatch(input: PreviewMismatchInput): PreviewMisma
   }
   const found: string[] = [];
   for (const t of FORBIDDEN_DASHBOARD_TOKENS) {
-    if (t.re.test(html)) found.push(t.id);
+    if (t.re.test(output)) found.push(t.id);
   }
   return {
     expectedArtifact: input.expectedArtifact,
