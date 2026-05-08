@@ -7,7 +7,8 @@ export interface InlineAssets {
   appJs?: string | null;
 }
 
-const STYLES_HREF = /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["'](?:\.\/)?styles\.css["'][^>]*\/?>)/gi;
+const STYLES_HREF =
+  /(<link\b[^>]*\brel=["']stylesheet["'][^>]*\bhref=["'](?:\.\/)?styles\.css["'][^>]*\/?>)/gi;
 const SCRIPT_SRC = /(<script\b[^>]*\bsrc=["'](?:\.\/)?app\.js["'][^>]*><\/script>)/gi;
 
 function escapeForStyle(css: string): string {
@@ -36,10 +37,7 @@ export function inlineLocalAssets(html: string, assets: InlineAssets): string {
   } else {
     // Neutralize broken external link to avoid failed fetch noise.
     STYLES_HREF.lastIndex = 0;
-    out = out.replace(
-      STYLES_HREF,
-      '<!-- yawb: removed unresolved styles.css link -->',
-    );
+    out = out.replace(STYLES_HREF, "<!-- yawb: removed unresolved styles.css link -->");
   }
 
   if (js) {
@@ -52,10 +50,7 @@ export function inlineLocalAssets(html: string, assets: InlineAssets): string {
     }
   } else {
     SCRIPT_SRC.lastIndex = 0;
-    out = out.replace(
-      SCRIPT_SRC,
-      '<!-- yawb: removed unresolved app.js script -->',
-    );
+    out = out.replace(SCRIPT_SRC, "<!-- yawb: removed unresolved app.js script -->");
   }
 
   return out;

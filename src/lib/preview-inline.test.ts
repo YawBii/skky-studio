@@ -10,7 +10,7 @@ describe("inlineLocalAssets", () => {
       appJs: "console.log('ok')",
     });
     expect(out).toContain('<style data-yawb-inline="styles.css">body{color:red}</style>');
-    expect(out).toContain('<script data-yawb-inline="app.js">console.log(\'ok\')</script>');
+    expect(out).toContain("<script data-yawb-inline=\"app.js\">console.log('ok')</script>");
     expect(out).not.toContain('href="./styles.css"');
     expect(out).not.toContain('src="./app.js"');
   });
