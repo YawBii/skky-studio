@@ -17,7 +17,5 @@ export const FORBIDDEN_DASHBOARD_TOKENS = [
 
 export function findForbiddenDashboardTokens(input: string | null | undefined): string[] {
   const text = String(input ?? "");
-  return FORBIDDEN_DASHBOARD_TOKENS.filter((token) => token.re.test(text)).map(
-    (token) => token.id,
-  );
+  return FORBIDDEN_DASHBOARD_TOKENS.filter((token) => token.re.test(text)).map((token) => token.id);
 }
