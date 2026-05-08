@@ -63,7 +63,7 @@ export async function inspectAgentState(input: InspectInput): Promise<AgentState
   const stylesCss = filesResult.files.find((f) => f.path === "styles.css")?.content ?? null;
   const appJs = filesResult.files.find((f) => f.path === "app.js")?.content ?? null;
 
-  const jobsResult = await listJobs(projectId, 10);
+  const jobsResult = await listJobs(projectId);
   const latestJobs: Job[] = jobsResult.jobs ?? [];
   const activeJob = latestJobs.find((j) => ACTIVE_JOB_STATUSES.has(j.status)) ?? null;
   const failedVisualQuality = getVisualQualityBlock(latestJobs);
