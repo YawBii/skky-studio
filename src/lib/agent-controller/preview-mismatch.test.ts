@@ -20,6 +20,10 @@ describe("detectPreviewMismatch", () => {
     "Admin panel",
     "KPI grid",
     "LexOS",
+    "Client intake queue",
+    "Invoices dashboard",
+    "Roles & access",
+    "Schema / RLS",
   ])("flags forbidden token: %s", (token) => {
     const r = detectPreviewMismatch({
       expectedArtifact: "homepage",
@@ -49,7 +53,21 @@ describe("detectPreviewMismatch", () => {
         "Admin panel",
         "KPI grid",
         "LexOS",
+        "Client intake queue",
+        "Invoices dashboard",
+        "Roles & access",
+        "Schema / RLS",
       ]),
     );
+  });
+
+  it("scans CSS as well as HTML for stale dashboard tokens", () => {
+    const r = detectPreviewMismatch({
+      expectedArtifact: "homepage",
+      html: "<html><body><nav>Home</nav></body></html>",
+      css: ".admin-panel{display:block}.kpi-grid{display:grid}",
+    });
+    expect(r.previewMismatch).toBe(true);
+    expect(r.forbiddenTokensFound).toEqual(["Admin panel", "KPI grid"]);
   });
 });
