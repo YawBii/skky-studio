@@ -84,4 +84,42 @@ describe("runAgentController", () => {
     expect(writer).not.toHaveBeenCalled();
     expect(proof.filesTouched).toEqual([]);
   });
+
+  it("replaces an existing dashboard/cockpit index for homepage intent (replace_target_file)", async () => {
+    const writer = vi.fn(async () => ({ ok: true }));
+    const proof = await runAgentController({
+      projectId: "p1",
+      workspaceId: "w1",
+      userRequest: "Redesign homepage for law firm",
+      inspector: async () =>
+        emptyState({
+          currentArtifactType: "app_dashboard",
+          files: {
+            indexHtml: "<html><body><h1>Case cockpit</h1><div>Matter board</div></body></html>",
+            stylesCss: null,
+            appJs: null,
+            raw: [],
+          },
+        }),
+      writer,
+    });
+    expect(proof.decision.action).toBe("replace_target_file");
+    expect(proof.canDeclareDone).toBe(true);
+    expect(proof.filesTouched).toEqual(["index.html", "styles.css"]);
+    expect(proof.verification?.passed).toBe(true);
+    expect(writer).toHaveBeenCalledOnce();
+  });
+
+  it("filesTouched stays empty and canDeclareDone=false when persistence fails", async () => {
+    const writer = vi.fn(async () => ({ ok: false, error: "db down" }));
+    const proof = await runAgentController({
+      projectId: "p1",
+      workspaceId: "w1",
+      userRequest: "Redesign homepage for law firm",
+      inspector: async () => emptyState(),
+      writer,
+    });
+    expect(proof.canDeclareDone).toBe(false);
+    expect(proof.filesTouched).toEqual([]);
+  });
 });
