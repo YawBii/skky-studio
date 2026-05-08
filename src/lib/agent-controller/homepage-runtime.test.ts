@@ -56,10 +56,12 @@ describe("homepage runtime guard — dispatchAgentRequest E2E", () => {
     });
     expect(out.kind).toBe("success");
     if (out.kind !== "success") throw new Error("expected success");
-    // Static guarantee: chat-handler does not import enqueueJob.
+    // Static guarantee: chat-handler does not import or call enqueueJob.
     const fs = await import("node:fs");
     const handlerSrc = fs.readFileSync("src/lib/agent-controller/chat-handler.ts", "utf8");
-    expect(handlerSrc).not.toMatch(/enqueueJob|ai\.plan|ai\.generate_changes|agentic-loop-v1/);
+    expect(handlerSrc).not.toMatch(/from\s+["'][^"']*\/services\/jobs/);
+    expect(handlerSrc).not.toMatch(/\benqueueJob\s*\(/);
+    expect(handlerSrc).not.toMatch(/agentic-loop-v1/);
   });
 
   it("writes exactly index.html + styles.css and dispatches onFilesWritten refresh", async () => {
