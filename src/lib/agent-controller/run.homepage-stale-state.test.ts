@@ -33,7 +33,12 @@ function staleDashboardState(): AgentState {
 
 describe("runAgentController homepage stale-state regression", () => {
   it("verifies freshly built homepage files, not stale dashboard state files", async () => {
-    const writer = vi.fn(async () => ({ ok: true }));
+    const writer = vi.fn(
+      async (
+        _projectId: string,
+        _files: Array<{ path: string; content: string; language: string; kind: "source" | "asset" }>,
+      ) => ({ ok: true }),
+    );
     const proof = await runAgentController({
       projectId: "p1",
       workspaceId: "w1",
