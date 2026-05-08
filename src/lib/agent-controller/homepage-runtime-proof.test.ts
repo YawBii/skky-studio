@@ -15,7 +15,9 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/services/jobs", () => ({
   JOB_TYPES: [],
   enqueueJob: vi.fn(async () => {
-    throw new Error("LEGACY_ENQUEUE_BLOCKED — homepage path must not enqueue ai.plan/ai.generate_changes");
+    throw new Error(
+      "LEGACY_ENQUEUE_BLOCKED — homepage path must not enqueue ai.plan/ai.generate_changes",
+    );
   }),
   retryJob: vi.fn(async () => {
     throw new Error("LEGACY_RETRY_BLOCKED");
@@ -68,10 +70,12 @@ function dashboardState(): AgentState {
 describe("Agent Controller v1 — homepage runtime proof (Playwright equivalent)", () => {
   it("replaces stale LexOS/dashboard preview with a clean law-firm homepage", async () => {
     const written: Array<{ path: string; content: string }> = [];
-    const writer = vi.fn(async (_projectId: string, files: Array<{ path: string; content: string }>) => {
-      written.push(...files.map((f) => ({ path: f.path, content: f.content })));
-      return { ok: true };
-    });
+    const writer = vi.fn(
+      async (_projectId: string, files: Array<{ path: string; content: string }>) => {
+        written.push(...files.map((f) => ({ path: f.path, content: f.content })));
+        return { ok: true };
+      },
+    );
     const refreshes: Array<{ projectId: string; filesTouched: string[] }> = [];
 
     const out = await dispatchAgentRequest({
