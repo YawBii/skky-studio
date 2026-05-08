@@ -1,0 +1,47 @@
+// Preview mismatch guard — detects when the rendered/written homepage HTML
+// still contains stale dashboard/cockpit/LexOS tokens. Used by the chat
+// handler to refuse "Done" and surface a visible warning.
+
+import type { ArtifactType } from "./types";
+
+export const FORBIDDEN_DASHBOARD_TOKENS: Array<{ id: string; re: RegExp }> = [
+  { id: "Matter board", re: /matter\s*board/i },
+  { id: "Case cockpit", re: /case\s*cockpit/i },
+  { id: "Active matters", re: /active\s*matters/i },
+  { id: "RLS policies", re: /\brls\s*polic(?:y|ies)/i },
+  { id: "Supabase locked", re: /supabase\s*locked/i },
+  { id: "Admin panel", re: /\badmin\s*panel\b/i },
+  { id: "KPI grid", re: /\bkpi[-\s]*grid\b/i },
+  { id: "LexOS", re: /\blex\s*os\b/i },
+];
+
+export interface PreviewMismatchInput {
+  expectedArtifact: ArtifactType;
+  html: string | null | undefined;
+}
+
+export interface PreviewMismatchResult {
+  expectedArtifact: ArtifactType;
+  previewMismatch: boolean;
+  forbiddenTokensFound: string[];
+}
+
+export function detectPreviewMismatch(input: PreviewMismatchInput): PreviewMismatchResult {
+  const html = (input.html ?? "").toString();
+  if (input.expectedArtifact !== "homepage" || !html) {
+    return {
+      expectedArtifact: input.expectedArtifact,
+      previewMismatch: false,
+      forbiddenTokensFound: [],
+    };
+  }
+  const found: string[] = [];
+  for (const t of FORBIDDEN_DASHBOARD_TOKENS) {
+    if (t.re.test(html)) found.push(t.id);
+  }
+  return {
+    expectedArtifact: input.expectedArtifact,
+    previewMismatch: found.length > 0,
+    forbiddenTokensFound: found,
+  };
+}
