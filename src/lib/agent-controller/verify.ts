@@ -80,6 +80,14 @@ function homepageChecks(html: string, css: string | null | undefined): Verificat
     label: "Responsive meta viewport",
     passed: /<meta[^>]+name=["']viewport["']/i.test(html),
   });
+  const blogFraming =
+    /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i;
+  checks.push({
+    id: "no-blog",
+    label: "No blog/article/library/archive framing",
+    passed: !blogFraming.test(html),
+    detail: blogFraming.test(html) ? "forbidden blog/article/library/archive framing present" : "clean",
+  });
   checks.push({
     id: "not-raw-html",
     label: "Not raw unstyled HTML",
