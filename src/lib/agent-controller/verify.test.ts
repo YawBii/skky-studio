@@ -94,4 +94,28 @@ describe("verifyArtifact — homepage gate", () => {
       expect(ids).toContain(id);
     }
   });
+
+  it("regression: clean homepage never reports observed bad cockpit/admin-shell failure labels", () => {
+    const out = buildLawFirmHomepage({ project: { id: "p", name: "Pillar" } });
+    const r = verifyArtifact({
+      artifactType: "homepage",
+      files: { indexHtml: out.indexHtml, stylesCss: out.stylesCss },
+    });
+    expect(r.passed).toBe(true);
+    const failureText = r.failedGates.join("\n");
+    expect(failureText).not.toContain("No cockpit/matter board first-screen");
+    expect(failureText).not.toContain("No app-dashboard/admin shell");
+  });
+
+  it("dashboard verification can require cockpit/admin shell separately", () => {
+    const r = verifyArtifact({
+      artifactType: "app_dashboard",
+      files: {
+        indexHtml: `<!doctype html><html><body><nav>App</nav><main><h1>Case cockpit</h1><section class="matter-board"><div class="kpi-grid">Metrics</div></section><section>Admin panel <button>Action</button></section></main></body></html>`,
+        stylesCss: null,
+      },
+    });
+    expect(r.passed).toBe(true);
+    expect(r.checks.map((c) => c.id)).toEqual(["nav", "cockpit", "data", "admin-shell"]);
+  });
 });
