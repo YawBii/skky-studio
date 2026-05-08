@@ -92,6 +92,8 @@ describe("Agent Controller v1 — homepage runtime proof (Playwright equivalent)
     if (out.kind !== "success") throw new Error("expected success");
     expect(out.proof.controller).toBe("agent-controller-v1");
     expect(out.proof.intent.artifactType).toBe("homepage");
+    expect(out.proof.verification?.passed).toBe(true);
+    expect(out.filesTouched.length).toBeGreaterThan(0);
 
     // 4. No legacy enqueue (jobs mock would have thrown if it had been called).
     const jobs = await import("@/services/jobs");
@@ -126,6 +128,7 @@ describe("Agent Controller v1 — homepage runtime proof (Playwright equivalent)
     });
     expect(mismatch.previewMismatch).toBe(false);
     expect(mismatch.forbiddenTokensFound).toEqual([]);
+    expect(out.previewMismatch).toEqual(mismatch);
 
     // Refresh fired exactly once so the iframe reloads from project_files.
     expect(refreshes).toEqual([
