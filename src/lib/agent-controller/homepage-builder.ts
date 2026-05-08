@@ -54,13 +54,13 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
         <span class="brand-name">${name}</span>
       </a>
       <nav class="nav-links" aria-label="Primary">
+        <a href="#top">Home</a>
         <a href="#practice">Practice Areas</a>
         <a href="#attorneys">Attorneys</a>
-        <a href="#intake">Case Intake</a>
         <a href="#pricing">Pricing</a>
         <a href="#contact">Contact</a>
       </nav>
-      <a class="nav-cta cta" href="#intake">Book consultation</a>
+      <a class="nav-cta cta" href="#contact">Book consultation</a>
     </div>
   </header>
 
@@ -71,7 +71,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
         <h1>Premium representation,<br/>without the friction.</h1>
         <p class="lede">${tagline}</p>
         <div class="hero-ctas">
-          <a class="cta cta-primary" href="#intake">Get a free consultation</a>
+          <a class="cta cta-primary" href="#contact">Get a free consultation</a>
           <a class="cta cta-ghost" href="#practice">Explore practice areas</a>
         </div>
       </div>
@@ -80,7 +80,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
     <section class="trust-bar" aria-label="Trust">
       <ul>
         <li><strong>SOC 2</strong><span>Compliance & secure client portal</span></li>
-        <li><strong>AI-assisted</strong><span>Case review in hours, not weeks</span></li>
+        <li><strong>AI-assisted</strong><span>Strategy outline in hours, not weeks</span></li>
         <li><strong>30+ yrs</strong><span>Combined courtroom experience</span></li>
         <li><strong>4.9 / 5</strong><span>Verified client outcomes</span></li>
       </ul>
@@ -96,7 +96,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
           .map(
             (p) => `<article class="practice-card">
             <h3>${p}</h3>
-            <p>Strategic ${p.toLowerCase()} counsel led by senior partners and supported by our AI case-review engine.</p>
+            <p>Strategic ${p.toLowerCase()} counsel led by senior partners and supported by focused legal research.</p>
             <a href="#contact">Talk to a ${p.toLowerCase()} attorney →</a>
           </article>`,
           )
@@ -107,16 +107,16 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
     <section id="intake" class="intake">
       <div class="intake-grid">
         <div class="intake-copy">
-          <p class="eyebrow">Client Intake</p>
-          <h2>Tell us about your matter.</h2>
-          <p>Submit the basics in 2 minutes. A partner reviews every intake within one business day.</p>
+          <p class="eyebrow">Consultation</p>
+          <h2>Tell us about your legal goals.</h2>
+          <p>Submit the basics in 2 minutes. A partner reviews every consultation request within one business day.</p>
           <ul class="intake-bullets">
             <li>Encrypted, attorney–client privileged</li>
             <li>Free first consultation</li>
             <li>No obligation to retain</li>
           </ul>
         </div>
-        <form class="intake-form" aria-label="Case intake preview" onsubmit="event.preventDefault();">
+        <form class="intake-form" aria-label="Consultation request" onsubmit="event.preventDefault();">
           <label>Full name<input type="text" placeholder="Jane Doe" /></label>
           <label>Email<input type="email" placeholder="jane@example.com" /></label>
           <label>Practice area
@@ -177,13 +177,13 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
           <h3>Consultation</h3>
           <p class="price">$0<span>/ first call</span></p>
           <ul><li>30-minute partner call</li><li>Initial assessment</li><li>Written next steps</li></ul>
-          <a class="cta cta-ghost" href="#intake">Book free</a>
+          <a class="cta cta-ghost" href="#contact">Book free</a>
         </article>
         <article class="price-card price-card--featured">
           <h3>Engagement</h3>
           <p class="price">$2,400<span>/ matter</span></p>
           <ul><li>Dedicated partner</li><li>Document drafting</li><li>Filing & negotiation</li></ul>
-          <a class="cta cta-primary" href="#intake">Start engagement</a>
+          <a class="cta cta-primary" href="#contact">Start engagement</a>
         </article>
         <article class="price-card">
           <h3>Retainer</h3>

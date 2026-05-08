@@ -38,8 +38,9 @@ describe("homepage snapshot — required sections", () => {
   });
 
   it("contains none of the forbidden dashboard tokens", () => {
+    const fullOutput = `${out.indexHtml}\n${out.stylesCss}`;
     for (const t of FORBIDDEN_DASHBOARD_TOKENS) {
-      expect(t.re.test(out.indexHtml), `token ${t.id} must NOT appear`).toBe(false);
+      expect(t.re.test(fullOutput), `token ${t.id} must NOT appear`).toBe(false);
     }
   });
 });
@@ -79,6 +80,9 @@ describe("homepage runtime guard — dispatchAgentRequest E2E", () => {
     expect(out.kind).toBe("success");
     if (out.kind !== "success") throw new Error("expected success");
     expect(out.filesTouched).toEqual(["index.html", "styles.css"]);
+    expect(out.filesTouched.length).toBeGreaterThan(0);
+    expect(out.proof.verification?.passed).toBe(true);
+    expect(out.previewMismatch.forbiddenTokensFound).toEqual([]);
     expect(onFilesWritten).toHaveBeenCalledWith({
       projectId: "p1",
       filesTouched: ["index.html", "styles.css"],

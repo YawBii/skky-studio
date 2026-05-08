@@ -68,6 +68,7 @@ const DASHBOARD_REQUIRED = [
 
 function checkHomepage(html: string, css: string | null): VerificationResult {
   const checks: VerificationCheck[] = [];
+  const fullOutput = `${html}\n${css ?? ""}`;
   for (const r of HOMEPAGE_REQUIRED) {
     if (r.id === "styled") {
       const hasCss = !!css && css.trim().length > 200;
@@ -82,7 +83,7 @@ function checkHomepage(html: string, css: string | null): VerificationResult {
     }
     checks.push({ id: r.id, label: r.label, passed: r.re.test(html) });
   }
-  const forbiddenTokensFound = FORBIDDEN_DASHBOARD_TOKENS.filter((t) => t.re.test(html)).map(
+  const forbiddenTokensFound = FORBIDDEN_DASHBOARD_TOKENS.filter((t) => t.re.test(fullOutput)).map(
     (t) => t.id,
   );
   checks.push({
