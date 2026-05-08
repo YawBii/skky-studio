@@ -103,8 +103,10 @@ describe("Agent Controller v1 — homepage runtime proof (Playwright equivalent)
 
     // 6. New preview contains none of the forbidden dashboard tokens.
     const newIndex = written.find((f) => f.path === "index.html")!.content;
+    const newStyles = written.find((f) => f.path === "styles.css")!.content;
+    const fullOutput = `${newIndex}\n${newStyles}`;
     for (const t of FORBIDDEN_DASHBOARD_TOKENS) {
-      expect(t.re.test(newIndex), `forbidden token ${t.id} must NOT appear`).toBe(false);
+      expect(t.re.test(fullOutput), `forbidden token ${t.id} must NOT appear`).toBe(false);
     }
 
     // 7. New preview contains all required homepage sections.
@@ -117,7 +119,11 @@ describe("Agent Controller v1 — homepage runtime proof (Playwright equivalent)
     expect(html).toMatch(/contact|consultation|intake/);
 
     // 8. Mismatch guard: clean output → no warning.
-    const mismatch = detectPreviewMismatch({ expectedArtifact: "homepage", html: newIndex });
+    const mismatch = detectPreviewMismatch({
+      expectedArtifact: "homepage",
+      html: newIndex,
+      css: newStyles,
+    });
     expect(mismatch.previewMismatch).toBe(false);
     expect(mismatch.forbiddenTokensFound).toEqual([]);
 
