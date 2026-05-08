@@ -2,17 +2,32 @@
 //
 // Guarantees:
 //  - Homepage intent NEVER falls through to legacy ai.plan / ai.generate_changes.
-//  - "Done" is only declared when filesTouched is non-empty AND verification.passed.
+//  - "Done" is only declared when filesTouched is non-empty AND verification.passed
+//    AND no preview-mismatch tokens are present in the written index.html.
 //  - Returns a structured outcome the caller renders into chat + side-effects.
 
 import { classifyAgentIntent } from "./intent";
 import { runAgentController, type RunInput } from "./run";
+import { detectPreviewMismatch, type PreviewMismatchResult } from "./preview-mismatch";
 import type { AgentProof } from "./types";
 
 export type ChatHandlerOutcome =
   | { kind: "not_homepage"; intent: ReturnType<typeof classifyAgentIntent> }
   | { kind: "blocked"; proof: AgentProof; message: string }
-  | { kind: "success"; proof: AgentProof; filesTouched: string[]; message: string }
+  | {
+      kind: "success";
+      proof: AgentProof;
+      filesTouched: string[];
+      message: string;
+      previewMismatch: PreviewMismatchResult;
+    }
+  | {
+      kind: "preview_mismatch";
+      proof: AgentProof;
+      filesTouched: string[];
+      message: string;
+      previewMismatch: PreviewMismatchResult;
+    }
   | { kind: "verification_failed"; proof: AgentProof; message: string }
   | { kind: "error"; message: string };
 
@@ -24,7 +39,6 @@ export interface DispatchDeps {
 
 export interface DispatchInput extends Pick<RunInput, "projectId" | "workspaceId" | "userRequest"> {
   deps?: DispatchDeps;
-  /** Optional inspector/writer overrides forwarded to runAgentController (tests). */
   inspector?: RunInput["inspector"];
   writer?: RunInput["writer"];
 }
@@ -54,12 +68,30 @@ export async function dispatchAgentRequest(input: DispatchInput): Promise<ChatHa
     return { kind: "blocked", proof, message: proof.decision.message };
   }
 
-  // Done requires BOTH a passing verification AND a non-empty filesTouched.
   if (
     proof.canDeclareDone &&
     proof.filesTouched.length > 0 &&
     proof.verification?.passed === true
   ) {
+    const mismatch = detectPreviewMismatch({
+      expectedArtifact: "homepage",
+      html: proof.outputs?.indexHtml ?? null,
+    });
+    if (mismatch.previewMismatch) {
+      // Force a single refresh so the user sees the up-to-date state, but do
+      // NOT declare Done and do NOT enqueue another job.
+      input.deps?.onFilesWritten?.({
+        projectId: input.projectId,
+        filesTouched: proof.filesTouched,
+      });
+      return {
+        kind: "preview_mismatch",
+        proof,
+        filesTouched: proof.filesTouched,
+        previewMismatch: mismatch,
+        message: `Preview mismatch — stale dashboard still loaded (${mismatch.forbiddenTokensFound.join(", ")})`,
+      };
+    }
     input.deps?.onFilesWritten?.({
       projectId: input.projectId,
       filesTouched: proof.filesTouched,
@@ -68,6 +100,7 @@ export async function dispatchAgentRequest(input: DispatchInput): Promise<ChatHa
       kind: "success",
       proof,
       filesTouched: proof.filesTouched,
+      previewMismatch: mismatch,
       message: `Homepage built — wrote ${proof.filesTouched.join(", ")}.`,
     };
   }
@@ -80,11 +113,20 @@ export async function dispatchAgentRequest(input: DispatchInput): Promise<ChatHa
   };
 }
 
-export function summarizeProof(proof: AgentProof): string {
+export function summarizeProof(proof: AgentProof, mismatch?: PreviewMismatchResult): string {
+  const m = mismatch ?? {
+    expectedArtifact: proof.intent.artifactType,
+    previewMismatch: false,
+    forbiddenTokensFound: [],
+  };
   return [
     `controller: ${proof.controller}`,
     `intent: ${proof.intent.artifactType}`,
     `filesTouched: [${proof.filesTouched.map((f) => JSON.stringify(f)).join(", ")}]`,
     `verification.passed: ${proof.verification?.passed === true}`,
+    `legacyEnqueue: false`,
+    `agentic-loop-v1: false`,
+    `forbiddenTokensFound: [${m.forbiddenTokensFound.map((t) => JSON.stringify(t)).join(", ")}]`,
+    `previewMismatch: ${m.previewMismatch}`,
   ].join(" · ");
 }
