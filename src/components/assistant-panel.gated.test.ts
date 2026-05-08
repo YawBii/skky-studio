@@ -20,4 +20,18 @@ describe("AssistantPanel freeze gate", () => {
     expect(src).toMatch(/enabled:\s*effectiveEnabled/);
     expect(src).toMatch(/setLiveEnabled\(true\)/);
   });
+
+  it("routes homepage prompts through Agent Controller before legacy enqueue or model streaming", () => {
+    const sendIdx = src.indexOf("const send = async () =>");
+    const controllerIdx = src.indexOf("dispatchAgentRequest", sendIdx);
+    const streamIdx = src.indexOf("streamModelReply", sendIdx);
+    const legacyEnqueueIdx = src.indexOf("const r = await enqueueJob", sendIdx);
+    expect(sendIdx).toBeGreaterThan(-1);
+    expect(controllerIdx).toBeGreaterThan(sendIdx);
+    expect(controllerIdx).toBeLessThan(streamIdx);
+    expect(controllerIdx).toBeLessThan(legacyEnqueueIdx);
+    expect(src.slice(controllerIdx, legacyEnqueueIdx)).toContain("return;");
+    expect(src.slice(controllerIdx, legacyEnqueueIdx)).toContain("agent-controller-v1");
+    expect(src.slice(controllerIdx, legacyEnqueueIdx)).toContain("legacyEnqueue: false");
+  });
 });
