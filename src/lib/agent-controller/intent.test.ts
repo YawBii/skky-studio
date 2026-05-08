@@ -9,6 +9,20 @@ describe("classifyAgentIntent", () => {
     expect(r.confidence).toBeGreaterThan(0.7);
   });
 
+  it("routes dashboard-to-homepage replacement prompts to homepage, not app_dashboard", () => {
+    const samples = [
+      "redesign this dashboard to fit a homepage for law firm",
+      "turn this matter board into a law firm homepage",
+      "replace the cockpit template with a public website for a legal firm",
+      "make the current app dashboard a polished landing page",
+    ];
+    for (const userRequest of samples) {
+      const r = classifyAgentIntent({ userRequest });
+      expect(r.artifactType).toBe("homepage");
+      expect(r.reason).toMatch(/homepage/i);
+    }
+  });
+
   it("classifies AI law firm app with cockpit/admin as app_dashboard", () => {
     const r = classifyAgentIntent({
       userRequest: "Build AI law firm app with case cockpit, invoices, admin panel, supabase",
