@@ -13,6 +13,10 @@ export const FORBIDDEN_DASHBOARD_TOKENS: Array<{ id: string; re: RegExp }> = [
   { id: "Admin panel", re: /\badmin\s*panel\b/i },
   { id: "KPI grid", re: /\bkpi[-\s]*grid\b/i },
   { id: "LexOS", re: /\blex\s*os\b/i },
+  { id: "Client intake queue", re: /client\s*intake\s*queue/i },
+  { id: "Invoices dashboard", re: /invoices\s*dashboard/i },
+  { id: "Roles & access", re: /roles\s*(?:&|and)\s*access/i },
+  { id: "Schema / RLS", re: /schema\s*\/\s*rls/i },
   { id: "app dashboard shell", re: /\bapp[-\s]*dashboard\s*shell\b/i },
 ];
 
