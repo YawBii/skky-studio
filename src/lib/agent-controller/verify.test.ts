@@ -40,4 +40,55 @@ describe("verifyArtifact — homepage gate", () => {
     });
     expect(r.passed).toBe(false);
   });
+
+  it("homepage gate does NOT require dashboard tokens (cockpit/matter board/RLS/Supabase/admin)", () => {
+    const out = buildLawFirmHomepage({ project: { id: "p", name: "Pillar" } });
+    const r = verifyArtifact({
+      artifactType: "homepage",
+      files: { indexHtml: out.indexHtml, stylesCss: out.stylesCss },
+    });
+    expect(r.passed).toBe(true);
+    const requiredLabels = r.checks
+      .filter((c) => c.id !== "no-cockpit" && c.id !== "no-app-shell" && c.id !== "no-blog")
+      .map((c) => c.label.toLowerCase())
+      .join("|");
+    expect(requiredLabels).not.toMatch(/cockpit|matter board|rls|supabase|admin panel|kpi/);
+  });
+
+  it("generated homepage contains none of the banned dashboard tokens", () => {
+    const out = buildLawFirmHomepage({ project: { id: "p", name: "Pillar" } });
+    const all = (out.indexHtml + "\n" + out.stylesCss).toLowerCase();
+    for (const banned of [
+      "matter board",
+      "case cockpit",
+      "active matters",
+      "rls polic",
+      "supabase locked",
+      "admin panel",
+      "kpi grid",
+    ]) {
+      expect(all.includes(banned)).toBe(false);
+    }
+  });
+
+  it("requires nav, hero, practice, team, pricing, contact, styled, responsive", () => {
+    const out = buildLawFirmHomepage({ project: { id: "p", name: "Pillar" } });
+    const r = verifyArtifact({
+      artifactType: "homepage",
+      files: { indexHtml: out.indexHtml, stylesCss: out.stylesCss },
+    });
+    const ids = r.checks.filter((c) => c.passed).map((c) => c.id);
+    for (const id of [
+      "nav",
+      "hero",
+      "practice",
+      "team",
+      "pricing",
+      "contact",
+      "styled",
+      "responsive",
+    ]) {
+      expect(ids).toContain(id);
+    }
+  });
 });
