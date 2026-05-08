@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listProjectFiles, type ProjectFile } from "@/services/project-files";
 import type { GeneratedFiles } from "@/lib/preview-source";
 import { bumpPerf } from "@/lib/perf-mode";
+import { inlineLocalAssets } from "@/lib/preview-inline";
 
 export interface UseProjectFiles {
   files: ProjectFile[];
@@ -69,7 +70,10 @@ export function useProjectFiles(
     };
   }, [refresh]);
 
-  const indexHtml = files.find((f) => f.path === "index.html")?.content ?? null;
+  const rawIndex = files.find((f) => f.path === "index.html")?.content ?? null;
+  const stylesCss = files.find((f) => f.path === "styles.css")?.content ?? null;
+  const appJs = files.find((f) => f.path === "app.js")?.content ?? null;
+  const indexHtml = rawIndex ? inlineLocalAssets(rawIndex, { stylesCss, appJs }) : null;
   const generated: GeneratedFiles | null = files.length > 0 ? { indexHtml, hasFiles: true } : null;
 
   return { files, generated, loading, version, refresh, tableMissing, error };
