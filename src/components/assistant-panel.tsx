@@ -576,56 +576,66 @@ export function AssistantPanel({
 
     if (!project || !workspace) return;
 
-    // Agent Controller v1 — for homepage intent only (Phase 1b wiring).
-    // Other intents fall through to the legacy ai.plan/ai.generate_changes path.
+    // Agent Controller v1 — homepage intent ALWAYS routes here. We never fall
+    // through to ai.plan / ai.generate_changes for a homepage request, even on
+    // error, because that would re-introduce the legacy editorial path.
     const agentIntent = classifyAgentIntent({ userRequest: text });
     if (agentIntent.artifactType === "homepage") {
       console.info("[yawb] agent.controller.invoke", {
         projectId: project.id,
         intent: agentIntent.artifactType,
       });
-      try {
-        const proof = await runAgentController({
-          projectId: project.id,
-          workspaceId: workspace.id,
-          userRequest: text,
-        });
-        console.info("[yawb] agent.controller.proof", proof);
-        if (proof.blockedByActiveJob) {
-          toast(proof.decision.message);
-          setMessages((m) => [...m, { role: "assistant", content: proof.decision.message }]);
-          return;
-        }
-        if (proof.canDeclareDone && proof.filesTouched.length > 0) {
-          toast.success("Building homepage");
-          setMessages((m) => [
-            ...m,
-            {
-              role: "assistant",
-              content: `Building homepage — wrote ${proof.filesTouched.join(", ")}.`,
-            },
-          ]);
-          window.dispatchEvent(
-            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
-          );
-          return;
-        }
-        // Verification failed even after one repair — surface it but do not enqueue.
-        if (proof.verification && !proof.verification.passed) {
-          toast.error("Homepage verification failed");
-          setMessages((m) => [
-            ...m,
-            {
-              role: "assistant",
-              content: `Homepage verification failed: ${proof.verification!.failedGates.join(", ")}`,
-            },
-          ]);
-          return;
-        }
-      } catch (err) {
-        console.error("[yawb] agent.controller.error", err);
-        // Fall through to legacy path on unexpected error.
+      const outcome = await dispatchAgentRequest({
+        projectId: project.id,
+        workspaceId: workspace.id,
+        userRequest: text,
+        deps: {
+          onFilesWritten: ({ projectId: pid, filesTouched }) => {
+            window.dispatchEvent(
+              new CustomEvent("yawb:project-files-refresh", {
+                detail: { projectId: pid, filesTouched },
+              }),
+            );
+            window.dispatchEvent(
+              new CustomEvent("yawb:preview-force-reload", { detail: { projectId: pid } }),
+            );
+          },
+        },
+      });
+      console.info("[yawb] agent.controller.outcome", outcome);
+      if (outcome.kind === "success") {
+        toast.success("Homepage built");
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
+          },
+        ]);
+      } else if (outcome.kind === "blocked") {
+        toast(outcome.message);
+        setMessages((m) => [...m, { role: "assistant", content: outcome.message }]);
+      } else if (outcome.kind === "verification_failed") {
+        toast.error("Homepage verification failed");
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
+          },
+        ]);
+      } else if (outcome.kind === "error") {
+        toast.error(`Homepage controller error: ${outcome.message}`);
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            content: `Homepage controller error: ${outcome.message}. No legacy job was enqueued.`,
+          },
+        ]);
       }
+      // CRITICAL: do not fall through to legacy enqueue under any branch.
+      return;
     }
 
     // Route real build prompts to the agentic build loop instead of stopping
