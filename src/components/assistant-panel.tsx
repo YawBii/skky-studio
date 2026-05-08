@@ -580,12 +580,18 @@ export function AssistantPanel({
             },
           },
         });
-        const proofSummary = "proof" in outcome ? summarizeProof(outcome.proof) : null;
+        const mismatch =
+          outcome.kind === "success" || outcome.kind === "preview_mismatch"
+            ? outcome.previewMismatch
+            : undefined;
+        const proofSummary = "proof" in outcome ? summarizeProof(outcome.proof, mismatch) : null;
         console.info("[yawb] agent.controller.outcome", {
           kind: outcome.kind,
           proof: proofSummary,
           legacyEnqueue: false,
           agenticLoop: false,
+          previewMismatch: mismatch?.previewMismatch ?? false,
+          forbiddenTokensFound: mismatch?.forbiddenTokensFound ?? [],
         });
         if (outcome.kind === "success") {
           toast.success("Homepage built");
@@ -593,7 +599,16 @@ export function AssistantPanel({
             ...m,
             {
               role: "assistant",
-              content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
+              content: `${outcome.message}\n\n${summarizeProof(outcome.proof, outcome.previewMismatch)}`,
+            },
+          ]);
+        } else if (outcome.kind === "preview_mismatch") {
+          toast.error("Preview mismatch — stale dashboard still loaded");
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `⚠️ Preview mismatch — stale dashboard still loaded.\nForbidden tokens: ${outcome.previewMismatch.forbiddenTokensFound.join(", ")}\n\n${summarizeProof(outcome.proof, outcome.previewMismatch)}`,
             },
           ]);
         } else if (outcome.kind === "blocked") {
@@ -621,13 +636,18 @@ export function AssistantPanel({
         console.info("[yawb] homepage.controller.runtime_proof", {
           controller: "agent-controller-v1",
           intent:
-            outcome.kind === "success"
+            outcome.kind === "success" || outcome.kind === "preview_mismatch"
               ? outcome.proof.intent.artifactType
               : agentIntent.artifactType,
           outcome: outcome.kind,
           legacyEnqueue: false,
           agenticLoop: false,
-          filesTouched: outcome.kind === "success" ? outcome.filesTouched : [],
+          filesTouched:
+            outcome.kind === "success" || outcome.kind === "preview_mismatch"
+              ? outcome.filesTouched
+              : [],
+          previewMismatch: mismatch?.previewMismatch ?? false,
+          forbiddenTokensFound: mismatch?.forbiddenTokensFound ?? [],
         });
         return;
       }
