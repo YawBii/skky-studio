@@ -15,7 +15,7 @@ describe("verifyArtifact — homepage gate", () => {
   });
 
   it("rejects homepage output containing forbidden dashboard/app-shell tokens in HTML or CSS", () => {
-    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{min-height:100vh}</style></head><body><nav>Home</nav><section class="hero"><a class="cta">Schedule</a></section><section>Practice Areas</section><section>Our Team</section><section>Pricing</section><section>Contact</section><h1>LexOS — Case cockpit</h1><div>Matter board</div><p>Active matters</p><p>RLS policies</p><p>Supabase locked</p><p>Client intake queue</p><p>Invoices dashboard</p><p>Roles & access</p></body></html>`;
+    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{min-height:100vh}</style></head><body><nav>Home</nav><section class="hero"><a class="cta">Schedule</a></section><section>Practice Areas</section><section>Our Team</section><section>Pricing</section><section>Contact</section><h1>LexOS — Case cockpit</h1><div>Matter board</div><p>Active matters</p><p>Dashboard</p><p>RLS policies</p><p>Supabase locked</p><p>Client intake queue</p><p>Invoices dashboard</p><p>Roles & access</p></body></html>`;
     const css = `.admin-panel{display:block}.kpi-grid{display:grid}/* Schema / RLS */`;
     const r = verifyArtifact({
       artifactType: "homepage",
@@ -23,7 +23,7 @@ describe("verifyArtifact — homepage gate", () => {
     });
     expect(r.passed).toBe(false);
     expect(r.failedGates[0]).toBe(
-      "Homepage contains forbidden dashboard tokens: Matter board, Case cockpit, Active matters, RLS policies, Supabase locked, Admin panel, KPI grid, LexOS, Client intake queue, Invoices dashboard, Roles & access, Schema / RLS",
+      "Homepage contains forbidden dashboard tokens: Matter board, Case cockpit, Active matters, Dashboard, Admin panel, Admin, RLS, Supabase, Schema / RLS, Roles & access, Invoices dashboard, KPI grid, LexOS, Client intake queue",
     );
     expect(r.failedGates.join(", ")).not.toContain("No cockpit/matter board first-screen");
     expect(r.failedGates.join(", ")).not.toContain("No app-dashboard/admin shell");

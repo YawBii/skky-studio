@@ -1,28 +1,29 @@
-// Verifier — artifact-specific gates. Picks the gate based on intent.
-
 import type { ArtifactType, VerificationCheck, VerificationResult } from "./types";
-import { FORBIDDEN_DASHBOARD_TOKENS } from "./preview-mismatch";
+import { findForbiddenDashboardTokens } from "./forbidden-dashboard-tokens";
 
 export interface VerifyInput {
   artifactType: ArtifactType;
-  files: { indexHtml: string | null; stylesCss: string | null };
+  files: {
+    indexHtml: string | null;
+    stylesCss?: string | null;
+  };
 }
 
 const HOMEPAGE_REQUIRED = [
   {
     id: "nav",
     label: "Top navigation",
-    re: /<nav[\s>]|class=["'][^"']*(?:site-nav|nav-links|navbar|navigation)[^"']*["']/i,
+    re: /<nav\b|class=["'][^"']*(?:site-header|site-navigation|nav-links|navbar|navigation)[^"']*["']/i,
   },
   {
     id: "hero",
     label: "Hero section",
-    re: /<section[^>]*data-section=["']hero["']|class=["'][^"']*hero[^"']*["']/i,
+    re: /data-section=["']hero["']|class=["'][^"']*hero[^"']*["']/i,
   },
   {
     id: "cta",
     label: "Primary CTA",
-    re: /class=["'][^"']*cta[^"']*["']|<a[^>]+(?:Get|Book|Schedule|Start)[^<]*<\/a>/i,
+    re: /class=["'][^"']*\bcta\b[^"']*["']|(?:Get|Book|Schedule|Start|Request)\s+(?:a\s+)?(?:free\s+)?(?:consultation|now)/i,
   },
   {
     id: "practice",
@@ -31,61 +32,67 @@ const HOMEPAGE_REQUIRED = [
   },
   {
     id: "team",
-    label: "Attorneys / team / trust section",
-    re: /attorneys|our team|team-grid|partners|senior counsel|years of experience|trust-bar/i,
+    label: "Attorneys / team section",
+    re: /attorneys|our team|team-grid|partners|senior counsel/i,
   },
   {
     id: "pricing",
     label: "Pricing or process section",
-    re: /pricing|price-card|how we work|workflow-steps|process|retainer|consultation packages/i,
+    re: /pricing|price-card|how it works|process-list|process-section|retainer|consultation/i,
   },
   {
     id: "contact",
     label: "Contact / consultation section",
-    re: /contact|consultation|book a (call|consult)|free consultation/i,
-  },
-  {
-    id: "styled",
-    label: "Has stylesheet content",
-    re: /./, // checked separately below
+    re: /contact|consultation|book a (call|consult)|free consultation|request consultation/i,
   },
 ];
 
-const DASHBOARD_REQUIRED = [
-  { id: "nav", label: "Navigation", re: /<nav|sidebar|navigation/i },
-  {
-    id: "cockpit",
-    label: "Cockpit / matter board shell",
-    re: /case cockpit|matter board|workflow|pipeline|board|cockpit|queue|tasks?/i,
-  },
-  { id: "data", label: "Data/state surface", re: /<table|data-grid|kpi|metric|chart/i },
-  {
-    id: "admin-shell",
-    label: "Admin/app shell actions",
-    re: /admin panel|app[-\s]*dashboard|<button|action|primary-cta/i,
-  },
-];
-
-function checkHomepage(html: string, css: string | null): VerificationResult {
+function homepageChecks(html: string, css: string | null | undefined): VerificationResult {
   const checks: VerificationCheck[] = [];
   const fullOutput = `${html}\n${css ?? ""}`;
-  for (const r of HOMEPAGE_REQUIRED) {
-    if (r.id === "styled") {
-      const hasCss = !!css && css.trim().length > 200;
-      const inlineStyle = /<style[\s>]/i.test(html);
-      checks.push({
-        id: r.id,
-        label: r.label,
-        passed: hasCss || inlineStyle,
-        detail: hasCss ? "styles.css present" : inlineStyle ? "inline <style>" : "no styles",
-      });
-      continue;
-    }
-    checks.push({ id: r.id, label: r.label, passed: r.re.test(html) });
+  const forbiddenTokensFound = findForbiddenDashboardTokens(fullOutput);
+
+  for (const required of HOMEPAGE_REQUIRED) {
+    const passed = required.re.test(html);
+    checks.push({
+      id: required.id,
+      label: required.label,
+      passed,
+      detail: passed ? "present" : "missing",
+    });
   }
-  const forbiddenTokensFound = FORBIDDEN_DASHBOARD_TOKENS.filter((t) => t.re.test(fullOutput)).map(
-    (t) => t.id,
-  );
+
+  const hasCss = typeof css === "string" && css.trim().length > 200;
+  const hasLinkedOrInlineStyle =
+    /<link[^>]+rel=["']stylesheet["']/i.test(html) || /<style[\s>]/i.test(html);
+  checks.push({
+    id: "styled",
+    label: "Has stylesheet content",
+    passed: hasCss || hasLinkedOrInlineStyle,
+    detail: hasCss
+      ? "styles.css present"
+      : hasLinkedOrInlineStyle
+        ? "style reference present"
+        : "no style source",
+  });
+  checks.push({
+    id: "responsive",
+    label: "Responsive meta viewport",
+    passed: /<meta[^>]+name=["']viewport["']/i.test(html),
+  });
+  const blogFraming =
+    /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i;
+  checks.push({
+    id: "no-blog",
+    label: "No blog/article/library/archive framing",
+    passed: !blogFraming.test(html),
+    detail: blogFraming.test(html) ? "forbidden blog/article/library/archive framing present" : "clean",
+  });
+  checks.push({
+    id: "not-raw-html",
+    label: "Not raw unstyled HTML",
+    passed: /<!doctype html>|<html\b/i.test(html) && (hasCss || hasLinkedOrInlineStyle),
+  });
   checks.push({
     id: "no-dashboard-tokens",
     label: "No forbidden dashboard tokens",
@@ -93,50 +100,47 @@ function checkHomepage(html: string, css: string | null): VerificationResult {
     detail:
       forbiddenTokensFound.length > 0
         ? `Homepage contains forbidden dashboard tokens: ${forbiddenTokensFound.join(", ")}`
-        : undefined,
+        : "clean",
   });
-  const blogRe =
-    /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i;
-  checks.push({
-    id: "no-blog",
-    label: "No blog/article/library/archive framing",
-    passed: !blogRe.test(html),
-    detail: blogRe.test(html) ? "forbidden blog/article framing present" : undefined,
-  });
-  // Raw unstyled HTML guard — if there's no <head> with styling and no css.
-  const headHasStyling = /<link[^>]+stylesheet|<style[\s>]/i.test(html);
-  checks.push({
-    id: "not-raw-html",
-    label: "Not raw unstyled HTML",
-    passed: headHasStyling || (!!css && css.length > 0),
-  });
-  // Mobile viewport meta.
-  checks.push({
-    id: "responsive",
-    label: "Responsive meta viewport",
-    passed: /<meta[^>]+name=["']viewport["']/i.test(html),
-  });
-  const failed = checks.filter((c) => !c.passed);
+
+  const failed = checks.filter((check) => !check.passed);
   return {
     passed: failed.length === 0,
     gate: "homepage",
     checks,
-    failedGates: failed.map((c) => c.detail ?? c.label),
+    failedGates: failed.map((check) => check.detail ?? check.label),
   };
 }
 
-function checkDashboard(html: string): VerificationResult {
-  const checks: VerificationCheck[] = DASHBOARD_REQUIRED.map((r) => ({
-    id: r.id,
-    label: r.label,
-    passed: r.re.test(html),
-  }));
-  const failed = checks.filter((c) => !c.passed);
+function dashboardChecks(html: string): VerificationResult {
+  const checks: VerificationCheck[] = [
+    {
+      id: "nav",
+      label: "Navigation",
+      passed: /nav|sidebar|menu/i.test(html),
+    },
+    {
+      id: "cockpit",
+      label: "Cockpit / workspace surface",
+      passed: /cockpit|board|metrics|workflow|table/i.test(html),
+    },
+    {
+      id: "data",
+      label: "Data surface",
+      passed: /table|card|metric|status|owner|timeline/i.test(html),
+    },
+    {
+      id: "admin-shell",
+      label: "Admin shell",
+      passed: /admin|role|permission|user/i.test(html),
+    },
+  ];
+  const failed = checks.filter((check) => !check.passed);
   return {
     passed: failed.length === 0,
     gate: "app_dashboard",
     checks,
-    failedGates: failed.map((c) => c.label),
+    failedGates: failed.map((check) => check.label),
   };
 }
 
@@ -151,18 +155,16 @@ export function verifyArtifact(input: VerifyInput): VerificationResult {
       failedGates: ["index.html exists"],
     };
   }
-  switch (input.artifactType) {
-    case "homepage":
-      return checkHomepage(html, css);
-    case "app_dashboard":
-    case "admin_panel":
-      return checkDashboard(html);
-    default:
-      return {
-        passed: true,
-        gate: input.artifactType,
-        checks: [{ id: "noop", label: "No gate for this artifact", passed: true }],
-        failedGates: [],
-      };
+  if (input.artifactType === "homepage") {
+    return homepageChecks(html, css);
   }
+  if (input.artifactType === "app_dashboard" || input.artifactType === "admin_panel") {
+    return dashboardChecks(html);
+  }
+  return {
+    passed: true,
+    gate: input.artifactType,
+    checks: [{ id: "noop", label: "No verifier for artifact type", passed: true }],
+    failedGates: [],
+  };
 }
