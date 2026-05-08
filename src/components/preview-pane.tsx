@@ -27,6 +27,7 @@ import {
   type GeneratedFiles,
   type ResolvedPreviewSource,
 } from "@/lib/preview-source";
+import { findForbiddenDashboardTokens } from "@/lib/agent-controller/forbidden-dashboard-tokens";
 
 export type PreviewDevice = "desktop" | "tablet" | "mobile";
 export type PreviewMode = "live" | "local";
@@ -398,6 +399,23 @@ function PreviewPaneImpl({
       hasSrcDoc: !!resolved.srcDoc,
     });
   }, [resolved, mode]);
+
+  useEffect(() => {
+    if (resolved.kind !== "local") return;
+    const src = localSrcDoc ?? resolved.srcDoc ?? "";
+    console.info("[yawb] preview.runtime_scan", {
+      source: resolved.source ?? resolved.url ?? "fallback:placeholder",
+      sourceHash: stableHash(src),
+      sourceTimestamp: new Date().toISOString(),
+      forbiddenTokensFound: findForbiddenDashboardTokens(src),
+      hasHomepageHero: /hero/i.test(src),
+      hasPracticeAreas: /practice\s*areas|practice-areas/i.test(src),
+      hasAttorneysOrTeam: /attorneys|team/i.test(src),
+      hasPricingOrProcess: /pricing|process/i.test(src),
+      hasContact: /contact/i.test(src),
+      hasConsultationCta: /consultation/i.test(src),
+    });
+  }, [localSrcDoc, resolved.kind, resolved.source, resolved.srcDoc, resolved.url]);
 
   // Compute the iframe's effective src URL (with selectedPage overlay for live).
   const iframeSrc = useMemo(() => {
