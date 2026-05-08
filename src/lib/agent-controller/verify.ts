@@ -1,6 +1,7 @@
 // Verifier — artifact-specific gates. Picks the gate based on intent.
 
 import type { ArtifactType, VerificationCheck, VerificationResult } from "./types";
+import { FORBIDDEN_DASHBOARD_TOKENS } from "./preview-mismatch";
 
 export interface VerifyInput {
   artifactType: ArtifactType;
@@ -50,33 +51,15 @@ const HOMEPAGE_REQUIRED = [
   },
 ];
 
-const HOMEPAGE_FORBIDDEN = [
-  {
-    id: "no-cockpit",
-    label: "No cockpit/matter board first-screen",
-    re: /case cockpit|matter board command center|matter board|kpi grid|active matters/i,
-  },
-  {
-    id: "no-app-shell",
-    label: "No app-dashboard/admin shell",
-    re: /\b(admin panel|rls polic|supabase locked|workflow-board)\b/i,
-  },
-  {
-    id: "no-blog",
-    label: "No blog/article/library/archive framing",
-    re: /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i,
-  },
-];
-
 const DASHBOARD_REQUIRED = [
   { id: "nav", label: "Navigation", re: /<nav|sidebar|navigation/i },
   {
-    id: "workflow",
-    label: "Workflow surface",
-    re: /workflow|pipeline|board|cockpit|queue|tasks?/i,
+    id: "cockpit",
+    label: "Cockpit / matter board shell",
+    re: /case cockpit|matter board|workflow|pipeline|board|cockpit|queue|tasks?/i,
   },
   { id: "data", label: "Data/state surface", re: /<table|data-grid|kpi|metric|chart/i },
-  { id: "actions", label: "Actions", re: /<button|action|primary-cta/i },
+  { id: "admin-shell", label: "Admin/app shell actions", re: /admin panel|app[-\s]*dashboard|<button|action|primary-cta/i },
 ];
 
 function checkHomepage(html: string, css: string | null): VerificationResult {
@@ -95,14 +78,25 @@ function checkHomepage(html: string, css: string | null): VerificationResult {
     }
     checks.push({ id: r.id, label: r.label, passed: r.re.test(html) });
   }
-  for (const f of HOMEPAGE_FORBIDDEN) {
-    checks.push({
-      id: f.id,
-      label: f.label,
-      passed: !f.re.test(html),
-      detail: f.re.test(html) ? "forbidden pattern present" : undefined,
-    });
-  }
+  const forbiddenTokensFound = FORBIDDEN_DASHBOARD_TOKENS.filter((t) => t.re.test(html)).map(
+    (t) => t.id,
+  );
+  checks.push({
+    id: "no-dashboard-tokens",
+    label: "No forbidden dashboard tokens",
+    passed: forbiddenTokensFound.length === 0,
+    detail:
+      forbiddenTokensFound.length > 0
+        ? `Homepage contains forbidden dashboard tokens: ${forbiddenTokensFound.join(", ")}`
+        : undefined,
+  });
+  const blogRe = /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i;
+  checks.push({
+    id: "no-blog",
+    label: "No blog/article/library/archive framing",
+    passed: !blogRe.test(html),
+    detail: blogRe.test(html) ? "forbidden blog/article framing present" : undefined,
+  });
   // Raw unstyled HTML guard — if there's no <head> with styling and no css.
   const headHasStyling = /<link[^>]+stylesheet|<style[\s>]/i.test(html);
   checks.push({
@@ -121,7 +115,7 @@ function checkHomepage(html: string, css: string | null): VerificationResult {
     passed: failed.length === 0,
     gate: "homepage",
     checks,
-    failedGates: failed.map((c) => c.label),
+    failedGates: failed.map((c) => c.detail ?? c.label),
   };
 }
 
