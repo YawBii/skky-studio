@@ -92,4 +92,6 @@ export interface AgentProof {
   repaired: boolean;
   canDeclareDone: boolean;
   blockedByActiveJob: boolean;
+  /** Files actually built (content) — populated when filesTouched is non-empty. */
+  outputs?: { indexHtml: string | null; stylesCss: string | null } | null;
 }
