@@ -3,7 +3,10 @@
 // handler to refuse "Done" and surface a visible warning.
 
 import type { ArtifactType } from "./types";
-import { FORBIDDEN_DASHBOARD_TOKENS, findForbiddenDashboardTokens } from "./forbidden-dashboard-tokens";
+import {
+  FORBIDDEN_DASHBOARD_TOKENS,
+  findForbiddenDashboardTokens,
+} from "./forbidden-dashboard-tokens";
 
 export { FORBIDDEN_DASHBOARD_TOKENS };
 
