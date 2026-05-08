@@ -150,5 +150,9 @@ export async function runAgentController(input: RunInput): Promise<AgentProof> {
     repaired,
     filesTouched: filesToWrite.map((f) => f.path),
     canDeclareDone: true,
+    outputs: {
+      indexHtml: filesToWrite.find((f) => f.path === "index.html")?.content ?? null,
+      stylesCss: filesToWrite.find((f) => f.path === "styles.css")?.content ?? null,
+    },
   };
 }
