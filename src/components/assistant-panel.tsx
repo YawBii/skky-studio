@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { detectBuildIntent } from "@/lib/build-intent";
+import { classifyAgentIntent, runAgentController } from "@/lib/agent-controller";
 import { streamChat as streamAiChat } from "@/services/ai";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
