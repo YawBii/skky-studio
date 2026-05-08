@@ -7,13 +7,7 @@ import { inspectAgentState } from "./inspect";
 import { decideAgentAction } from "./decide";
 import { verifyArtifact } from "./verify";
 import { buildLawFirmHomepage } from "./homepage-builder";
-import type {
-  AgentDecision,
-  AgentIntent,
-  AgentProof,
-  AgentState,
-  VerificationResult,
-} from "./types";
+import type { AgentDecision, AgentProof, AgentState } from "./types";
 
 export interface RunInput {
   projectId: string;
@@ -92,39 +86,33 @@ export async function runAgentController(input: RunInput): Promise<AgentProof> {
     return { ...baseProof, canDeclareDone: true };
   }
 
-  const first = executeBuild(intent, state);
-  let verification: VerificationResult = verifyArtifact({
+  const filesToWrite = buildHomepageFiles(state);
+  const builtIndexHtml = filesToWrite.find((file) => file.path === "index.html")?.content ?? null;
+  const builtStylesCss = filesToWrite.find((file) => file.path === "styles.css")?.content ?? null;
+  const verification = verifyArtifact({
     artifactType: "homepage",
     files: {
-      indexHtml: first.files.find((f) => f.path === "index.html")?.content ?? null,
-      stylesCss: first.files.find((f) => f.path === "styles.css")?.content ?? null,
+      indexHtml: builtIndexHtml,
+      stylesCss: builtStylesCss,
     },
   });
-
-  let repaired = false;
-  let filesToWrite = first.files;
-
-  if (!verification.passed) {
-    repaired = true;
-    const second = executeBuild(intent, state); // deterministic — same output
-    const reverify = verifyArtifact({
-      artifactType: "homepage",
-      files: {
-        indexHtml: second.files.find((f) => f.path === "index.html")?.content ?? null,
-        stylesCss: second.files.find((f) => f.path === "styles.css")?.content ?? null,
-      },
-    });
-    verification = reverify;
-    filesToWrite = second.files;
-  }
+  console.info("[yawb] agent.controller.homepage.verify", {
+    controller: "agent-controller-v1",
+    intent: "homepage",
+    verificationSource: "built-files",
+    verificationPassed: verification.passed,
+    failedGates: verification.failedGates,
+    builtIndexPreview: (builtIndexHtml ?? "").slice(0, 300),
+  });
 
   if (!verification.passed) {
     return {
       ...baseProof,
       verification,
-      repaired,
+      repaired: false,
       filesTouched: [],
       canDeclareDone: false,
+      outputs: { indexHtml: builtIndexHtml, stylesCss: builtStylesCss },
     };
   }
 
@@ -133,21 +121,19 @@ export async function runAgentController(input: RunInput): Promise<AgentProof> {
     return {
       ...baseProof,
       verification,
-      repaired,
+      repaired: false,
       filesTouched: [],
       canDeclareDone: false,
+      outputs: { indexHtml: builtIndexHtml, stylesCss: builtStylesCss },
     };
   }
 
   return {
     ...baseProof,
     verification,
-    repaired,
-    filesTouched: filesToWrite.map((f) => f.path),
+    repaired: false,
+    filesTouched: ["index.html", "styles.css"],
     canDeclareDone: true,
-    outputs: {
-      indexHtml: filesToWrite.find((f) => f.path === "index.html")?.content ?? null,
-      stylesCss: filesToWrite.find((f) => f.path === "styles.css")?.content ?? null,
-    },
+    outputs: { indexHtml: builtIndexHtml, stylesCss: builtStylesCss },
   };
 }
