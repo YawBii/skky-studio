@@ -618,6 +618,17 @@ export function AssistantPanel({
             },
           ]);
         }
+        console.info("[yawb] homepage.controller.runtime_proof", {
+          controller: "agent-controller-v1",
+          intent:
+            outcome.kind === "success"
+              ? outcome.proof.intent.artifactType
+              : agentIntent.artifactType,
+          outcome: outcome.kind,
+          legacyEnqueue: false,
+          agenticLoop: false,
+          filesTouched: outcome.kind === "success" ? outcome.filesTouched : [],
+        });
         return;
       }
     }
