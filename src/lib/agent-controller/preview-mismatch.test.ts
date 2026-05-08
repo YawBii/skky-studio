@@ -15,9 +15,11 @@ describe("detectPreviewMismatch", () => {
     "Matter board",
     "Case cockpit",
     "Active matters",
-    "RLS policies",
-    "Supabase locked",
+    "Dashboard",
     "Admin panel",
+    "Admin",
+    "RLS",
+    "Supabase",
     "KPI grid",
     "LexOS",
     "Client intake queue",
@@ -48,9 +50,11 @@ describe("detectPreviewMismatch", () => {
         "Matter board",
         "Case cockpit",
         "Active matters",
-        "RLS policies",
-        "Supabase locked",
+        "Dashboard",
         "Admin panel",
+        "Admin",
+        "RLS",
+        "Supabase",
         "KPI grid",
         "LexOS",
         "Client intake queue",
@@ -68,6 +72,6 @@ describe("detectPreviewMismatch", () => {
       css: ".admin-panel{display:block}.kpi-grid{display:grid}",
     });
     expect(r.previewMismatch).toBe(true);
-    expect(r.forbiddenTokensFound).toEqual(["Admin panel", "KPI grid"]);
+    expect(r.forbiddenTokensFound).toEqual(["Admin panel", "Admin", "KPI grid"]);
   });
 });
