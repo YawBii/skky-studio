@@ -36,7 +36,12 @@ describe("runAgentController homepage stale-state regression", () => {
     const writer = vi.fn(
       async (
         _projectId: string,
-        _files: Array<{ path: string; content: string; language: string; kind: "source" | "asset" }>,
+        _files: Array<{
+          path: string;
+          content: string;
+          language: string;
+          kind: "source" | "asset";
+        }>,
       ) => ({ ok: true }),
     );
     const proof = await runAgentController({
