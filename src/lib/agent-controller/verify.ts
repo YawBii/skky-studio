@@ -86,7 +86,9 @@ function homepageChecks(html: string, css: string | null | undefined): Verificat
     id: "no-blog",
     label: "No blog/article/library/archive framing",
     passed: !blogFraming.test(html),
-    detail: blogFraming.test(html) ? "forbidden blog/article/library/archive framing present" : "clean",
+    detail: blogFraming.test(html)
+      ? "forbidden blog/article/library/archive framing present"
+      : "clean",
   });
   checks.push({
     id: "not-raw-html",
