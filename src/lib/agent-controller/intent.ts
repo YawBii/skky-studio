@@ -75,6 +75,16 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
     }
   }
 
+  // Dashboard/cockpit/SaaS wins over admin when both present (admin panel is
+  // typically a sub-surface of an app_dashboard build).
+  if (explicitDashboard) {
+    return {
+      artifactType: "app_dashboard",
+      confidence: 0.85,
+      reason: "dashboard/cockpit/saas wording",
+      domain,
+    };
+  }
   if (ADMIN_HINTS.test(text)) {
     return { artifactType: "admin_panel", confidence: 0.85, reason: "admin/moderation wording", domain };
   }
