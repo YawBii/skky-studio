@@ -44,9 +44,7 @@ export type WorkspacesResult = {
   error?: string;
 };
 
-export async function listWorkspaces(
-  options: { force?: boolean } = {},
-): Promise<WorkspacesResult> {
+export async function listWorkspaces(options: { force?: boolean } = {}): Promise<WorkspacesResult> {
   const now = Date.now();
   if (!options.force) {
     if (wsCache && now - wsCache.at < WS_CACHE_TTL_MS) {

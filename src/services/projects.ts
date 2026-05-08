@@ -28,7 +28,6 @@ export function clearProjectsCache(workspaceId?: string): void {
   }
 }
 
-
 export interface Project {
   id: string;
   workspaceId: string;
