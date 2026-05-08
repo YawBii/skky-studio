@@ -10,6 +10,15 @@
 //                       not the Skky Group demo, so the user is not lied to.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
+import { bumpPerf } from "@/lib/perf-mode";
+
+const WS_CACHE_TTL_MS = 30_000;
+let wsCache: { at: number; result: WorkspacesResult } | null = null;
+let wsInflight: Promise<WorkspacesResult> | null = null;
+
+export function clearWorkspacesCache(): void {
+  wsCache = null;
+}
 
 export interface Workspace {
   id: string;
