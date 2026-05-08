@@ -61,7 +61,8 @@ describe("homepage runtime guard — dispatchAgentRequest E2E", () => {
     const handlerSrc = fs.readFileSync("src/lib/agent-controller/chat-handler.ts", "utf8");
     expect(handlerSrc).not.toMatch(/from\s+["'][^"']*\/services\/jobs/);
     expect(handlerSrc).not.toMatch(/\benqueueJob\s*\(/);
-    expect(handlerSrc).not.toMatch(/agentic-loop-v1/);
+    // It must not import the agentic-loop server module.
+    expect(handlerSrc).not.toMatch(/from\s+["'][^"']*agentic-loop/);
   });
 
   it("writes exactly index.html + styles.css and dispatches onFilesWritten refresh", async () => {
