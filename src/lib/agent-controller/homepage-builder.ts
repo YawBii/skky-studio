@@ -107,16 +107,16 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
     <section id="intake" class="intake">
       <div class="intake-grid">
         <div class="intake-copy">
-          <p class="eyebrow">Client Intake</p>
-          <h2>Tell us about your matter.</h2>
-          <p>Submit the basics in 2 minutes. A partner reviews every intake within one business day.</p>
+          <p class="eyebrow">Consultation</p>
+          <h2>Tell us about your legal goals.</h2>
+          <p>Submit the basics in 2 minutes. A partner reviews every consultation request within one business day.</p>
           <ul class="intake-bullets">
             <li>Encrypted, attorney–client privileged</li>
             <li>Free first consultation</li>
             <li>No obligation to retain</li>
           </ul>
         </div>
-        <form class="intake-form" aria-label="Case intake preview" onsubmit="event.preventDefault();">
+        <form class="intake-form" aria-label="Consultation request" onsubmit="event.preventDefault();">
           <label>Full name<input type="text" placeholder="Jane Doe" /></label>
           <label>Email<input type="email" placeholder="jane@example.com" /></label>
           <label>Practice area
@@ -177,13 +177,13 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
           <h3>Consultation</h3>
           <p class="price">$0<span>/ first call</span></p>
           <ul><li>30-minute partner call</li><li>Initial assessment</li><li>Written next steps</li></ul>
-          <a class="cta cta-ghost" href="#intake">Book free</a>
+          <a class="cta cta-ghost" href="#contact">Book free</a>
         </article>
         <article class="price-card price-card--featured">
           <h3>Engagement</h3>
           <p class="price">$2,400<span>/ matter</span></p>
           <ul><li>Dedicated partner</li><li>Document drafting</li><li>Filing & negotiation</li></ul>
-          <a class="cta cta-primary" href="#intake">Start engagement</a>
+          <a class="cta cta-primary" href="#contact">Start engagement</a>
         </article>
         <article class="price-card">
           <h3>Retainer</h3>
