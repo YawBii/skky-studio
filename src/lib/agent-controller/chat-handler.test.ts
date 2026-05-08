@@ -35,7 +35,8 @@ describe("dispatchAgentRequest — assistant chat homepage path", () => {
     expect(out.proof.controller).toBe("agent-controller-v1");
     expect(out.proof.verification?.passed).toBe(true);
     expect(writer).toHaveBeenCalledOnce();
-    const writtenPaths = (writer.mock.calls[0]![1] as Array<{ path: string }>).map((f) => f.path);
+    const call = writer.mock.calls[0] as unknown as [string, Array<{ path: string }>];
+    const writtenPaths = call[1].map((f) => f.path);
     expect(writtenPaths).toContain("index.html");
     expect(writtenPaths).toContain("styles.css");
     expect(onFilesWritten).toHaveBeenCalledWith({
