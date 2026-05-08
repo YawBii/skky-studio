@@ -56,15 +56,9 @@ describe("homepage runtime guard — dispatchAgentRequest E2E", () => {
     });
     expect(out.kind).toBe("success");
     if (out.kind !== "success") throw new Error("expected success");
-    // dispatchAgentRequest's source must not reference the legacy job pipeline.
-    const src = (await import("./chat-handler?raw" as string).catch(() => null)) as unknown;
-    void src; // best-effort; the real guarantee is the import graph below.
     // Static guarantee: chat-handler does not import enqueueJob.
-    const handlerSrc = (
-      await import("node:fs").then((fs) =>
-        fs.readFileSync("src/lib/agent-controller/chat-handler.ts", "utf8"),
-      )
-    ) as string;
+    const fs = await import("node:fs");
+    const handlerSrc = fs.readFileSync("src/lib/agent-controller/chat-handler.ts", "utf8");
     expect(handlerSrc).not.toMatch(/enqueueJob|ai\.plan|ai\.generate_changes|agentic-loop-v1/);
   });
 
