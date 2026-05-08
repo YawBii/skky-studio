@@ -10,6 +10,15 @@
 //                       not the Skky Group demo, so the user is not lied to.
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
+import { bumpPerf } from "@/lib/perf-mode";
+
+const WS_CACHE_TTL_MS = 30_000;
+let wsCache: { at: number; result: WorkspacesResult } | null = null;
+let wsInflight: Promise<WorkspacesResult> | null = null;
+
+export function clearWorkspacesCache(): void {
+  wsCache = null;
+}
 
 export interface Workspace {
   id: string;
@@ -35,7 +44,28 @@ export type WorkspacesResult = {
   error?: string;
 };
 
-export async function listWorkspaces(): Promise<WorkspacesResult> {
+export async function listWorkspaces(options: { force?: boolean } = {}): Promise<WorkspacesResult> {
+  const now = Date.now();
+  if (!options.force) {
+    if (wsCache && now - wsCache.at < WS_CACHE_TTL_MS) {
+      bumpPerf("workspaceListCacheHits");
+      return wsCache.result;
+    }
+    if (wsInflight) {
+      bumpPerf("workspaceListCacheHits");
+      return wsInflight;
+    }
+  }
+  bumpPerf("workspaceListFetches");
+  wsInflight = listWorkspacesImpl().finally(() => {
+    wsInflight = null;
+  });
+  const r = await wsInflight;
+  wsCache = { at: Date.now(), result: r };
+  return r;
+}
+
+async function listWorkspacesImpl(): Promise<WorkspacesResult> {
   let uid: string | undefined;
   let email: string | undefined;
   try {

@@ -54,6 +54,13 @@ export interface YawbPerfCounters {
   projectFilesFetches: number;
   builderRenders: number;
   lastRenderAt: number;
+  projectListFetches: number;
+  projectListCacheHits: number;
+  projectSelectFetches: number;
+  projectsLoadedEvents: number;
+  duplicateProjectsLoadedSuppressed: number;
+  workspaceListFetches: number;
+  workspaceListCacheHits: number;
 }
 
 export const perfCounters: YawbPerfCounters = {
@@ -65,6 +72,13 @@ export const perfCounters: YawbPerfCounters = {
   projectFilesFetches: 0,
   builderRenders: 0,
   lastRenderAt: 0,
+  projectListFetches: 0,
+  projectListCacheHits: 0,
+  projectSelectFetches: 0,
+  projectsLoadedEvents: 0,
+  duplicateProjectsLoadedSuppressed: 0,
+  workspaceListFetches: 0,
+  workspaceListCacheHits: 0,
 };
 
 if (typeof window !== "undefined") {

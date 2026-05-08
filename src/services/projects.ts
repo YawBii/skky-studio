@@ -6,6 +6,27 @@ import {
   readCurrentWorkspaceId,
   readDirectProject,
 } from "@/lib/project-selection";
+import { bumpPerf } from "@/lib/perf-mode";
+
+// Single-flight + cache + dedupe for listProjects.
+const PROJECTS_CACHE_TTL_MS = 30_000;
+const LOADED_DEDUPE_MS = 2_000;
+const projectsCache = new Map<string, { at: number; result: ProjectsResult }>();
+const projectsInflight = new Map<string, Promise<ProjectsResult>>();
+let lastLoadedKey = "";
+let lastLoadedAt = 0;
+
+function projectsCacheKey(workspaceId: string): string {
+  return `ws:${workspaceId}`;
+}
+
+export function clearProjectsCache(workspaceId?: string): void {
+  if (workspaceId) {
+    projectsCache.delete(projectsCacheKey(workspaceId));
+  } else {
+    projectsCache.clear();
+  }
+}
 
 export interface Project {
   id: string;
@@ -90,6 +111,7 @@ function readFallbackProject(requestedProjectId: string | null | undefined): Pro
 
 export async function listProjects(
   workspaceId: string | null | undefined,
+  options: { force?: boolean } = {},
 ): Promise<ProjectsResult> {
   if (!workspaceId) {
     setDiag({
@@ -112,64 +134,107 @@ export async function listProjects(
     return { projects: [], source: "no-workspace" };
   }
 
-  try {
-    console.info("[yawb] projects.query", { workspaceId });
-    const { data, error } = await supabase
-      .from("projects")
-      .select("id, workspace_id, name, slug, description, created_at")
-      .eq("workspace_id", workspaceId)
-      .order("created_at", { ascending: false });
+  const cacheKey = projectsCacheKey(workspaceId);
+  const now = Date.now();
 
-    if (error) {
-      console.warn("[yawb] projects.list error", error);
+  if (!options.force) {
+    const cached = projectsCache.get(cacheKey);
+    if (cached && now - cached.at < PROJECTS_CACHE_TTL_MS) {
+      bumpPerf("projectListCacheHits");
+      return cached.result;
+    }
+    const inflight = projectsInflight.get(cacheKey);
+    if (inflight) {
+      bumpPerf("projectListCacheHits");
+      return inflight;
+    }
+  }
+
+  bumpPerf("projectListFetches");
+  const promise = (async (): Promise<ProjectsResult> => {
+    try {
+      console.info("[yawb] projects.query", { workspaceId });
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, workspace_id, name, slug, description, created_at")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("[yawb] projects.list error", error);
+        setDiag({
+          workspaceId,
+          projectsCount: 0,
+          projectsSource: "error",
+          projectsQueryError: error,
+        });
+        pushDiag("projects.query.error", {
+          workspaceId,
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        return { projects: [], source: "error", error: error.message };
+      }
+      if (!data || data.length === 0) {
+        setDiag({
+          workspaceId,
+          projectsCount: 0,
+          projectsSource: "empty",
+          projectsQueryError: null,
+        });
+        pushDiag("projects.query.empty", { workspaceId, count: 0 });
+        const r: ProjectsResult = { projects: [], source: "empty" };
+        projectsCache.set(cacheKey, { at: Date.now(), result: r });
+        return r;
+      }
+      const projects = data.map(toProject);
+      setDiag({
+        workspaceId,
+        projectsCount: projects.length,
+        projectsSource: "supabase",
+        projectsQueryError: null,
+      });
+
+      // Dedupe identical projects.loaded events emitted within a short window.
+      const ids = projects.map((p) => p.id);
+      const dedupeKey = `${workspaceId}:${projects.length}:${ids.join(",")}`;
+      const tNow = Date.now();
+      if (dedupeKey === lastLoadedKey && tNow - lastLoadedAt < LOADED_DEDUPE_MS) {
+        bumpPerf("duplicateProjectsLoadedSuppressed");
+      } else {
+        lastLoadedKey = dedupeKey;
+        lastLoadedAt = tNow;
+        bumpPerf("projectsLoadedEvents");
+        pushDiag("projects.loaded", {
+          workspaceId,
+          count: projects.length,
+          projectIds: ids,
+        });
+        console.info("[yawb] projects.loaded", { workspaceId, count: projects.length });
+      }
+
+      const r: ProjectsResult = { projects, source: "supabase" };
+      projectsCache.set(cacheKey, { at: Date.now(), result: r });
+      return r;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
       setDiag({
         workspaceId,
         projectsCount: 0,
         projectsSource: "error",
-        projectsQueryError: error,
+        projectsQueryError: message,
       });
-      pushDiag("projects.query.error", {
-        workspaceId,
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
-      return { projects: [], source: "error", error: error.message };
+      pushDiag("projects.query.exception", { workspaceId, message });
+      return { projects: [], source: "error", error: message };
+    } finally {
+      projectsInflight.delete(cacheKey);
     }
-    if (!data || data.length === 0) {
-      setDiag({ workspaceId, projectsCount: 0, projectsSource: "empty", projectsQueryError: null });
-      pushDiag("projects.query.empty", { workspaceId, count: 0 });
-      return { projects: [], source: "empty" };
-    }
-    const projects = data.map(toProject);
-    setDiag({
-      workspaceId,
-      projectsCount: projects.length,
-      projectsSource: "supabase",
-      projectsQueryError: null,
-    });
-    pushDiag("projects.loaded", {
-      workspaceId,
-      count: projects.length,
-      projectIds: projects.map((p) => p.id),
-    });
-    console.info("[yawb] projects.loaded", { workspaceId, count: projects.length });
-    return {
-      projects,
-      source: "supabase",
-    };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    setDiag({
-      workspaceId,
-      projectsCount: 0,
-      projectsSource: "error",
-      projectsQueryError: message,
-    });
-    pushDiag("projects.query.exception", { workspaceId, message });
-    return { projects: [], source: "error", error: message };
-  }
+  })();
+
+  projectsInflight.set(cacheKey, promise);
+  return promise;
 }
 
 export async function getProjectById(
@@ -190,6 +255,7 @@ export async function getProjectById(
   }
 
   try {
+    bumpPerf("projectSelectFetches");
     console.info("[yawb] project.byId.query", { projectId });
     const { data, error } = await supabase
       .from("projects")
