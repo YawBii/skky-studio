@@ -158,10 +158,14 @@ describe("dispatchAgentRequest — assistant chat homepage path", () => {
       writer,
     });
     if (out.kind !== "success") throw new Error("expected success");
-    const s = summarizeProof(out.proof);
+    const s = summarizeProof(out.proof, out.previewMismatch);
     expect(s).toContain("controller: agent-controller-v1");
     expect(s).toContain("intent: homepage");
     expect(s).toContain('filesTouched: ["index.html", "styles.css"]');
     expect(s).toContain("verification.passed: true");
+    expect(s).toContain("legacyEnqueue: false");
+    expect(s).toContain("agentic-loop-v1: false");
+    expect(s).toContain("forbiddenTokensFound: []");
+    expect(s).toContain("previewMismatch: false");
   });
 });
