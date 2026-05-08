@@ -256,6 +256,7 @@ export async function getProjectById(
   }
 
   try {
+    bumpPerf("projectSelectFetches");
     console.info("[yawb] project.byId.query", { projectId });
     const { data, error } = await supabase
       .from("projects")
