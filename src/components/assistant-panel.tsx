@@ -552,6 +552,77 @@ export function AssistantPanel({
     setMessages((m) => [...m, { role: "user", content: text }]);
     setPrompt("");
 
+    if (project && workspace) {
+      // Agent Controller v1 — homepage intent ALWAYS routes here, before any
+      // model streaming, GitHub guard, or legacy ai.plan / ai.generate_changes enqueue.
+      // Every branch returns so failures cannot fall through to agentic-loop-v1.
+      const agentIntent = classifyAgentIntent({ userRequest: text });
+      if (agentIntent.artifactType === "homepage") {
+        console.info("[yawb] agent.controller.invoke", {
+          controller: "agent-controller-v1",
+          projectId: project.id,
+          intent: agentIntent.artifactType,
+          legacyEnqueue: false,
+        });
+        const outcome = await dispatchAgentRequest({
+          projectId: project.id,
+          workspaceId: workspace.id,
+          userRequest: text,
+          deps: {
+            onFilesWritten: ({ projectId: pid, filesTouched }) => {
+              window.dispatchEvent(
+                new CustomEvent("yawb:project-files-refresh", {
+                  detail: { projectId: pid, filesTouched },
+                }),
+              );
+              window.dispatchEvent(
+                new CustomEvent("yawb:preview-force-reload", { detail: { projectId: pid } }),
+              );
+            },
+          },
+        });
+        const proofSummary = "proof" in outcome ? summarizeProof(outcome.proof) : null;
+        console.info("[yawb] agent.controller.outcome", {
+          kind: outcome.kind,
+          proof: proofSummary,
+          legacyEnqueue: false,
+          agenticLoop: false,
+        });
+        if (outcome.kind === "success") {
+          toast.success("Homepage built");
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
+            },
+          ]);
+        } else if (outcome.kind === "blocked") {
+          toast(outcome.message);
+          setMessages((m) => [...m, { role: "assistant", content: outcome.message }]);
+        } else if (outcome.kind === "verification_failed") {
+          toast.error("Homepage verification failed");
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
+            },
+          ]);
+        } else if (outcome.kind === "error") {
+          toast.error(`Homepage controller error: ${outcome.message}`);
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `Homepage controller error: ${outcome.message}. No legacy job was enqueued.`,
+            },
+          ]);
+        }
+        return;
+      }
+    }
+
     if (
       project &&
       isGithubLinked &&
@@ -575,68 +646,6 @@ export function AssistantPanel({
     void streamModelReply(historySnapshot, text);
 
     if (!project || !workspace) return;
-
-    // Agent Controller v1 — homepage intent ALWAYS routes here. We never fall
-    // through to ai.plan / ai.generate_changes for a homepage request, even on
-    // error, because that would re-introduce the legacy editorial path.
-    const agentIntent = classifyAgentIntent({ userRequest: text });
-    if (agentIntent.artifactType === "homepage") {
-      console.info("[yawb] agent.controller.invoke", {
-        projectId: project.id,
-        intent: agentIntent.artifactType,
-      });
-      const outcome = await dispatchAgentRequest({
-        projectId: project.id,
-        workspaceId: workspace.id,
-        userRequest: text,
-        deps: {
-          onFilesWritten: ({ projectId: pid, filesTouched }) => {
-            window.dispatchEvent(
-              new CustomEvent("yawb:project-files-refresh", {
-                detail: { projectId: pid, filesTouched },
-              }),
-            );
-            window.dispatchEvent(
-              new CustomEvent("yawb:preview-force-reload", { detail: { projectId: pid } }),
-            );
-          },
-        },
-      });
-      console.info("[yawb] agent.controller.outcome", outcome);
-      if (outcome.kind === "success") {
-        toast.success("Homepage built");
-        setMessages((m) => [
-          ...m,
-          {
-            role: "assistant",
-            content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
-          },
-        ]);
-      } else if (outcome.kind === "blocked") {
-        toast(outcome.message);
-        setMessages((m) => [...m, { role: "assistant", content: outcome.message }]);
-      } else if (outcome.kind === "verification_failed") {
-        toast.error("Homepage verification failed");
-        setMessages((m) => [
-          ...m,
-          {
-            role: "assistant",
-            content: `${outcome.message}\n\n${summarizeProof(outcome.proof)}`,
-          },
-        ]);
-      } else if (outcome.kind === "error") {
-        toast.error(`Homepage controller error: ${outcome.message}`);
-        setMessages((m) => [
-          ...m,
-          {
-            role: "assistant",
-            content: `Homepage controller error: ${outcome.message}. No legacy job was enqueued.`,
-          },
-        ]);
-      }
-      // CRITICAL: do not fall through to legacy enqueue under any branch.
-      return;
-    }
 
     // Route real build prompts to the agentic build loop instead of stopping
     // at ai.plan. Plan-only / audit / review requests still use ai.plan.
