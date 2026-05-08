@@ -37,12 +37,39 @@ describe("dispatchAgentRequest — assistant chat homepage path", () => {
     expect(writer).toHaveBeenCalledOnce();
     const call = writer.mock.calls[0] as unknown as [string, Array<{ path: string }>];
     const writtenPaths = call[1].map((f) => f.path);
-    expect(writtenPaths).toContain("index.html");
-    expect(writtenPaths).toContain("styles.css");
+    expect(writtenPaths).toEqual(["index.html", "styles.css"]);
+    expect(writtenPaths).not.toContain("app.js");
+    expect(writtenPaths).not.toContain("README.md");
+    expect(writtenPaths.some((p) => p.startsWith("src/routes/") || p.startsWith("docs/sql/"))).toBe(
+      false,
+    );
+    expect(out.proof.controller).toBe("agent-controller-v1");
+    expect(JSON.stringify(out.proof)).not.toContain("agentic-loop-v1");
     expect(onFilesWritten).toHaveBeenCalledWith({
       projectId: "p1",
       filesTouched: ["index.html", "styles.css"],
     });
+  });
+
+  it.each([
+    "redesign homepage",
+    "make this a law firm homepage",
+    "build homepage",
+    "make homepage polished",
+  ])("handles '%s' without legacy ai.generate_changes fallback", async (userRequest) => {
+    const writer = vi.fn(async () => ({ ok: true }));
+    const out = await dispatchAgentRequest({
+      projectId: "p1",
+      workspaceId: "w1",
+      userRequest,
+      inspector: async () => emptyState(),
+      writer,
+    });
+    expect(out.kind).toBe("success");
+    if (out.kind !== "success") throw new Error("expected success");
+    expect(out.proof.intent.artifactType).toBe("homepage");
+    expect(out.proof.filesTouched).toEqual(["index.html", "styles.css"]);
+    expect(out.proof.controller).toBe("agent-controller-v1");
   });
 
   it("returns not_homepage for non-homepage prompts so the caller may use the legacy path", async () => {
@@ -104,10 +131,12 @@ describe("dispatchAgentRequest — assistant chat homepage path", () => {
   });
 
   it("propagates errors from runController without falling through", async () => {
+    const writer = vi.fn(async () => ({ ok: true }));
     const out = await dispatchAgentRequest({
       projectId: "p1",
       workspaceId: "w1",
       userRequest: "Redesign homepage for law firm",
+      writer,
       deps: {
         runController: async () => {
           throw new Error("boom");
@@ -116,6 +145,7 @@ describe("dispatchAgentRequest — assistant chat homepage path", () => {
     });
     expect(out.kind).toBe("error");
     if (out.kind === "error") expect(out.message).toBe("boom");
+    expect(writer).not.toHaveBeenCalled();
   });
 
   it("summarizeProof emits the required fields", async () => {
