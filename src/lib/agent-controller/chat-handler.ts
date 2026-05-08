@@ -76,6 +76,7 @@ export async function dispatchAgentRequest(input: DispatchInput): Promise<ChatHa
     const mismatch = detectPreviewMismatch({
       expectedArtifact: "homepage",
       html: proof.outputs?.indexHtml ?? null,
+      css: proof.outputs?.stylesCss ?? null,
     });
     if (mismatch.previewMismatch) {
       // Force a single refresh so the user sees the up-to-date state, but do
