@@ -37,7 +37,14 @@ function summarizeState(state: AgentState) {
   };
 }
 
-function executeBuild(intent: AgentIntent, state: AgentState) {
+interface BuildResultFile {
+  path: string;
+  content: string;
+  language: string;
+  kind: "source" | "asset";
+}
+
+function executeBuild(intent: AgentIntent, state: AgentState): { files: BuildResultFile[] } {
   if (intent.artifactType === "homepage") {
     const out = buildLawFirmHomepage({
       project: state.project ?? { id: "unknown", name: "Project" },
