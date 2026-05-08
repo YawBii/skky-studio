@@ -1,0 +1,153 @@
+// Verifier — artifact-specific gates. Picks the gate based on intent.
+
+import type { ArtifactType, VerificationCheck, VerificationResult } from "./types";
+
+export interface VerifyInput {
+  artifactType: ArtifactType;
+  files: { indexHtml: string | null; stylesCss: string | null };
+}
+
+const HOMEPAGE_REQUIRED = [
+  {
+    id: "hero",
+    label: "Hero section",
+    re: /<section[^>]*data-section=["']hero["']|class=["'][^"']*hero[^"']*["']/i,
+  },
+  {
+    id: "cta",
+    label: "Primary CTA",
+    re: /class=["'][^"']*cta[^"']*["']|<a[^>]+(?:Get|Book|Schedule|Start)[^<]*<\/a>/i,
+  },
+  {
+    id: "practice",
+    label: "Practice/services section",
+    re: /Practice\s?Areas|Services|practice-areas|services-grid/i,
+  },
+  {
+    id: "trust",
+    label: "Trust proof / firm stats",
+    re: /trust|compliance|secure|years of experience|verified|stats|trust-bar/i,
+  },
+  {
+    id: "contact",
+    label: "Contact / consultation section",
+    re: /contact|consultation|book a (call|consult)|free consultation/i,
+  },
+  {
+    id: "styled",
+    label: "Has stylesheet content",
+    re: /./, // checked separately below
+  },
+];
+
+const HOMEPAGE_FORBIDDEN = [
+  {
+    id: "no-cockpit",
+    label: "No cockpit/matter board first-screen",
+    re: /case cockpit|matter board command center|kpi grid as main/i,
+  },
+  {
+    id: "no-blog",
+    label: "No blog/article/library/archive framing",
+    re: /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i,
+  },
+];
+
+const DASHBOARD_REQUIRED = [
+  { id: "nav", label: "Navigation", re: /<nav|sidebar|navigation/i },
+  {
+    id: "workflow",
+    label: "Workflow surface",
+    re: /workflow|pipeline|board|cockpit|queue|tasks?/i,
+  },
+  { id: "data", label: "Data/state surface", re: /<table|data-grid|kpi|metric|chart/i },
+  { id: "actions", label: "Actions", re: /<button|action|primary-cta/i },
+];
+
+function checkHomepage(html: string, css: string | null): VerificationResult {
+  const checks: VerificationCheck[] = [];
+  for (const r of HOMEPAGE_REQUIRED) {
+    if (r.id === "styled") {
+      const hasCss = !!css && css.trim().length > 200;
+      const inlineStyle = /<style[\s>]/i.test(html);
+      checks.push({
+        id: r.id,
+        label: r.label,
+        passed: hasCss || inlineStyle,
+        detail: hasCss ? "styles.css present" : inlineStyle ? "inline <style>" : "no styles",
+      });
+      continue;
+    }
+    checks.push({ id: r.id, label: r.label, passed: r.re.test(html) });
+  }
+  for (const f of HOMEPAGE_FORBIDDEN) {
+    checks.push({
+      id: f.id,
+      label: f.label,
+      passed: !f.re.test(html),
+      detail: f.re.test(html) ? "forbidden pattern present" : undefined,
+    });
+  }
+  // Raw unstyled HTML guard — if there's no <head> with styling and no css.
+  const headHasStyling = /<link[^>]+stylesheet|<style[\s>]/i.test(html);
+  checks.push({
+    id: "not-raw-html",
+    label: "Not raw unstyled HTML",
+    passed: headHasStyling || (!!css && css.length > 0),
+  });
+  // Mobile viewport meta.
+  checks.push({
+    id: "responsive",
+    label: "Responsive meta viewport",
+    passed: /<meta[^>]+name=["']viewport["']/i.test(html),
+  });
+  const failed = checks.filter((c) => !c.passed);
+  return {
+    passed: failed.length === 0,
+    gate: "homepage",
+    checks,
+    failedGates: failed.map((c) => c.label),
+  };
+}
+
+function checkDashboard(html: string): VerificationResult {
+  const checks: VerificationCheck[] = DASHBOARD_REQUIRED.map((r) => ({
+    id: r.id,
+    label: r.label,
+    passed: r.re.test(html),
+  }));
+  const failed = checks.filter((c) => !c.passed);
+  return {
+    passed: failed.length === 0,
+    gate: "app_dashboard",
+    checks,
+    failedGates: failed.map((c) => c.label),
+  };
+}
+
+export function verifyArtifact(input: VerifyInput): VerificationResult {
+  const html = input.files.indexHtml ?? "";
+  const css = input.files.stylesCss ?? null;
+  if (!html.trim()) {
+    return {
+      passed: false,
+      gate: input.artifactType,
+      checks: [{ id: "exists", label: "index.html exists", passed: false }],
+      failedGates: ["index.html exists"],
+    };
+  }
+  switch (input.artifactType) {
+    case "homepage":
+      return checkHomepage(html, css);
+    case "app_dashboard":
+    case "admin_panel":
+      return checkDashboard(html);
+    default:
+      return {
+        passed: true,
+        gate: input.artifactType,
+        checks: [{ id: "noop", label: "No gate for this artifact", passed: true }],
+        failedGates: [],
+      };
+  }
+}

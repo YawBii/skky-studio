@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { detectBuildIntent } from "@/lib/build-intent";
+import { classifyAgentIntent, runAgentController } from "@/lib/agent-controller";
 import { streamChat as streamAiChat } from "@/services/ai";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
@@ -573,6 +574,58 @@ export function AssistantPanel({
     void streamModelReply(historySnapshot, text);
 
     if (!project || !workspace) return;
+
+    // Agent Controller v1 — for homepage intent only (Phase 1b wiring).
+    // Other intents fall through to the legacy ai.plan/ai.generate_changes path.
+    const agentIntent = classifyAgentIntent({ userRequest: text });
+    if (agentIntent.artifactType === "homepage") {
+      console.info("[yawb] agent.controller.invoke", {
+        projectId: project.id,
+        intent: agentIntent.artifactType,
+      });
+      try {
+        const proof = await runAgentController({
+          projectId: project.id,
+          workspaceId: workspace.id,
+          userRequest: text,
+        });
+        console.info("[yawb] agent.controller.proof", proof);
+        if (proof.blockedByActiveJob) {
+          toast(proof.decision.message);
+          setMessages((m) => [...m, { role: "assistant", content: proof.decision.message }]);
+          return;
+        }
+        if (proof.canDeclareDone && proof.filesTouched.length > 0) {
+          toast.success("Building homepage");
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `Building homepage — wrote ${proof.filesTouched.join(", ")}.`,
+            },
+          ]);
+          window.dispatchEvent(
+            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
+          );
+          return;
+        }
+        // Verification failed even after one repair — surface it but do not enqueue.
+        if (proof.verification && !proof.verification.passed) {
+          toast.error("Homepage verification failed");
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `Homepage verification failed: ${proof.verification!.failedGates.join(", ")}`,
+            },
+          ]);
+          return;
+        }
+      } catch (err) {
+        console.error("[yawb] agent.controller.error", err);
+        // Fall through to legacy path on unexpected error.
+      }
+    }
 
     // Route real build prompts to the agentic build loop instead of stopping
     // at ai.plan. Plan-only / audit / review requests still use ai.plan.
