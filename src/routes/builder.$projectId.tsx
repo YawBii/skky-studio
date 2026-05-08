@@ -219,6 +219,20 @@ function Builder() {
     enabled: tab === "preview" && !anyJobActive && !previewBlocked,
   });
 
+  // Allow other modules (assistant chat agent controller) to request a
+  // project_files refresh after writing index.html / styles.css.
+  useEffect(() => {
+    const pid = project?.id;
+    if (!pid) return;
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { projectId?: string } | undefined;
+      if (!detail || detail.projectId !== pid) return;
+      void filesApi.refresh();
+    };
+    window.addEventListener("yawb:project-files-refresh", handler);
+    return () => window.removeEventListener("yawb:project-files-refresh", handler);
+  }, [project?.id, filesApi]);
+
   // GitHub-linked projects are treated as the source of truth — yawB must
   // NOT synthesize a preview from raw repo HTML (relative asset paths like
   // /src/main.tsx can't resolve in a sandboxed srcDoc, so the preview looks
