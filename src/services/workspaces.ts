@@ -44,7 +44,30 @@ export type WorkspacesResult = {
   error?: string;
 };
 
-export async function listWorkspaces(): Promise<WorkspacesResult> {
+export async function listWorkspaces(
+  options: { force?: boolean } = {},
+): Promise<WorkspacesResult> {
+  const now = Date.now();
+  if (!options.force) {
+    if (wsCache && now - wsCache.at < WS_CACHE_TTL_MS) {
+      bumpPerf("workspaceListCacheHits");
+      return wsCache.result;
+    }
+    if (wsInflight) {
+      bumpPerf("workspaceListCacheHits");
+      return wsInflight;
+    }
+  }
+  bumpPerf("workspaceListFetches");
+  wsInflight = listWorkspacesImpl().finally(() => {
+    wsInflight = null;
+  });
+  const r = await wsInflight;
+  wsCache = { at: Date.now(), result: r };
+  return r;
+}
+
+async function listWorkspacesImpl(): Promise<WorkspacesResult> {
   let uid: string | undefined;
   let email: string | undefined;
   try {
