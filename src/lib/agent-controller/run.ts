@@ -44,20 +44,15 @@ interface BuildResultFile {
   kind: "source" | "asset";
 }
 
-function executeBuild(intent: AgentIntent, state: AgentState): { files: BuildResultFile[] } {
-  if (intent.artifactType === "homepage") {
-    const out = buildLawFirmHomepage({
-      project: state.project ?? { id: "unknown", name: "Project" },
-      domain: intent.domain ?? "law-firm",
-    });
-    return {
-      files: [
-        { path: "index.html", content: out.indexHtml, language: "html", kind: "source" },
-        { path: "styles.css", content: out.stylesCss, language: "css", kind: "source" },
-      ],
-    };
-  }
-  return { files: [] };
+function buildHomepageFiles(state: AgentState): BuildResultFile[] {
+  const output = buildLawFirmHomepage({
+    project: state.project ?? { id: "unknown", name: "Project", description: null },
+    domain: "law-firm",
+  });
+  return [
+    { path: "index.html", content: output.indexHtml, language: "html", kind: "source" },
+    { path: "styles.css", content: output.stylesCss, language: "css", kind: "source" },
+  ];
 }
 
 export async function runAgentController(input: RunInput): Promise<AgentProof> {
