@@ -9,6 +9,11 @@ export interface VerifyInput {
 
 const HOMEPAGE_REQUIRED = [
   {
+    id: "nav",
+    label: "Top navigation",
+    re: /<nav[\s>]|class=["'][^"']*(?:site-nav|nav-links|navbar|navigation)[^"']*["']/i,
+  },
+  {
     id: "hero",
     label: "Hero section",
     re: /<section[^>]*data-section=["']hero["']|class=["'][^"']*hero[^"']*["']/i,
@@ -24,9 +29,14 @@ const HOMEPAGE_REQUIRED = [
     re: /Practice\s?Areas|Services|practice-areas|services-grid/i,
   },
   {
-    id: "trust",
-    label: "Trust proof / firm stats",
-    re: /trust|compliance|secure|years of experience|verified|stats|trust-bar/i,
+    id: "team",
+    label: "Attorneys / team / trust section",
+    re: /attorneys|our team|team-grid|partners|senior counsel|years of experience|trust-bar/i,
+  },
+  {
+    id: "pricing",
+    label: "Pricing or process section",
+    re: /pricing|price-card|how we work|workflow-steps|process|retainer|consultation packages/i,
   },
   {
     id: "contact",
@@ -44,7 +54,12 @@ const HOMEPAGE_FORBIDDEN = [
   {
     id: "no-cockpit",
     label: "No cockpit/matter board first-screen",
-    re: /case cockpit|matter board command center|kpi grid as main/i,
+    re: /case cockpit|matter board command center|matter board|kpi grid|active matters/i,
+  },
+  {
+    id: "no-app-shell",
+    label: "No app-dashboard/admin shell",
+    re: /\b(admin panel|rls polic|supabase locked|workflow-board)\b/i,
   },
   {
     id: "no-blog",
