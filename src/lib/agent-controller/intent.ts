@@ -1,42 +1,74 @@
-// Intent classifier for the Agent Controller.
-//
-// Pure function; no I/O. Determines what the user is asking for.
-
-import type { AgentIntent, ArtifactType } from "./types";
-
-const PLAN_VERBS = /\b(plan|audit|review|analy[sz]e|outline|propose)\b/i;
-const BUILD_VERBS =
-  /\b(build|create|make|implement|ship|scaffold|generate|design|redesign|replace|launch|update|add)\b/i;
-
-const HOMEPAGE_HINTS =
-  /\b(home\s?page|landing\s?page|website|marketing\s?site|business\s?(site|website)|firm\s?(site|website)|public\s?site)\b/i;
-
-const DASHBOARD_HINTS =
-  /\b(dashboard|cockpit|control\s?center|saas\s?app|workbench|operator\s?app|matter\s?board|case\s?cockpit)\b/i;
-
-const ADMIN_HINTS = /\b(admin\s?panel|moderation|backoffice|back-office|ops\s?console)\b/i;
-const CRM_HINTS = /\b(crm|customer\s?relationship|pipeline|leads?\s?manager)\b/i;
-const MARKETPLACE_HINTS = /\b(marketplace|two-?sided|listings?|catalogue?|storefront)\b/i;
-const AUTH_HINTS = /\b(auth\s?flow|login\s?flow|sign[\s-]?in|sign[\s-]?up|password\s?reset)\b/i;
-const SCHEMA_HINTS = /\b(database|schema|migration|table|rls\s?polic)/i;
-const DEPLOY_HINTS = /\b(deploy|production\s?build|publish|ship\s?live|vercel)\b/i;
-const FIX_HINTS = /\b(fix|bug|broken|error|repair|stale|not\s?working|hotfix)\b/i;
-
-const DOMAIN_LAW = /\b(law\s?firm|legal|attorney|lawyer|barrister|counsel)\b/i;
+import type { AgentIntent } from "./types";
 
 export interface ClassifyInput {
   userRequest: string;
 }
 
+function hasAny(text: string, terms: string[]): boolean {
+  return terms.some((term) => text.includes(term));
+}
+
+function indexOfAny(text: string, terms: string[]): number {
+  const matches = terms.map((term) => text.indexOf(term)).filter((i) => i >= 0);
+  return matches.length ? Math.min(...matches) : -1;
+}
+
+const planTerms = ["plan", "audit", "review", "analyze", "analyse", "outline", "propose"];
+const buildTerms = [
+  "build",
+  "create",
+  "make",
+  "implement",
+  "ship",
+  "scaffold",
+  "generate",
+  "design",
+  "redesign",
+  "replace",
+  "launch",
+  "update",
+  "add",
+  "turn",
+  "convert",
+  "transform",
+  "fit",
+  "change",
+];
+const homepageTerms = [
+  "homepage",
+  "home page",
+  "landing page",
+  "website",
+  "marketing site",
+  "business site",
+  "business website",
+  "firm site",
+  "firm website",
+  "public site",
+  "public-facing site",
+  "public facing site",
+  "site",
+];
+const dashboardTerms = [
+  "dashboard",
+  "cockpit",
+  "control center",
+  "saas app",
+  "workbench",
+  "operator app",
+  "matter board",
+  "case cockpit",
+];
+const replacementTerms = ["redesign", "make", "turn", "convert", "replace", "fit", "change", "transform"];
+const lawTerms = ["law firm", "legal", "attorney", "lawyer", "counsel"];
+
 export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
-  const text = (input.userRequest ?? "").trim();
-  if (!text) {
-    return { artifactType: "unknown", confidence: 0, reason: "empty input" };
-  }
+  const raw = (input.userRequest ?? "").trim();
+  const text = raw.toLowerCase();
+  if (!text) return { artifactType: "unknown", confidence: 0, reason: "empty input" };
 
-  const domain = DOMAIN_LAW.test(text) ? "law-firm" : null;
-  const isPlanOnly = PLAN_VERBS.test(text) && !BUILD_VERBS.test(text);
-
+  const domain = hasAny(text, lawTerms) ? "law-firm" : null;
+  const isPlanOnly = hasAny(text, planTerms) && !hasAny(text, buildTerms);
   if (isPlanOnly) {
     return {
       artifactType: "plan_only",
@@ -46,37 +78,32 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
     };
   }
 
-  // "Redesign homepage for X" must classify as homepage even if X mentions
-  // dashboard-y words elsewhere. Homepage hints win when present and the
-  // user is not asking for an explicit dashboard/app build.
-  const explicitDashboard = DASHBOARD_HINTS.test(text);
-  const explicitHomepage = HOMEPAGE_HINTS.test(text);
+  const homepageIdx = indexOfAny(text, homepageTerms);
+  const dashboardIdx = indexOfAny(text, dashboardTerms);
+  const explicitHomepage = homepageIdx >= 0;
+  const explicitDashboard = dashboardIdx >= 0;
+  const replacementIdx = indexOfAny(text, replacementTerms);
 
-  if (explicitHomepage && !explicitDashboard) {
+  if (explicitHomepage && replacementIdx >= 0) {
     return {
       artifactType: "homepage",
-      confidence: 0.95,
-      reason: "matched homepage/landing/website wording",
+      confidence: 0.98,
+      reason: "homepage replacement/redesign intent",
       domain,
     };
   }
 
-  if (explicitHomepage && explicitDashboard) {
-    // Tie-break: if the user said "homepage" first, prefer homepage.
-    const homeIdx = text.search(HOMEPAGE_HINTS);
-    const dashIdx = text.search(DASHBOARD_HINTS);
-    if (homeIdx >= 0 && (dashIdx < 0 || homeIdx <= dashIdx)) {
-      return {
-        artifactType: "homepage",
-        confidence: 0.7,
-        reason: "homepage and dashboard both mentioned; homepage first",
-        domain,
-      };
-    }
+  if (explicitHomepage && (!explicitDashboard || homepageIdx <= dashboardIdx)) {
+    return {
+      artifactType: "homepage",
+      confidence: explicitDashboard ? 0.7 : 0.95,
+      reason: explicitDashboard
+        ? "homepage and dashboard both mentioned; homepage first"
+        : "matched homepage/landing/website wording",
+      domain,
+    };
   }
 
-  // Dashboard/cockpit/SaaS wins over admin when both present (admin panel is
-  // typically a sub-surface of an app_dashboard build).
   if (explicitDashboard) {
     return {
       artifactType: "app_dashboard",
@@ -85,42 +112,27 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
       domain,
     };
   }
-  if (ADMIN_HINTS.test(text)) {
-    return {
-      artifactType: "admin_panel",
-      confidence: 0.85,
-      reason: "admin/moderation wording",
-      domain,
-    };
+  if (text.includes("admin panel") || text.includes("moderation") || text.includes("backoffice") || text.includes("back-office") || text.includes("ops console")) {
+    return { artifactType: "admin_panel", confidence: 0.85, reason: "admin/moderation wording", domain };
   }
-  if (CRM_HINTS.test(text)) {
+  if (text.includes("crm") || text.includes("customer relationship") || text.includes("pipeline") || text.includes("lead manager") || text.includes("leads manager")) {
     return { artifactType: "crm", confidence: 0.85, reason: "crm/pipeline wording", domain };
   }
-  if (MARKETPLACE_HINTS.test(text)) {
+  if (text.includes("marketplace") || text.includes("two-sided") || text.includes("listing") || text.includes("catalogue") || text.includes("catalog") || text.includes("storefront")) {
     return { artifactType: "marketplace", confidence: 0.85, reason: "marketplace wording", domain };
   }
-  if (AUTH_HINTS.test(text)) {
+  if (text.includes("auth flow") || text.includes("login flow") || text.includes("sign in") || text.includes("sign up") || text.includes("password reset")) {
     return { artifactType: "auth_flow", confidence: 0.8, reason: "auth/login wording", domain };
   }
-  if (SCHEMA_HINTS.test(text)) {
-    return {
-      artifactType: "database_schema",
-      confidence: 0.8,
-      reason: "schema/migration wording",
-      domain,
-    };
+  if (text.includes("database") || text.includes("schema") || text.includes("migration") || text.includes("table") || text.includes("rls polic")) {
+    return { artifactType: "database_schema", confidence: 0.8, reason: "schema/migration wording", domain };
   }
-  if (DEPLOY_HINTS.test(text)) {
+  if (text.includes("deploy") || text.includes("production build") || text.includes("publish") || text.includes("ship live") || text.includes("vercel")) {
     return { artifactType: "deploy", confidence: 0.8, reason: "deploy/publish wording", domain };
   }
-  if (FIX_HINTS.test(text)) {
+  if (text.includes("fix") || text.includes("bug") || text.includes("broken") || text.includes("error") || text.includes("repair") || text.includes("stale") || text.includes("not working") || text.includes("hotfix")) {
     return { artifactType: "fix_bug", confidence: 0.75, reason: "fix/bug/repair wording", domain };
   }
 
-  return {
-    artifactType: "unknown",
-    confidence: 0.3,
-    reason: "no strong signal in request",
-    domain,
-  };
+  return { artifactType: "unknown", confidence: 0.3, reason: "no strong signal in request", domain };
 }
