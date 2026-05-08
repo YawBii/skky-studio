@@ -103,14 +103,6 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
   if (DEPLOY_HINTS.test(text)) {
     return { artifactType: "deploy", confidence: 0.8, reason: "deploy/publish wording", domain };
   }
-  if (explicitDashboard) {
-    return {
-      artifactType: "app_dashboard",
-      confidence: 0.85,
-      reason: "dashboard/cockpit/saas wording",
-      domain,
-    };
-  }
   if (FIX_HINTS.test(text)) {
     return { artifactType: "fix_bug", confidence: 0.75, reason: "fix/bug/repair wording", domain };
   }
