@@ -59,7 +59,11 @@ const DASHBOARD_REQUIRED = [
     re: /case cockpit|matter board|workflow|pipeline|board|cockpit|queue|tasks?/i,
   },
   { id: "data", label: "Data/state surface", re: /<table|data-grid|kpi|metric|chart/i },
-  { id: "admin-shell", label: "Admin/app shell actions", re: /admin panel|app[-\s]*dashboard|<button|action|primary-cta/i },
+  {
+    id: "admin-shell",
+    label: "Admin/app shell actions",
+    re: /admin panel|app[-\s]*dashboard|<button|action|primary-cta/i,
+  },
 ];
 
 function checkHomepage(html: string, css: string | null): VerificationResult {
@@ -90,7 +94,8 @@ function checkHomepage(html: string, css: string | null): VerificationResult {
         ? `Homepage contains forbidden dashboard tokens: ${forbiddenTokensFound.join(", ")}`
         : undefined,
   });
-  const blogRe = /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i;
+  const blogRe =
+    /\b(blog post|article series|publication|library archive|journal entry|manifesto|atelier)\b/i;
   checks.push({
     id: "no-blog",
     label: "No blog/article/library/archive framing",
