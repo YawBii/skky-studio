@@ -23,7 +23,7 @@ export interface RunInput {
   inspector?: (input: { projectId: string; workspaceId: string }) => Promise<AgentState>;
   writer?: (
     projectId: string,
-    files: Array<{ path: string; content: string; language: string; kind: string }>,
+    files: Array<{ path: string; content: string; language: string; kind: "source" | "asset" }>,
   ) => Promise<{ ok: boolean; error?: string }>;
 }
 
