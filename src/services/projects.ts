@@ -6,6 +6,28 @@ import {
   readCurrentWorkspaceId,
   readDirectProject,
 } from "@/lib/project-selection";
+import { bumpPerf } from "@/lib/perf-mode";
+
+// Single-flight + cache + dedupe for listProjects.
+const PROJECTS_CACHE_TTL_MS = 30_000;
+const LOADED_DEDUPE_MS = 2_000;
+const projectsCache = new Map<string, { at: number; result: ProjectsResult }>();
+const projectsInflight = new Map<string, Promise<ProjectsResult>>();
+let lastLoadedKey = "";
+let lastLoadedAt = 0;
+
+function projectsCacheKey(workspaceId: string): string {
+  return `ws:${workspaceId}`;
+}
+
+export function clearProjectsCache(workspaceId?: string): void {
+  if (workspaceId) {
+    projectsCache.delete(projectsCacheKey(workspaceId));
+  } else {
+    projectsCache.clear();
+  }
+}
+
 
 export interface Project {
   id: string;
