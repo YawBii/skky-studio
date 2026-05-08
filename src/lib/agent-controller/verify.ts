@@ -1,10 +1,6 @@
 // Verifier — artifact-specific gates. Picks the gate based on intent.
 
-import type {
-  ArtifactType,
-  VerificationCheck,
-  VerificationResult,
-} from "./types";
+import type { ArtifactType, VerificationCheck, VerificationResult } from "./types";
 
 export interface VerifyInput {
   artifactType: ArtifactType;
@@ -12,8 +8,16 @@ export interface VerifyInput {
 }
 
 const HOMEPAGE_REQUIRED = [
-  { id: "hero", label: "Hero section", re: /<section[^>]*data-section=["']hero["']|class=["'][^"']*hero[^"']*["']/i },
-  { id: "cta", label: "Primary CTA", re: /class=["'][^"']*cta[^"']*["']|<a[^>]+(?:Get|Book|Schedule|Start)[^<]*<\/a>/i },
+  {
+    id: "hero",
+    label: "Hero section",
+    re: /<section[^>]*data-section=["']hero["']|class=["'][^"']*hero[^"']*["']/i,
+  },
+  {
+    id: "cta",
+    label: "Primary CTA",
+    re: /class=["'][^"']*cta[^"']*["']|<a[^>]+(?:Get|Book|Schedule|Start)[^<]*<\/a>/i,
+  },
   {
     id: "practice",
     label: "Practice/services section",
@@ -51,7 +55,11 @@ const HOMEPAGE_FORBIDDEN = [
 
 const DASHBOARD_REQUIRED = [
   { id: "nav", label: "Navigation", re: /<nav|sidebar|navigation/i },
-  { id: "workflow", label: "Workflow surface", re: /workflow|pipeline|board|cockpit|queue|tasks?/i },
+  {
+    id: "workflow",
+    label: "Workflow surface",
+    re: /workflow|pipeline|board|cockpit|queue|tasks?/i,
+  },
   { id: "data", label: "Data/state surface", re: /<table|data-grid|kpi|metric|chart/i },
   { id: "actions", label: "Actions", re: /<button|action|primary-cta/i },
 ];

@@ -14,11 +14,16 @@ export interface HomepageBuildOutput {
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => {
     switch (c) {
-      case "&": return "&amp;";
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case '"': return "&quot;";
-      default: return "&#39;";
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
     }
   });
 }
@@ -150,7 +155,10 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
         ]
           .map(
             (a) => `<article class="team-card">
-            <div class="team-avatar" aria-hidden="true">${a.n.split(" ").map((p) => p[0]).join("")}</div>
+            <div class="team-avatar" aria-hidden="true">${a.n
+              .split(" ")
+              .map((p) => p[0])
+              .join("")}</div>
             <h3>${a.n}</h3>
             <p>${a.r}</p>
           </article>`,

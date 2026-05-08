@@ -7,8 +7,7 @@ export interface DecideInput {
   state: AgentState;
 }
 
-const BLOCKED_MESSAGE =
-  "Finish or cancel the current job before starting another.";
+const BLOCKED_MESSAGE = "Finish or cancel the current job before starting another.";
 
 export function decideAgentAction({ intent, state }: DecideInput): AgentDecision {
   // Active job always wins — never enqueue or run a second action.
@@ -43,10 +42,7 @@ export function decideAgentAction({ intent, state }: DecideInput): AgentDecision
   if (intent.artifactType === "homepage") {
     // Artifact mismatch → replace the offending files rather than running
     // the old design-angle regenerate path.
-    if (
-      state.currentArtifactType !== "unknown" &&
-      state.currentArtifactType !== "homepage"
-    ) {
+    if (state.currentArtifactType !== "unknown" && state.currentArtifactType !== "homepage") {
       return {
         action: "replace_target_file",
         reason: `current artifact ${state.currentArtifactType} != requested homepage`,

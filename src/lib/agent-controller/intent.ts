@@ -86,7 +86,12 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
     };
   }
   if (ADMIN_HINTS.test(text)) {
-    return { artifactType: "admin_panel", confidence: 0.85, reason: "admin/moderation wording", domain };
+    return {
+      artifactType: "admin_panel",
+      confidence: 0.85,
+      reason: "admin/moderation wording",
+      domain,
+    };
   }
   if (CRM_HINTS.test(text)) {
     return { artifactType: "crm", confidence: 0.85, reason: "crm/pipeline wording", domain };
@@ -98,7 +103,12 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
     return { artifactType: "auth_flow", confidence: 0.8, reason: "auth/login wording", domain };
   }
   if (SCHEMA_HINTS.test(text)) {
-    return { artifactType: "database_schema", confidence: 0.8, reason: "schema/migration wording", domain };
+    return {
+      artifactType: "database_schema",
+      confidence: 0.8,
+      reason: "schema/migration wording",
+      domain,
+    };
   }
   if (DEPLOY_HINTS.test(text)) {
     return { artifactType: "deploy", confidence: 0.8, reason: "deploy/publish wording", domain };

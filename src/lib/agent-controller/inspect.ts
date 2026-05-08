@@ -26,7 +26,11 @@ const STALE_MARKERS = [
 
 export function detectArtifactTypeFromHtml(html: string | null): ArtifactType {
   if (!html) return "unknown";
-  if (/yawb-artifact-type=["']homepage["']|<meta[^>]+name=["']yawb-artifact["'][^>]+content=["']homepage/i.test(html)) {
+  if (
+    /yawb-artifact-type=["']homepage["']|<meta[^>]+name=["']yawb-artifact["'][^>]+content=["']homepage/i.test(
+      html,
+    )
+  ) {
     return "homepage";
   }
   if (/Matter board|case cockpit|kpi grid|cockpit|dashboard/i.test(html)) {

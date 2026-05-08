@@ -592,10 +592,7 @@ export function AssistantPanel({
         console.info("[yawb] agent.controller.proof", proof);
         if (proof.blockedByActiveJob) {
           toast(proof.decision.message);
-          setMessages((m) => [
-            ...m,
-            { role: "assistant", content: proof.decision.message },
-          ]);
+          setMessages((m) => [...m, { role: "assistant", content: proof.decision.message }]);
           return;
         }
         if (proof.canDeclareDone && proof.filesTouched.length > 0) {

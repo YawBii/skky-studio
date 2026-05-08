@@ -11,8 +11,7 @@ describe("classifyAgentIntent", () => {
 
   it("classifies AI law firm app with cockpit/admin as app_dashboard", () => {
     const r = classifyAgentIntent({
-      userRequest:
-        "Build AI law firm app with case cockpit, invoices, admin panel, supabase",
+      userRequest: "Build AI law firm app with case cockpit, invoices, admin panel, supabase",
     });
     expect(r.artifactType).toBe("app_dashboard");
   });
