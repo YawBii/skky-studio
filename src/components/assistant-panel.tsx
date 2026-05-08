@@ -586,10 +586,17 @@ export function AssistantPanel({
             : undefined;
         const proofSummary = "proof" in outcome ? summarizeProof(outcome.proof, mismatch) : null;
         console.info("[yawb] agent.controller.outcome", {
+          chatRouteUsed: "assistant-panel.homepage-controller",
           kind: outcome.kind,
           proof: proofSummary,
+          controller: "agent-controller-v1",
+          jobsCreatedCount: 0,
           legacyEnqueue: false,
           agenticLoop: false,
+          filesWritten:
+            outcome.kind === "success" || outcome.kind === "preview_mismatch"
+              ? outcome.filesTouched
+              : [],
           previewMismatch: mismatch?.previewMismatch ?? false,
           forbiddenTokensFound: mismatch?.forbiddenTokensFound ?? [],
         });
@@ -634,12 +641,14 @@ export function AssistantPanel({
           ]);
         }
         console.info("[yawb] homepage.controller.runtime_proof", {
+          chatRouteUsed: "assistant-panel.homepage-controller",
           controller: "agent-controller-v1",
           intent:
             outcome.kind === "success" || outcome.kind === "preview_mismatch"
               ? outcome.proof.intent.artifactType
               : agentIntent.artifactType,
           outcome: outcome.kind,
+          jobsCreatedCount: 0,
           legacyEnqueue: false,
           agenticLoop: false,
           filesTouched:
