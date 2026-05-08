@@ -54,13 +54,13 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
         <span class="brand-name">${name}</span>
       </a>
       <nav class="nav-links" aria-label="Primary">
+        <a href="#top">Home</a>
         <a href="#practice">Practice Areas</a>
         <a href="#attorneys">Attorneys</a>
-        <a href="#intake">Case Intake</a>
         <a href="#pricing">Pricing</a>
         <a href="#contact">Contact</a>
       </nav>
-      <a class="nav-cta cta" href="#intake">Book consultation</a>
+      <a class="nav-cta cta" href="#contact">Book consultation</a>
     </div>
   </header>
 
@@ -71,7 +71,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
         <h1>Premium representation,<br/>without the friction.</h1>
         <p class="lede">${tagline}</p>
         <div class="hero-ctas">
-          <a class="cta cta-primary" href="#intake">Get a free consultation</a>
+          <a class="cta cta-primary" href="#contact">Get a free consultation</a>
           <a class="cta cta-ghost" href="#practice">Explore practice areas</a>
         </div>
       </div>
@@ -80,7 +80,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
     <section class="trust-bar" aria-label="Trust">
       <ul>
         <li><strong>SOC 2</strong><span>Compliance & secure client portal</span></li>
-        <li><strong>AI-assisted</strong><span>Case review in hours, not weeks</span></li>
+        <li><strong>AI-assisted</strong><span>Strategy outline in hours, not weeks</span></li>
         <li><strong>30+ yrs</strong><span>Combined courtroom experience</span></li>
         <li><strong>4.9 / 5</strong><span>Verified client outcomes</span></li>
       </ul>
@@ -96,7 +96,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
           .map(
             (p) => `<article class="practice-card">
             <h3>${p}</h3>
-            <p>Strategic ${p.toLowerCase()} counsel led by senior partners and supported by our AI case-review engine.</p>
+            <p>Strategic ${p.toLowerCase()} counsel led by senior partners and supported by focused legal research.</p>
             <a href="#contact">Talk to a ${p.toLowerCase()} attorney →</a>
           </article>`,
           )
