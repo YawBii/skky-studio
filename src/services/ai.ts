@@ -1,5 +1,6 @@
 // Client-side wrapper for the yawB AI gateway endpoint at /api/public/ai-chat.
 // Secrets stay on the server; this file never touches LOVABLE_API_KEY.
+import { detectBuildIntent } from "@/lib/build-intent";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -50,8 +51,25 @@ export type PlanResult =
       provider?: string;
     };
 
+function lastUserMessage(messages: ChatMessage[]): string {
+  return [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+}
+
+function buildPromptGuardMessage(prompt: string): string | null {
+  const intent = detectBuildIntent(prompt);
+  if (!intent.isBuild) return null;
+  return [
+    "Building now — I will write project files and refresh the preview instead of giving setup instructions.",
+    "",
+    `intent: build · reason: ${intent.reason}`,
+  ].join("\n");
+}
+
 /** Non-streaming chat completion. */
 export async function chat(messages: ChatMessage[]): Promise<ChatResult> {
+  const guarded = buildPromptGuardMessage(lastUserMessage(messages));
+  if (guarded) return { ok: true, content: guarded, model: "yawb-build-guard" };
+
   try {
     const r = await fetch(ENDPOINT, {
       method: "POST",
@@ -111,6 +129,12 @@ export async function streamChat(args: {
   onDelta: (chunk: string) => void;
   signal?: AbortSignal;
 }): Promise<{ model?: string }> {
+  const guarded = buildPromptGuardMessage(lastUserMessage(args.messages));
+  if (guarded) {
+    args.onDelta(guarded);
+    return { model: "yawb-build-guard" };
+  }
+
   const resp = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -157,7 +181,6 @@ export async function streamChat(args: {
         const delta = parsed.choices?.[0]?.delta?.content;
         if (delta) args.onDelta(delta);
       } catch {
-        // partial JSON across chunks — push back and wait
         buf = line + "\n" + buf;
         break;
       }
