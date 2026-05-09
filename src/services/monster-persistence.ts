@@ -1,3 +1,4 @@
+import { findForbiddenDashboardTokens } from "@/lib/agent-controller/forbidden-dashboard-tokens";
 import type { MonsterGeneratedFile, MonsterGenerationResult } from "./monster-orchestrator";
 
 export interface MonsterSupabaseLike {
@@ -24,24 +25,42 @@ function shouldPersist(file: MonsterGeneratedFile): boolean {
   return file.path === "index.html" || file.path === "styles.css" || file.path === "app.js";
 }
 
+function visibleOutput(files: MonsterGeneratedFile[]): string {
+  return files
+    .filter(shouldPersist)
+    .map((file) => file.content)
+    .join("\n");
+}
+
+function visualWarnings(input: MonsterGenerationResult): string[] {
+  return input.visualQuality.checks
+    .filter((check) => !check.passed)
+    .map((check) => `${check.label}: ${check.detail}`);
+}
+
 export async function persistMonsterGeneratedFiles(input: {
   sb: MonsterSupabaseLike;
   projectId: string;
   generation: MonsterGenerationResult;
 }): Promise<PersistMonsterProjectResult> {
-  if (!input.generation.visualQuality.passed) {
-    const failed = input.generation.visualQuality.checks
-      .filter((check) => !check.passed)
-      .map((check) => `${check.label}: ${check.detail}`)
-      .join("; ");
+  const files = input.generation.files.filter(shouldPersist);
+  if (!files.some((file) => file.path === "index.html")) {
     return {
       ok: false,
       written: [],
-      error: `visualQuality failed; refusing to persist generated preview: ${failed}`,
+      error: "Generator produced no visible index.html to persist.",
     };
   }
 
-  const files = input.generation.files.filter(shouldPersist);
+  const forbiddenTokens = findForbiddenDashboardTokens(visibleOutput(files));
+  if (forbiddenTokens.length > 0) {
+    return {
+      ok: false,
+      written: [],
+      error: `Forbidden dashboard tokens survived generation: ${forbiddenTokens.join(", ")}`,
+    };
+  }
+
   const written: string[] = [];
   for (const file of files) {
     const { error } = await input.sb.from("project_files").upsert(
@@ -65,6 +84,7 @@ export async function persistMonsterGeneratedFiles(input: {
   }
 
   const sorted = [...written].sort();
+  const warnings = visualWarnings(input.generation);
   return {
     ok: true,
     written: sorted,
@@ -78,6 +98,14 @@ export async function persistMonsterGeneratedFiles(input: {
       changedFiles: sorted,
       fileList: sorted,
       fileCount: sorted.length,
+      visualPassed: input.generation.visualQuality.passed,
+      designCritique:
+        warnings.length > 0
+          ? [
+              ...input.generation.output.designCritique,
+              `Visual quality warnings persisted as non-blocking warnings: ${warnings.join("; ")}`,
+            ]
+          : input.generation.output.designCritique,
     },
   };
 }
