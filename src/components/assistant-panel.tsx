@@ -686,9 +686,7 @@ export function AssistantPanel({
     }
 
     // Generic build prompts (non-homepage) → direct-build-controller-v1.
-    // Runs BEFORE streamModelReply, detectBuildIntent legacy enqueue, and
-    // enqueueJob(ai.generate_changes). Writes visible files, refreshes the
-    // preview, and returns. No tutorials, no ChatGPT-style advice.
+    // Writes visible files, refreshes the preview, returns. No tutorials.
     if (project && workspace) {
       const buildIntent = detectBuildIntent(text);
 
@@ -699,7 +697,6 @@ export function AssistantPanel({
           reason: buildIntent.reason,
           legacyEnqueue: false,
           aiGenerateChanges: false,
-          streamModelReply: false,
         });
 
         const outcome = await runDirectBuildController({
