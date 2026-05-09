@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, Github, Triangle, Database, Plus, RefreshCw, ShieldCheck, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  Github,
+  Triangle,
+  Database,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  ShieldAlert,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { useSelectedProject } from "@/hooks/use-selected-project";
@@ -91,7 +100,11 @@ function HealthPage() {
   if (connections.length === 0 && status !== "needs-confirmation") {
     return (
       <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-        <Header project={project.name} status={status} onRefresh={() => auto.refresh({ toast: true })} />
+        <Header
+          project={project.name}
+          status={status}
+          onRefresh={() => auto.refresh({ toast: true })}
+        />
         <div className="mb-6">
           <SecurityMonitorCard
             report={security}
@@ -140,7 +153,12 @@ function HealthPage() {
                 Import / link manually
               </Link>
             </Button>
-            <Button variant="outline" size="sm" disabled={auto.running} onClick={() => void auto.refresh({ toast: true })}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={auto.running}
+              onClick={() => void auto.refresh({ toast: true })}
+            >
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${auto.running ? "animate-spin" : ""}`} />
               Refresh provider links
             </Button>
@@ -152,11 +170,21 @@ function HealthPage() {
 
   return (
     <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-      <Header project={project.name} status={status} onRefresh={() => auto.refresh({ toast: true })} />
+      <Header
+        project={project.name}
+        status={status}
+        onRefresh={() => auto.refresh({ toast: true })}
+      />
 
       {showPicker && auto.result && (
         <div className="mb-6">
-          <AutoLinkPicker project={project} workspaceId={workspace?.id ?? null} github={auto.result.github} vercel={auto.result.vercel} onConfirmed={() => void refresh()} />
+          <AutoLinkPicker
+            project={project}
+            workspaceId={workspace?.id ?? null}
+            github={auto.result.github}
+            vercel={auto.result.vercel}
+            onConfirmed={() => void refresh()}
+          />
         </div>
       )}
 
@@ -179,7 +207,8 @@ function HealthPage() {
       </div>
 
       <p className="text-muted-foreground mt-1 mb-6">
-        {connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a build happens
+        {connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a
+        build happens
       </p>
 
       <div className="grid sm:grid-cols-3 gap-4">
@@ -188,7 +217,9 @@ function HealthPage() {
         <ProviderCheck label="Supabase" icon={Database} connected={true} note="Lovable Cloud" />
       </div>
 
-      <div className="mt-6"><AiProviderStatus /></div>
+      <div className="mt-6">
+        <AiProviderStatus />
+      </div>
 
       <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card p-5">
         <div className="text-[13px] font-medium">Diagnostic checks</div>
@@ -196,28 +227,52 @@ function HealthPage() {
           Build, provider, and security monitoring are shown for this project.
         </p>
         <Button variant="hero" size="sm" className="mt-4" asChild>
-          <Link to="/connectors"><Plus className="h-3.5 w-3.5" /> Manage connections</Link>
+          <Link to="/connectors">
+            <Plus className="h-3.5 w-3.5" /> Manage connections
+          </Link>
         </Button>
       </div>
     </div>
   );
 }
 
-function SecurityMonitorCard({ report, loading, error, onRefresh }: { report: ProjectSecurityReport | null; loading: boolean; error: string | null; onRefresh: () => void }) {
+function SecurityMonitorCard({
+  report,
+  loading,
+  error,
+  onRefresh,
+}: {
+  report: ProjectSecurityReport | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => void;
+}) {
   const critical = report?.summary.critical ?? 0;
   const warning = report?.summary.warning ?? 0;
-  const statusLabel = loading ? "Scanning" : report?.status === "secure" ? "Secure" : report?.status === "critical" ? "Critical" : "Needs attention";
+  const statusLabel = loading
+    ? "Scanning"
+    : report?.status === "secure"
+      ? "Secure"
+      : report?.status === "critical"
+        ? "Critical"
+        : "Needs attention";
   const Icon = report?.status === "secure" ? ShieldCheck : ShieldAlert;
   return (
     <section className="rounded-2xl border border-white/5 bg-gradient-card p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-white/[0.06] p-2"><Icon className="h-5 w-5 text-emerald-300" /></div>
+          <div className="rounded-xl bg-white/[0.06] p-2">
+            <Icon className="h-5 w-5 text-emerald-300" />
+          </div>
           <div>
-            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">yawB Security Monitor</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              yawB Security Monitor
+            </div>
             <h2 className="mt-1 font-display text-2xl font-semibold">{statusLabel}</h2>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              {report ? `${report.filesScanned} file(s) scanned · score ${report.score}/100 · ${critical} critical · ${warning} warning` : "Scanning generated project files for secrets, XSS risks, insecure assets, and unsafe embeds."}
+              {report
+                ? `${report.filesScanned} file(s) scanned · score ${report.score}/100 · ${critical} critical · ${warning} warning`
+                : "Scanning generated project files for secrets, XSS risks, insecure assets, and unsafe embeds."}
             </p>
             {error && <p className="mt-2 text-[12px] text-destructive">{error}</p>}
           </div>
@@ -229,14 +284,23 @@ function SecurityMonitorCard({ report, loading, error, onRefresh }: { report: Pr
       {report && (
         <div className="mt-4 grid gap-2">
           {report.findings.slice(0, 5).map((finding) => (
-            <div key={finding.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[12px]">
+            <div
+              key={finding.id}
+              className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[12px]"
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{finding.title}</span>
-                <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{finding.severity}</span>
+                <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {finding.severity}
+                </span>
               </div>
               <p className="mt-1 text-muted-foreground">{finding.detail}</p>
               <p className="mt-1 text-muted-foreground">Fix: {finding.recommendation}</p>
-              {finding.files.length > 0 && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{finding.files.join(", ")}</p>}
+              {finding.files.length > 0 && (
+                <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                  {finding.files.join(", ")}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -245,24 +309,55 @@ function SecurityMonitorCard({ report, loading, error, onRefresh }: { report: Pr
   );
 }
 
-function Header({ project, status, onRefresh }: { project: string; status: ReturnType<typeof summariseAutoLink>; onRefresh: () => void }) {
+function Header({
+  project,
+  status,
+  onRefresh,
+}: {
+  project: string;
+  status: ReturnType<typeof summariseAutoLink>;
+  onRefresh: () => void;
+}) {
   return (
     <div className="mb-8 flex items-start justify-between gap-4">
       <div>
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Health</div>
         <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">{project}</h1>
-        <div className="mt-2"><AutoLinkStatusBadge status={status} /></div>
+        <div className="mt-2">
+          <AutoLinkStatusBadge status={status} />
+        </div>
       </div>
-      <Button variant="outline" size="sm" onClick={onRefresh}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh provider links</Button>
+      <Button variant="outline" size="sm" onClick={onRefresh}>
+        <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh provider links
+      </Button>
     </div>
   );
 }
 
-function ProviderCheck({ label, icon: Icon, connected, note }: { label: string; icon: React.ComponentType<{ className?: string }>; connected: boolean; note?: string }) {
+function ProviderCheck({
+  label,
+  icon: Icon,
+  connected,
+  note,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  connected: boolean;
+  note?: string;
+}) {
   return (
     <div className="rounded-2xl border border-white/5 bg-gradient-card p-5">
-      <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-muted-foreground" /><span className="font-display font-semibold">{label}</span></div>
-      <div className="mt-3 text-[12px]">{connected ? <span className="text-success">Connected{note ? ` · ${note}` : ""}</span> : <span className="text-muted-foreground">Not connected</span>}</div>
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 text-muted-foreground" />
+        <span className="font-display font-semibold">{label}</span>
+      </div>
+      <div className="mt-3 text-[12px]">
+        {connected ? (
+          <span className="text-success">Connected{note ? ` · ${note}` : ""}</span>
+        ) : (
+          <span className="text-muted-foreground">Not connected</span>
+        )}
+      </div>
     </div>
   );
 }

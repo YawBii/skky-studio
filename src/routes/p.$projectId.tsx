@@ -130,7 +130,12 @@ function NativePublishedSite() {
   }, [projectId]);
 
   if (loading) {
-    return <NativeMessage title="Loading published site…" body="yawB Native Hosting is loading project files." />;
+    return (
+      <NativeMessage
+        title="Loading published site…"
+        body="yawB Native Hosting is loading project files."
+      />
+    );
   }
 
   if (!indexHtml) {

@@ -43,7 +43,11 @@ export function AppSidebar() {
         title="SKKY AB · yawB Workspace"
         className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-glow p-1"
       >
-        <img src={DEFAULT_PROJECT_BRANDING.faviconUrl} alt="SKKY AB" className="h-full w-full object-contain" />
+        <img
+          src={DEFAULT_PROJECT_BRANDING.faviconUrl}
+          alt="SKKY AB"
+          className="h-full w-full object-contain"
+        />
       </Link>
 
       <nav className="mt-5 flex-1 flex flex-col items-center gap-1">

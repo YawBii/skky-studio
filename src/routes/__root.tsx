@@ -375,7 +375,10 @@ function WorkspaceShell() {
           selectProject={selectProject}
         />
         {nativePublishedUrl && (
-          <PublishedUrlPanel url={nativePublishedUrl} onDismiss={() => setNativePublishedUrl(null)} />
+          <PublishedUrlPanel
+            url={nativePublishedUrl}
+            onDismiss={() => setNativePublishedUrl(null)}
+          />
         )}
         <div className="flex-1 min-h-0">
           <SplitPane
