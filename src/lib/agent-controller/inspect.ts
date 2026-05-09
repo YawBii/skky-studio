@@ -62,6 +62,7 @@ export function findStaleTemplateMarkers(html: string | null): string[] {
 export async function inspectAgentState(input: InspectInput): Promise<AgentState> {
   const { projectId } = input;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase as any)
     .from("projects")
     .select("id, name, description, logo_url, favicon_url, watermark_url")
