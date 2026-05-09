@@ -110,6 +110,44 @@ describe("runAgentController", () => {
     expect(writer).toHaveBeenCalledOnce();
   });
 
+  it("falls back to a known-clean homepage identity when stale project text contains dashboard tokens", async () => {
+    const writer = vi.fn(async () => ({ ok: true }));
+    const proof = await runAgentController({
+      projectId: "p1",
+      workspaceId: "w1",
+      userRequest: "Redesign homepage for law firm",
+      inspector: async () =>
+        emptyState({
+          project: {
+            id: "p1",
+            name: "LexOS Admin Supabase Case cockpit",
+            description:
+              "Build a premium AI law firm app with auth, client intake, case cockpit, invoices, payments, admin panel, and Supabase backend.",
+          },
+          currentArtifactType: "app_dashboard",
+          files: {
+            indexHtml: "<html><body><h1>Case cockpit</h1><div>Admin panel</div></body></html>",
+            stylesCss: ".admin-panel{display:block}",
+            appJs: null,
+            raw: [],
+          },
+        }),
+      writer,
+    });
+
+    expect(proof.canDeclareDone).toBe(true);
+    expect(proof.repaired).toBe(true);
+    expect(proof.filesTouched).toEqual(["index.html", "styles.css"]);
+    expect(proof.verification?.passed).toBe(true);
+
+    const writtenFiles = writer.mock.calls[0]?.[1] ?? [];
+    expect(writtenFiles.map((file) => file.path)).toEqual(["index.html", "styles.css"]);
+    const output = `${proof.outputs?.indexHtml ?? ""}\n${proof.outputs?.stylesCss ?? ""}`;
+    expect(output).not.toMatch(/Case cockpit|Admin panel|Supabase|LexOS|Matter board|Active matters/i);
+    expect(output).toMatch(/Built by agent-controller-v1/);
+    expect(output).toMatch(/Practice Areas/);
+  });
+
   it("filesTouched stays empty and canDeclareDone=false when persistence fails", async () => {
     const writer = vi.fn(async () => ({ ok: false, error: "db down" }));
     const proof = await runAgentController({
