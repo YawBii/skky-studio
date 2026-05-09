@@ -2,6 +2,8 @@ import type { Job } from "@/services/jobs";
 
 export const ACTIVE_JOB_STATUSES = new Set(["queued", "running", "waiting_for_input"]);
 export const PREVIEW_JOB_TYPES = new Set(["ai.generate_changes", "build.production"]);
+export const STALE_QUEUED_JOB_MS = 90_000;
+export const STALE_RUNNING_JOB_MS = 5 * 60_000;
 
 export interface VisualQualityBlock {
   jobId: string;
@@ -9,8 +11,39 @@ export interface VisualQualityBlock {
   error?: string | null;
 }
 
+export interface StaleJobBlock {
+  jobId: string;
+  reason: "queued_timeout" | "running_timeout";
+  ageMs: number;
+}
+
+function jobAgeMs(job: Job, now = Date.now()): number {
+  const anchor = job.status === "running" && job.startedAt ? job.startedAt : job.createdAt;
+  const parsed = Date.parse(anchor);
+  return Number.isFinite(parsed) ? now - parsed : 0;
+}
+
+export function isStaleActiveJob(job: Job, now = Date.now()): StaleJobBlock | null {
+  if (!ACTIVE_JOB_STATUSES.has(job.status)) return null;
+  const ageMs = jobAgeMs(job, now);
+  if (job.status === "queued" && ageMs > STALE_QUEUED_JOB_MS) {
+    return { jobId: job.id, reason: "queued_timeout", ageMs };
+  }
+  if (job.status === "running" && ageMs > STALE_RUNNING_JOB_MS) {
+    return { jobId: job.id, reason: "running_timeout", ageMs };
+  }
+  return null;
+}
+
+export function getStaleActiveJobs(jobs: Job[], now = Date.now()): StaleJobBlock[] {
+  return jobs.flatMap((job) => {
+    const stale = isStaleActiveJob(job, now);
+    return stale ? [stale] : [];
+  });
+}
+
 export function hasActiveJob(jobs: Job[]): boolean {
-  return jobs.some((j) => ACTIVE_JOB_STATUSES.has(j.status));
+  return jobs.some((j) => ACTIVE_JOB_STATUSES.has(j.status) && !isStaleActiveJob(j));
 }
 
 export function isVisualQualityFailure(job: Job): boolean {
