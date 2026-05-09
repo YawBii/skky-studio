@@ -47,6 +47,7 @@ function BrandingPage() {
     if (!project?.id || !projectIsReal) return;
 
     (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("projects")
         .select("logo_url, favicon_url, watermark_url")
@@ -82,6 +83,7 @@ function BrandingPage() {
       favicon_url: normalize(form.favicon_url),
       watermark_url: normalize(form.watermark_url),
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from("projects").update(payload).eq("id", project.id);
     setSaving(false);
     if (error) {
@@ -101,6 +103,7 @@ function BrandingPage() {
     if (!project?.id || !projectIsReal) return;
     setSaving(true);
     const payload = { logo_url: null, favicon_url: null, watermark_url: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from("projects").update(payload).eq("id", project.id);
     setSaving(false);
     if (error) {
