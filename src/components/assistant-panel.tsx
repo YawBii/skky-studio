@@ -691,35 +691,52 @@ export function AssistantPanel({
     // preview, and returns. No tutorials, no ChatGPT-style advice.
     if (project && workspace) {
       const buildIntent = detectBuildIntent(text);
+
       if (buildIntent.isBuild) {
-        console.info("[yawb] direct-build.controller.invoke", {
+        console.info("[yawb] direct.build.invoke", {
           controller: "direct-build-controller-v1",
           projectId: project.id,
           reason: buildIntent.reason,
           legacyEnqueue: false,
+          aiGenerateChanges: false,
+          streamModelReply: false,
         });
+
         const outcome = await runDirectBuildController({
-          project: { id: project.id, name: project.name, description: project.description },
+          project,
           workspaceId: workspace.id,
           userRequest: text,
         });
-        console.info("[yawb] direct-build.controller.outcome", {
+
+        console.info("[yawb] direct.build.outcome", {
           controller: "direct-build-controller-v1",
           kind: outcome.kind,
-          summary: summarizeDirectBuild(outcome),
+          filesTouched: outcome.filesTouched,
           legacyEnqueue: false,
+          aiGenerateChanges: false,
         });
+
         if (outcome.kind === "success") {
           window.dispatchEvent(
             new CustomEvent("yawb:project-files-refresh", {
               detail: { projectId: project.id, filesTouched: outcome.filesTouched },
             }),
           );
-          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "preview" } }));
+
           window.dispatchEvent(
-            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
+            new CustomEvent("yawb:switch-tab", {
+              detail: { tab: "preview" },
+            }),
           );
+
+          window.dispatchEvent(
+            new CustomEvent("yawb:preview-force-reload", {
+              detail: { projectId: project.id },
+            }),
+          );
+
           toast.success("App built");
+
           setMessages((m) => [
             ...m,
             {
@@ -727,16 +744,20 @@ export function AssistantPanel({
               content: `${outcome.message}\n\n${summarizeDirectBuild(outcome)}`,
             },
           ]);
-        } else {
-          toast.error(`Direct build failed: ${outcome.error}`);
-          setMessages((m) => [
-            ...m,
-            {
-              role: "assistant",
-              content: `Direct build failed: ${outcome.error}\n\n${summarizeDirectBuild(outcome)}`,
-            },
-          ]);
+
+          return;
         }
+
+        toast.error("Build failed safely");
+
+        setMessages((m) => [
+          ...m,
+          {
+            role: "assistant",
+            content: `Build failed safely.\n\n${summarizeDirectBuild(outcome)}`,
+          },
+        ]);
+
         return;
       }
     }
