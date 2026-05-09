@@ -14,6 +14,15 @@ export interface InspectInput {
   workspaceId: string;
 }
 
+interface ProjectBrandingRow {
+  id: string;
+  name: string;
+  description: string | null;
+  logo_url?: string | null;
+  favicon_url?: string | null;
+  watermark_url?: string | null;
+}
+
 const STALE_MARKERS = [
   "Matter board command center",
   "Case cockpit",
@@ -37,8 +46,6 @@ export function detectArtifactTypeFromHtml(html: string | null): ArtifactType {
     return "app_dashboard";
   }
   if (/article|publication|library|archive|journal|manifesto/i.test(html)) {
-    // Treated as a blog/editorial artifact — not a category we plan, but
-    // surfaced so the homepage gate can replace it.
     return "unknown";
   }
   if (/<nav[\s>]/i.test(html) && /practice areas|services|attorneys|consultation/i.test(html)) {
@@ -55,12 +62,12 @@ export function findStaleTemplateMarkers(html: string | null): string[] {
 export async function inspectAgentState(input: InspectInput): Promise<AgentState> {
   const { projectId } = input;
 
-  // Project row (single, scoped). Avoid the full project list.
-  const { data: projectRow } = await supabase
+  const { data } = await (supabase as any)
     .from("projects")
     .select("id, name, description, logo_url, favicon_url, watermark_url")
     .eq("id", projectId)
     .maybeSingle();
+  const projectRow = data as ProjectBrandingRow | null;
 
   const filesResult = await listProjectFiles(projectId);
   const indexHtml = filesResult.files.find((f) => f.path === "index.html")?.content ?? null;
