@@ -849,6 +849,25 @@ function PreviewPaneImpl({
         />
       </div>
 
+      {resolved.kind === "local" &&
+        (resolved.source === "project_files/index.html" ||
+          /yawb-controller["'\s]+content=["']agent-controller-v1/.test(localSrcDoc ?? "")) && (
+          <div
+            data-testid="preview-controller-badge"
+            className="px-3 sm:px-4 py-1.5 border-b border-emerald-400/20 bg-emerald-400/5 text-[11px] flex flex-wrap items-center gap-x-3 gap-y-0.5 text-emerald-200/90 font-mono"
+          >
+            <span>
+              Preview source: <strong className="text-emerald-100">project_files/index.html</strong>
+            </span>
+            <span className="opacity-70">
+              Updated at: {new Date().toISOString().slice(11, 19)}Z
+            </span>
+            <span>
+              Controller: <strong className="text-emerald-100">agent-controller-v1</strong>
+            </span>
+          </div>
+        )}
+
       <div
         className={cn(
           "flex-1 min-h-0 bg-[oklch(0.13_0_0)]",
