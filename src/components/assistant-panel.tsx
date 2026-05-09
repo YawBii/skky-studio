@@ -20,10 +20,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { detectBuildIntent } from "@/lib/build-intent";
 import { classifyAgentIntent, dispatchAgentRequest, summarizeProof } from "@/lib/agent-controller";
-import {
-  runDirectBuildController,
-  summarizeDirectBuild,
-} from "@/lib/direct-build-controller";
+import { runDirectBuildController, summarizeDirectBuild } from "@/lib/direct-build-controller";
 import { streamChat as streamAiChat } from "@/services/ai";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
@@ -718,9 +715,7 @@ export function AssistantPanel({
               detail: { projectId: project.id, filesTouched: outcome.filesTouched },
             }),
           );
-          window.dispatchEvent(
-            new CustomEvent("yawb:switch-tab", { detail: { tab: "preview" } }),
-          );
+          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "preview" } }));
           window.dispatchEvent(
             new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
           );
