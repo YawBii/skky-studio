@@ -554,7 +554,7 @@ export function AssistantPanel({
 
     if (project && workspace) {
       // Agent Controller v1 — homepage intent ALWAYS routes here, before any
-      // model streaming, GitHub guard, or legacy ai.plan / ai.generate_changes enqueue.
+      // model streaming, GitHub guard, or any legacy job enqueue.
       // Every branch returns so failures cannot fall through to agentic-loop-v1.
       const agentIntent = classifyAgentIntent({ userRequest: text });
       if (agentIntent.artifactType === "homepage") {
