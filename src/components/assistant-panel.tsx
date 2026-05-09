@@ -20,6 +20,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { enqueueJob, retryJob, JOB_TYPES, type JobType, type Job } from "@/services/jobs";
 import { detectBuildIntent } from "@/lib/build-intent";
 import { classifyAgentIntent, dispatchAgentRequest, summarizeProof } from "@/lib/agent-controller";
+import { runDirectBuildController, summarizeDirectBuild } from "@/lib/direct-build-controller";
 import { streamChat as streamAiChat } from "@/services/ai";
 import { useProjectJobs } from "@/hooks/use-project-jobs";
 import { useProjectConnections } from "@/hooks/use-project-connections";
@@ -682,6 +683,62 @@ export function AssistantPanel({
         },
       ]);
       return;
+    }
+
+    // Generic build prompts (non-homepage) → direct-build-controller-v1.
+    // Runs BEFORE streamModelReply, detectBuildIntent legacy enqueue, and
+    // enqueueJob(ai.generate_changes). Writes visible files, refreshes the
+    // preview, and returns. No tutorials, no ChatGPT-style advice.
+    if (project && workspace) {
+      const buildIntent = detectBuildIntent(text);
+      if (buildIntent.isBuild) {
+        console.info("[yawb] direct-build.controller.invoke", {
+          controller: "direct-build-controller-v1",
+          projectId: project.id,
+          reason: buildIntent.reason,
+          legacyEnqueue: false,
+        });
+        const outcome = await runDirectBuildController({
+          project: { id: project.id, name: project.name, description: project.description },
+          workspaceId: workspace.id,
+          userRequest: text,
+        });
+        console.info("[yawb] direct-build.controller.outcome", {
+          controller: "direct-build-controller-v1",
+          kind: outcome.kind,
+          summary: summarizeDirectBuild(outcome),
+          legacyEnqueue: false,
+        });
+        if (outcome.kind === "success") {
+          window.dispatchEvent(
+            new CustomEvent("yawb:project-files-refresh", {
+              detail: { projectId: project.id, filesTouched: outcome.filesTouched },
+            }),
+          );
+          window.dispatchEvent(new CustomEvent("yawb:switch-tab", { detail: { tab: "preview" } }));
+          window.dispatchEvent(
+            new CustomEvent("yawb:preview-force-reload", { detail: { projectId: project.id } }),
+          );
+          toast.success("App built");
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `${outcome.message}\n\n${summarizeDirectBuild(outcome)}`,
+            },
+          ]);
+        } else {
+          toast.error(`Direct build failed: ${outcome.error}`);
+          setMessages((m) => [
+            ...m,
+            {
+              role: "assistant",
+              content: `Direct build failed: ${outcome.error}\n\n${summarizeDirectBuild(outcome)}`,
+            },
+          ]);
+        }
+        return;
+      }
     }
 
     // Stream a real model reply (works with or without a project).

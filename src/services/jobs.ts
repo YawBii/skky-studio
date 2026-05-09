@@ -318,7 +318,12 @@ async function expireStaleActiveJobs(projectId: string): Promise<void> {
       .update({ status: "failed", finished_at: now, error: message })
       .eq("job_id", item.jobId)
       .in("status", ["queued", "running", "waiting_for_input"]);
-    pushDiag("job.auto_expired", { projectId, jobId: item.jobId, reason: item.reason, ageMs: item.ageMs });
+    pushDiag("job.auto_expired", {
+      projectId,
+      jobId: item.jobId,
+      reason: item.reason,
+      ageMs: item.ageMs,
+    });
   }
 }
 

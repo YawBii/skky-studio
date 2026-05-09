@@ -1,7 +1,11 @@
 import type { Job } from "@/services/jobs";
 
 export const ACTIVE_JOB_STATUSES = new Set(["queued", "running", "waiting_for_input"]);
-export const PREVIEW_JOB_TYPES = new Set(["ai.generate_changes", "ai.repair_failure", "build.production"]);
+export const PREVIEW_JOB_TYPES = new Set([
+  "ai.generate_changes",
+  "ai.repair_failure",
+  "build.production",
+]);
 export const STALE_QUEUED_JOB_MS = 90_000;
 export const STALE_PREVIEW_QUEUED_JOB_MS = 20_000;
 export const STALE_RUNNING_JOB_MS = 5 * 60_000;

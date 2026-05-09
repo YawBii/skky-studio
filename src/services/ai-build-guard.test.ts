@@ -17,9 +17,7 @@ describe("AI build prompt guard", () => {
   });
 
   it("non-streaming chat also guards build prompts", async () => {
-    const result = await chat([
-      { role: "user", content: "Build the app" },
-    ]);
+    const result = await chat([{ role: "user", content: "Build the app" }]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.model).toBe("yawb-build-guard");

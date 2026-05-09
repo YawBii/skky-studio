@@ -105,14 +105,20 @@ function pending(id: string, label: string, command?: string, required = true): 
 
 const MAX_REPAIRS = 1;
 
-function shouldForceCleanHomepage(input: MonsterOrchestratorInput, blueprint: MonsterBlueprint): boolean {
-  const text = `${input.chatRequest ?? ""} ${blueprint.prompt ?? ""} ${blueprint.summary ?? ""} ${blueprint.appType ?? ""}`.toLowerCase();
+function shouldForceCleanHomepage(
+  input: MonsterOrchestratorInput,
+  blueprint: MonsterBlueprint,
+): boolean {
+  const text =
+    `${input.chatRequest ?? ""} ${blueprint.prompt ?? ""} ${blueprint.summary ?? ""} ${blueprint.appType ?? ""}`.toLowerCase();
   return /\b(homepage|landing page|law firm|legal homepage|brochure site|public site)\b/.test(text);
 }
 
 function collectForbiddenFrontendTokens(files: MonsterGeneratedFile[]): string[] {
   const joined = files
-    .filter((file) => file.path === "index.html" || file.path === "styles.css" || file.path === "app.js")
+    .filter(
+      (file) => file.path === "index.html" || file.path === "styles.css" || file.path === "app.js",
+    )
     .map((file) => file.content)
     .join("\n");
   return findForbiddenDashboardTokens(joined);
