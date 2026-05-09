@@ -7,8 +7,12 @@
 import type { ProjectConnection } from "@/services/project-connections";
 import type { Project } from "@/services/projects";
 import { resolveDeployUrl } from "@/lib/deploy-url";
+import { injectPublishedBranding } from "@/lib/published-branding";
+import type { ProjectBrandingSource } from "@/lib/project-branding";
 
 export type PreviewKind = "live" | "local" | "empty";
+
+type PreviewProject = Pick<Project, "id" | "name"> & ProjectBrandingSource;
 
 export interface GeneratedFiles {
   /** Optional generated HTML document — rendered into the iframe via srcDoc. */
@@ -34,7 +38,7 @@ export interface ResolvedPreviewSource {
 }
 
 export interface PreviewResolverInput {
-  project: Pick<Project, "id" | "name"> | null | undefined;
+  project: PreviewProject | null | undefined;
   connections: ProjectConnection[] | null | undefined;
   generated?: GeneratedFiles | null;
   /** Force a particular kind when both are available (user toggle). */
@@ -95,13 +99,13 @@ export function resolvePreviewSource(input: PreviewResolverInput): ResolvedPrevi
 }
 
 function buildLocal(
-  project: Pick<Project, "id" | "name"> | null | undefined,
+  project: PreviewProject | null | undefined,
   generated: GeneratedFiles | null | undefined,
 ): ResolvedPreviewSource {
   if (generated && typeof generated.indexHtml === "string" && generated.indexHtml.length > 0) {
     return {
       kind: "local",
-      srcDoc: generated.indexHtml,
+      srcDoc: injectPublishedBranding(generated.indexHtml, project),
       url: "project_files/index.html",
       source: "project_files/index.html",
       label: "project_files/index.html",
