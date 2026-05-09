@@ -1,18 +1,17 @@
-// Legacy-compat shim — Monster Brain v1 is the real generator.
+// Legacy-compat shim — Monster Orchestrator v1 is the real generator.
 //
 // Existing call sites (jobs runner, project-files service, tests) import
 // `generateProjectFiles` and `detectCategory` from here. We keep those exports
-// stable but route them through `monster-brain-generator.ts` so every project
-// gets the new archetype-based, visibly-distinct output.
+// stable but route file generation through `monster-orchestrator.ts` so every
+// build path uses the same dashboard-bleed rejection and clean preview fallback.
 
 import {
-  generateProjectFiles as monsterGenerate,
   inferProjectArchetype,
   designSignature,
   type Archetype,
-  type GeneratedProjectFile,
   type MonsterBrainContext,
 } from "@/services/monster-brain-generator";
+import { generateMonsterProject } from "@/services/monster-orchestrator";
 import type { Project } from "@/services/projects";
 
 export interface GeneratedFile {
@@ -58,7 +57,6 @@ export function detectCategory(input: {
     { id: input.name, name: input.name, description: input.description ?? null },
     { chatRequest: input.chatRequest ?? null },
   );
-  // Domain-specific mappings to keep legacy tests stable.
   if (/\bskkylab|studio|creative|lab\b/i.test(`${input.name} ${input.description ?? ""}`))
     return "studio";
   if (
@@ -71,9 +69,17 @@ export function detectCategory(input: {
 }
 
 export function generateProjectFiles(input: GenerateInput): GeneratedFile[] {
-  const ctx: MonsterBrainContext = { chatRequest: input.chatRequest ?? null };
-  const files: GeneratedProjectFile[] = monsterGenerate(input.project, ctx);
-  return files;
+  const generation = generateMonsterProject({
+    project: input.project,
+    chatRequest: input.chatRequest ?? null,
+    production: false,
+  });
+  return generation.files.map((file) => ({
+    path: file.path,
+    content: file.content,
+    language: file.language,
+    kind: file.kind,
+  }));
 }
 
 export interface ProjectGenerator {
