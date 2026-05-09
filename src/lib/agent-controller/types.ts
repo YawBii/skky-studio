@@ -26,7 +26,13 @@ export interface AgentIntent {
 }
 
 export interface AgentState {
-  project: Pick<Project, "id" | "name" | "description"> | null;
+  project:
+    | (Pick<Project, "id" | "name" | "description"> & {
+        logo_url?: string | null;
+        favicon_url?: string | null;
+        watermark_url?: string | null;
+      })
+    | null;
   files: {
     indexHtml: string | null;
     stylesCss: string | null;
