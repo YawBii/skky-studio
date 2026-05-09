@@ -29,12 +29,23 @@ function escapeHtml(value: string): string {
   });
 }
 
+import { findForbiddenDashboardTokens } from "./forbidden-dashboard-tokens";
+
+export function sanitizeHomepageText(value: string, fallback: string): string {
+  const cleaned = String(value ?? "").trim();
+  if (!cleaned) return fallback;
+  if (findForbiddenDashboardTokens(cleaned).length > 0) return fallback;
+  return cleaned;
+}
+
+const SAFE_TAGLINE = "Modern legal counsel for founders, families, and growing companies.";
+const SAFE_FIRM_NAME = "Sterling & Vale";
+
 export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuildOutput {
-  const firmName = escapeHtml(input.project.name || "Sterling & Vale");
-  const tagline = escapeHtml(
-    input.project.description ||
-      "Modern legal counsel for founders, families, and growing companies.",
-  );
+  const firmName = escapeHtml(sanitizeHomepageText(input.project.name ?? "", SAFE_FIRM_NAME));
+  // Never insert project.description — it often contains stale dashboard/app-shell terms
+  // that the homepage verifier (correctly) rejects. Use a deterministic safe tagline.
+  const tagline = escapeHtml(SAFE_TAGLINE);
 
   const indexHtml = `<!doctype html>
 <html lang="en">
