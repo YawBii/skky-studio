@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSelectedProject } from "@/hooks/use-selected-project";
 import { DEFAULT_PROJECT_BRANDING, resolveProjectBranding } from "@/lib/project-branding";
+import type { ProjectBrandingSource } from "@/lib/project-branding";
 
 export const Route = createFileRoute("/branding")({
   head: () => ({
@@ -28,19 +29,47 @@ function normalize(value: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function emptyForm(): BrandingForm {
+  return { logo_url: "", favicon_url: "", watermark_url: "" };
+}
+
 function BrandingPage() {
   const { project, projectIsReal, refreshProjects } = useSelectedProject();
-  const [form, setForm] = useState<BrandingForm>({ logo_url: "", favicon_url: "", watermark_url: "" });
+  const [form, setForm] = useState<BrandingForm>(emptyForm());
+  const [loadedBranding, setLoadedBranding] = useState<ProjectBrandingSource | null>(null);
   const [saving, setSaving] = useState(false);
-  const branding = resolveProjectBranding(project);
+  const branding = resolveProjectBranding(loadedBranding);
 
   useEffect(() => {
-    setForm({
-      logo_url: project?.logo_url ?? "",
-      favicon_url: project?.favicon_url ?? "",
-      watermark_url: project?.watermark_url ?? "",
-    });
-  }, [project?.id, project?.logo_url, project?.favicon_url, project?.watermark_url]);
+    let cancelled = false;
+    setLoadedBranding(null);
+    setForm(emptyForm());
+    if (!project?.id || !projectIsReal) return;
+
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from("projects")
+        .select("logo_url, favicon_url, watermark_url")
+        .eq("id", project.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        toast.error(`Branding load failed: ${error.message}`);
+        return;
+      }
+      const row = (data ?? {}) as ProjectBrandingSource;
+      setLoadedBranding(row);
+      setForm({
+        logo_url: row.logo_url ?? "",
+        favicon_url: row.favicon_url ?? "",
+        watermark_url: row.watermark_url ?? "",
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, projectIsReal]);
 
   const save = async () => {
     if (!project?.id || !projectIsReal) {
@@ -53,30 +82,30 @@ function BrandingPage() {
       favicon_url: normalize(form.favicon_url),
       watermark_url: normalize(form.watermark_url),
     };
-    const { error } = await supabase.from("projects").update(payload).eq("id", project.id);
+    const { error } = await (supabase as any).from("projects").update(payload).eq("id", project.id);
     setSaving(false);
     if (error) {
       toast.error(`Branding save failed: ${error.message}`);
       return;
     }
+    setLoadedBranding(payload);
     await refreshProjects();
     window.dispatchEvent(new CustomEvent("yawb:project-branding-updated", { detail: { projectId: project.id } }));
     toast.success("Project branding saved");
   };
 
   const reset = async () => {
-    setForm({ logo_url: "", favicon_url: "", watermark_url: "" });
+    setForm(emptyForm());
     if (!project?.id || !projectIsReal) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("projects")
-      .update({ logo_url: null, favicon_url: null, watermark_url: null })
-      .eq("id", project.id);
+    const payload = { logo_url: null, favicon_url: null, watermark_url: null };
+    const { error } = await (supabase as any).from("projects").update(payload).eq("id", project.id);
     setSaving(false);
     if (error) {
       toast.error(`Reset failed: ${error.message}`);
       return;
     }
+    setLoadedBranding(payload);
     await refreshProjects();
     window.dispatchEvent(new CustomEvent("yawb:project-branding-updated", { detail: { projectId: project.id } }));
     toast.success("Project branding reset to SKKY defaults");
@@ -107,24 +136,9 @@ function BrandingPage() {
             </p>
 
             <div className="mt-6 space-y-4">
-              <BrandField
-                label="Logo URL"
-                value={form.logo_url}
-                placeholder={DEFAULT_PROJECT_BRANDING.logoUrl}
-                onChange={(value) => setForm((f) => ({ ...f, logo_url: value }))}
-              />
-              <BrandField
-                label="Favicon URL"
-                value={form.favicon_url}
-                placeholder={DEFAULT_PROJECT_BRANDING.faviconUrl}
-                onChange={(value) => setForm((f) => ({ ...f, favicon_url: value }))}
-              />
-              <BrandField
-                label="Watermark URL"
-                value={form.watermark_url}
-                placeholder={DEFAULT_PROJECT_BRANDING.watermarkUrl}
-                onChange={(value) => setForm((f) => ({ ...f, watermark_url: value }))}
-              />
+              <BrandField label="Logo URL" value={form.logo_url} placeholder={DEFAULT_PROJECT_BRANDING.logoUrl} onChange={(value) => setForm((f) => ({ ...f, logo_url: value }))} />
+              <BrandField label="Favicon URL" value={form.favicon_url} placeholder={DEFAULT_PROJECT_BRANDING.faviconUrl} onChange={(value) => setForm((f) => ({ ...f, favicon_url: value }))} />
+              <BrandField label="Watermark URL" value={form.watermark_url} placeholder={DEFAULT_PROJECT_BRANDING.watermarkUrl} onChange={(value) => setForm((f) => ({ ...f, watermark_url: value }))} />
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -155,12 +169,7 @@ function BrandField({ label, value, placeholder, onChange }: { label: string; va
   return (
     <label className="block">
       <div className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-10 w-full rounded-lg border border-white/10 bg-background/50 px-3 text-sm focus:border-white/20 focus:outline-none"
-      />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-10 w-full rounded-lg border border-white/10 bg-background/50 px-3 text-sm focus:border-white/20 focus:outline-none" />
     </label>
   );
 }
