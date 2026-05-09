@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, Github, Triangle, Database, Plus, RefreshCw } from "lucide-react";
+import { Activity, Github, Triangle, Database, Plus, RefreshCw, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { useSelectedProject } from "@/hooks/use-selected-project";
 import { useProjectConnections } from "@/hooks/use-project-connections";
 import { useProviderAutoLink } from "@/hooks/use-provider-auto-link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   ProjectScopedEmpty,
   ProjectSurfaceError,
@@ -14,6 +14,8 @@ import {
 import { AutoLinkPicker } from "@/components/auto-link-picker";
 import { AutoLinkStatusBadge, summariseAutoLink } from "@/components/auto-link-status-badge";
 import { AiProviderStatus } from "@/components/ai-provider-status";
+import { scanProjectSecurityById } from "@/services/project-security";
+import type { ProjectSecurityReport } from "@/lib/project-security-monitor";
 
 export const Route = createFileRoute("/health")({
   head: () => ({
@@ -21,7 +23,7 @@ export const Route = createFileRoute("/health")({
       { title: "Health — yawB" },
       {
         name: "description",
-        content: "Project health: builds, dependencies, database and deployment.",
+        content: "Project health: builds, dependencies, database, deployment and security.",
       },
     ],
   }),
@@ -32,16 +34,42 @@ function HealthPage() {
   const { project, projectIsReal, workspaceIsReal, workspace } = useSelectedProject();
   const { connections, isTableMissing, isError, error, sqlFile, loading, refresh } =
     useProjectConnections(project?.id ?? null);
+  const [security, setSecurity] = useState<ProjectSecurityReport | null>(null);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [securityError, setSecurityError] = useState<string | null>(null);
 
   const auto = useProviderAutoLink(project ?? null, workspace?.id ?? null, {
     enabled: projectIsReal && workspaceIsReal,
     autoRun: true,
   });
 
-  // After a successful auto-link / picker confirm, re-read connections.
   useEffect(() => {
     if (auto.result && !auto.running) void refresh();
   }, [auto.result, auto.running, refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!project?.id || !projectIsReal) return;
+    setSecurityLoading(true);
+    setSecurityError(null);
+    scanProjectSecurityById(project.id)
+      .then((result) => {
+        if (cancelled) return;
+        setSecurity(result.report);
+        setSecurityError(result.error ?? null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setSecurityError(err instanceof Error ? err.message : String(err));
+        setSecurity(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSecurityLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, projectIsReal]);
 
   if (!workspaceIsReal || !projectIsReal || !project) {
     return <NoProjectSelected hint="Health is computed for the currently selected real project." />;
@@ -63,11 +91,24 @@ function HealthPage() {
   if (connections.length === 0 && status !== "needs-confirmation") {
     return (
       <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-        <Header
-          project={project.name}
-          status={status}
-          onRefresh={() => auto.refresh({ toast: true })}
-        />
+        <Header project={project.name} status={status} onRefresh={() => auto.refresh({ toast: true })} />
+        <div className="mb-6">
+          <SecurityMonitorCard
+            report={security}
+            loading={securityLoading}
+            error={securityError}
+            onRefresh={() => {
+              if (project?.id) {
+                setSecurityLoading(true);
+                void scanProjectSecurityById(project.id).then((r) => {
+                  setSecurity(r.report);
+                  setSecurityError(r.error ?? null);
+                  setSecurityLoading(false);
+                });
+              }
+            }}
+          />
+        </div>
         <div className="rounded-2xl border border-white/5 bg-gradient-card p-8">
           <Activity className="h-7 w-7 text-muted-foreground" />
           <h2 className="mt-3 font-display text-2xl font-semibold">
@@ -99,53 +140,11 @@ function HealthPage() {
                 Import / link manually
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={auto.running}
-              onClick={() => void auto.refresh({ toast: true })}
-            >
+            <Button variant="outline" size="sm" disabled={auto.running} onClick={() => void auto.refresh({ toast: true })}>
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${auto.running ? "animate-spin" : ""}`} />
               Refresh provider links
             </Button>
           </div>
-          {auto.result && (
-            <details className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[11.5px] text-muted-foreground">
-              <summary className="cursor-pointer select-none">
-                Proof log — candidates checked, reasons rejected
-              </summary>
-              <div className="mt-2 text-[11px]">
-                <div className="mb-1">Ran at {auto.result.ranAt}</div>
-                <pre className="whitespace-pre-wrap font-mono leading-relaxed">
-                  {auto.result.proof.join("\n")}
-                </pre>
-                {auto.result.github.candidates.length > 0 && (
-                  <div className="mt-2">
-                    <div className="font-medium">GitHub candidates considered:</div>
-                    <ul className="ml-4 list-disc">
-                      {auto.result.github.candidates.map((c) => (
-                        <li key={c.resource.id}>
-                          {c.resource.fullName} — score {c.score.toFixed(2)} · {c.reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {auto.result.vercel.candidates.length > 0 && (
-                  <div className="mt-2">
-                    <div className="font-medium">Vercel candidates considered:</div>
-                    <ul className="ml-4 list-disc">
-                      {auto.result.vercel.candidates.map((c) => (
-                        <li key={c.resource.id}>
-                          {c.resource.name} — score {c.score.toFixed(2)} · {c.reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </details>
-          )}
         </div>
       </div>
     );
@@ -153,27 +152,34 @@ function HealthPage() {
 
   return (
     <div className="px-6 md:px-10 py-10 max-w-[1100px] mx-auto">
-      <Header
-        project={project.name}
-        status={status}
-        onRefresh={() => auto.refresh({ toast: true })}
-      />
+      <Header project={project.name} status={status} onRefresh={() => auto.refresh({ toast: true })} />
 
       {showPicker && auto.result && (
         <div className="mb-6">
-          <AutoLinkPicker
-            project={project}
-            workspaceId={workspace?.id ?? null}
-            github={auto.result.github}
-            vercel={auto.result.vercel}
-            onConfirmed={() => void refresh()}
-          />
+          <AutoLinkPicker project={project} workspaceId={workspace?.id ?? null} github={auto.result.github} vercel={auto.result.vercel} onConfirmed={() => void refresh()} />
         </div>
       )}
 
+      <div className="mb-6">
+        <SecurityMonitorCard
+          report={security}
+          loading={securityLoading}
+          error={securityError}
+          onRefresh={() => {
+            if (project?.id) {
+              setSecurityLoading(true);
+              void scanProjectSecurityById(project.id).then((r) => {
+                setSecurity(r.report);
+                setSecurityError(r.error ?? null);
+                setSecurityLoading(false);
+              });
+            }
+          }}
+        />
+      </div>
+
       <p className="text-muted-foreground mt-1 mb-6">
-        {connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a
-        build happens
+        {connections.length} connection{connections.length === 1 ? "" : "s"} · scans run when a build happens
       </p>
 
       <div className="grid sm:grid-cols-3 gap-4">
@@ -182,83 +188,81 @@ function HealthPage() {
         <ProviderCheck label="Supabase" icon={Database} connected={true} note="Lovable Cloud" />
       </div>
 
-      <div className="mt-6">
-        <AiProviderStatus />
-      </div>
+      <div className="mt-6"><AiProviderStatus /></div>
 
       <div className="mt-6 rounded-2xl border border-white/5 bg-gradient-card p-5">
         <div className="text-[13px] font-medium">Diagnostic checks</div>
         <p className="text-[12px] text-muted-foreground mt-1">
-          No build has run for this project yet. The first deploy will populate the health report.
+          Build, provider, and security monitoring are shown for this project.
         </p>
         <Button variant="hero" size="sm" className="mt-4" asChild>
-          <Link to="/connectors">
-            <Plus className="h-3.5 w-3.5" /> Manage connections
-          </Link>
+          <Link to="/connectors"><Plus className="h-3.5 w-3.5" /> Manage connections</Link>
         </Button>
       </div>
-
-      {auto.result && (
-        <details className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[11.5px] text-muted-foreground">
-          <summary className="cursor-pointer select-none">Auto-link proof log</summary>
-          <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] leading-relaxed">
-            {auto.result.proof.join("\n")}
-          </pre>
-        </details>
-      )}
     </div>
   );
 }
 
-function Header({
-  project,
-  status,
-  onRefresh,
-}: {
-  project: string;
-  status: ReturnType<typeof summariseAutoLink>;
-  onRefresh: () => void;
-}) {
+function SecurityMonitorCard({ report, loading, error, onRefresh }: { report: ProjectSecurityReport | null; loading: boolean; error: string | null; onRefresh: () => void }) {
+  const critical = report?.summary.critical ?? 0;
+  const warning = report?.summary.warning ?? 0;
+  const statusLabel = loading ? "Scanning" : report?.status === "secure" ? "Secure" : report?.status === "critical" ? "Critical" : "Needs attention";
+  const Icon = report?.status === "secure" ? ShieldCheck : ShieldAlert;
+  return (
+    <section className="rounded-2xl border border-white/5 bg-gradient-card p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-white/[0.06] p-2"><Icon className="h-5 w-5 text-emerald-300" /></div>
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">yawB Security Monitor</div>
+            <h2 className="mt-1 font-display text-2xl font-semibold">{statusLabel}</h2>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              {report ? `${report.filesScanned} file(s) scanned · score ${report.score}/100 · ${critical} critical · ${warning} warning` : "Scanning generated project files for secrets, XSS risks, insecure assets, and unsafe embeds."}
+            </p>
+            {error && <p className="mt-2 text-[12px] text-destructive">{error}</p>}
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
+          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Rescan
+        </Button>
+      </div>
+      {report && (
+        <div className="mt-4 grid gap-2">
+          {report.findings.slice(0, 5).map((finding) => (
+            <div key={finding.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[12px]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{finding.title}</span>
+                <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{finding.severity}</span>
+              </div>
+              <p className="mt-1 text-muted-foreground">{finding.detail}</p>
+              <p className="mt-1 text-muted-foreground">Fix: {finding.recommendation}</p>
+              {finding.files.length > 0 && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{finding.files.join(", ")}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Header({ project, status, onRefresh }: { project: string; status: ReturnType<typeof summariseAutoLink>; onRefresh: () => void }) {
   return (
     <div className="mb-8 flex items-start justify-between gap-4">
       <div>
         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Health</div>
         <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">{project}</h1>
-        <div className="mt-2">
-          <AutoLinkStatusBadge status={status} />
-        </div>
+        <div className="mt-2"><AutoLinkStatusBadge status={status} /></div>
       </div>
-      <Button variant="outline" size="sm" onClick={onRefresh}>
-        <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh provider links
-      </Button>
+      <Button variant="outline" size="sm" onClick={onRefresh}><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh provider links</Button>
     </div>
   );
 }
 
-function ProviderCheck({
-  label,
-  icon: Icon,
-  connected,
-  note,
-}: {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  connected: boolean;
-  note?: string;
-}) {
+function ProviderCheck({ label, icon: Icon, connected, note }: { label: string; icon: React.ComponentType<{ className?: string }>; connected: boolean; note?: string }) {
   return (
     <div className="rounded-2xl border border-white/5 bg-gradient-card p-5">
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <span className="font-display font-semibold">{label}</span>
-      </div>
-      <div className="mt-3 text-[12px]">
-        {connected ? (
-          <span className="text-success">Connected{note ? ` · ${note}` : ""}</span>
-        ) : (
-          <span className="text-muted-foreground">Not connected</span>
-        )}
-      </div>
+      <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-muted-foreground" /><span className="font-display font-semibold">{label}</span></div>
+      <div className="mt-3 text-[12px]">{connected ? <span className="text-success">Connected{note ? ` · ${note}` : ""}</span> : <span className="text-muted-foreground">Not connected</span>}</div>
     </div>
   );
 }
