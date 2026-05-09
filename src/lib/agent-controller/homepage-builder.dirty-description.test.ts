@@ -33,7 +33,7 @@ describe("buildLawFirmHomepage with dirty project.description", () => {
     });
     const result = await verifyArtifact({
       artifactType: "homepage",
-      files: { indexHtml, stylesCss, appJs: null, raw: [] },
+      files: { indexHtml, stylesCss },
     });
     expect(result.passed).toBe(true);
   });
