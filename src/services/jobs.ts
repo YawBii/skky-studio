@@ -11,7 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { setDiag, pushDiag } from "@/lib/diagnostics";
 import { runNextJobStep } from "@/services/jobs-runner.functions";
-import { ACTIVE_JOB_STATUSES } from "@/lib/job-guards";
+import { ACTIVE_JOB_STATUSES, getStaleActiveJobs } from "@/lib/job-guards";
 
 export type JobStatus =
   | "queued"
@@ -293,6 +293,35 @@ function planStepsForType(type: string, input: Record<string, unknown>): StepPla
   }
 }
 
+async function expireStaleActiveJobs(projectId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("project_jobs")
+    .select("*")
+    .eq("project_id", projectId)
+    .in("status", [...ACTIVE_JOB_STATUSES]);
+  if (error || !data?.length) return;
+  const stale = getStaleActiveJobs(data.map(rowToJob));
+  if (stale.length === 0) return;
+  const now = new Date().toISOString();
+  for (const item of stale) {
+    const message =
+      item.reason === "queued_timeout"
+        ? "Auto-expired: job stayed queued too long without starting."
+        : "Auto-expired: job stayed running too long without completing.";
+    await supabase
+      .from("project_jobs")
+      .update({ status: "failed", finished_at: now, error: message })
+      .eq("id", item.jobId)
+      .in("status", [...ACTIVE_JOB_STATUSES]);
+    await supabase
+      .from("project_job_steps")
+      .update({ status: "failed", finished_at: now, error: message })
+      .eq("job_id", item.jobId)
+      .in("status", ["queued", "running", "waiting_for_input"]);
+    pushDiag("job.auto_expired", { projectId, jobId: item.jobId, reason: item.reason, ageMs: item.ageMs });
+  }
+}
+
 async function requireProviderForJob(input: {
   projectId: string;
   type: string;
@@ -334,6 +363,7 @@ export async function listJobs(projectId: string | null | undefined): Promise<{
 }> {
   if (!projectId) return { jobs: [], source: "no-project" };
   try {
+    await expireStaleActiveJobs(projectId);
     const { data, error } = await supabase
       .from("project_jobs")
       .select("*")
@@ -381,6 +411,7 @@ export async function enqueueJob(input: {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return { ok: false, error: "Not signed in", code: "NO_SESSION" };
 
+    await expireStaleActiveJobs(input.projectId);
     const providerGuard = await requireProviderForJob({
       projectId: input.projectId,
       type: input.type,
@@ -747,6 +778,7 @@ export async function answerJobQuestion(input: {
 
 export async function tickJobs(projectId: string): Promise<TickResult> {
   try {
+    await expireStaleActiveJobs(projectId);
     const { data: sess } = await supabase.auth.getSession();
     const accessToken = sess.session?.access_token;
     if (!accessToken) {
