@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PROJECT_BRANDING, resolveProjectBranding } from "./project-branding";
 import { injectPublishedBranding } from "./published-branding";
+import { resolvePreviewSource } from "./preview-source";
 
 describe("project branding", () => {
   it("uses SKKY defaults when a project has no overrides", () => {
@@ -37,5 +38,23 @@ describe("project branding", () => {
     expect(html).toContain(DEFAULT_PROJECT_BRANDING.watermarkUrl);
     expect(html).toContain('name="yawb-branding-source" content="default"');
     expect(html).toContain("data-yawb-default-watermark");
+  });
+
+  it("injects branding into local preview srcDoc", () => {
+    const resolved = resolvePreviewSource({
+      project: { id: "p1", name: "Test" },
+      connections: [],
+      preferred: "local",
+      generated: {
+        indexHtml:
+          '<!doctype html><html><head><title>x</title></head><body><span class="brand-mark">§</span></body></html>',
+        hasFiles: true,
+      },
+    });
+
+    expect(resolved.kind).toBe("local");
+    expect(resolved.srcDoc).toContain(DEFAULT_PROJECT_BRANDING.faviconUrl);
+    expect(resolved.srcDoc).toContain(DEFAULT_PROJECT_BRANDING.logoUrl);
+    expect(resolved.srcDoc).toContain("data-yawb-default-brand-style");
   });
 });
