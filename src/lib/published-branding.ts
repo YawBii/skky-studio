@@ -42,6 +42,13 @@ export function injectPublishedBranding(
     );
   }
 
+  if (!/data-yawb-default-brand-style/i.test(out)) {
+    out = beforeHeadClose(
+      out,
+      `  <style data-yawb-default-brand-style="true">.brand-logo{width:44px;height:44px;border-radius:12px;object-fit:contain;background:#fff;box-shadow:0 8px 20px rgba(13,36,67,.1)}.brand-mark,.logo-mark{width:44px;height:44px;border-radius:12px;background:#fff url('${css(branding.logoUrl)}') center/contain no-repeat!important;color:transparent!important;text-indent:-9999px;overflow:hidden;box-shadow:0 8px 20px rgba(13,36,67,.1)}</style>`,
+    );
+  }
+
   if (!/data-yawb-default-watermark/i.test(out)) {
     out = beforeHeadClose(
       out,
