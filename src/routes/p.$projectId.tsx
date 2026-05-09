@@ -8,6 +8,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { inlineLocalAssets } from "@/lib/preview-inline";
+import { injectPublishedBranding } from "@/lib/published-branding";
+import { resolveProjectBranding, type ProjectBrandingSource } from "@/lib/project-branding";
+import { useProjectFavicon } from "@/hooks/use-project-favicon";
 
 export const Route = createFileRoute("/p/$projectId")({
   head: ({ params }) => ({
@@ -28,15 +31,34 @@ async function loadProjectFiles(projectId: string): Promise<{
   indexHtml: string | null;
   stylesCss: string | null;
   appJs: string | null;
+  faviconUrl: string;
   error?: string;
 }> {
-  const { data, error } = await supabase
-    .from("project_files")
-    .select("path, content")
-    .eq("project_id", projectId)
-    .in("path", ["index.html", "styles.css", "app.js"]);
+  const [{ data: projectRow }, { data, error }] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("logo_url, favicon_url, watermark_url")
+      .eq("id", projectId)
+      .maybeSingle(),
+    supabase
+      .from("project_files")
+      .select("path, content")
+      .eq("project_id", projectId)
+      .in("path", ["index.html", "styles.css", "app.js"]),
+  ]);
 
-  if (error) return { indexHtml: null, stylesCss: null, appJs: null, error: error.message };
+  const projectBranding = projectRow as ProjectBrandingSource | null;
+  const branding = resolveProjectBranding(projectBranding);
+
+  if (error) {
+    return {
+      indexHtml: null,
+      stylesCss: null,
+      appJs: null,
+      faviconUrl: branding.faviconUrl,
+      error: error.message,
+    };
+  }
 
   const files = ((data ?? []) as PublishedProjectFile[]).filter(
     (file) => typeof file.content === "string",
@@ -44,16 +66,19 @@ async function loadProjectFiles(projectId: string): Promise<{
   const rawIndex = files.find((file) => file.path === "index.html")?.content ?? null;
   const stylesCss = files.find((file) => file.path === "styles.css")?.content ?? null;
   const appJs = files.find((file) => file.path === "app.js")?.content ?? null;
-  const indexHtml = rawIndex ? inlineLocalAssets(rawIndex, { stylesCss, appJs }) : null;
+  const brandedIndex = rawIndex ? injectPublishedBranding(rawIndex, projectBranding) : null;
+  const indexHtml = brandedIndex ? inlineLocalAssets(brandedIndex, { stylesCss, appJs }) : null;
 
-  return { indexHtml, stylesCss, appJs };
+  return { indexHtml, stylesCss, appJs, faviconUrl: branding.faviconUrl };
 }
 
 function NativePublishedSite() {
   const { projectId } = Route.useParams();
   const [indexHtml, setIndexHtml] = useState<string | null>(null);
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  useProjectFavicon(faviconUrl);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -89,11 +114,13 @@ function NativePublishedSite() {
       const result = await loadProjectFiles(projectId);
       if (cancelled) return;
       setIndexHtml(result.indexHtml);
+      setFaviconUrl(result.faviconUrl);
       setError(result.error ?? null);
       setLoading(false);
       console.info("[yawb] native_publish.route.loaded", {
         projectId,
         hasIndexHtml: Boolean(result.indexHtml),
+        hasFavicon: Boolean(result.faviconUrl),
         error: result.error ?? null,
       });
     })();
