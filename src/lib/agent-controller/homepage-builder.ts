@@ -43,6 +43,8 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="yawb-artifact" content="homepage" />
   <meta name="yawb-artifact-type" content="homepage" />
+  <meta name="yawb-controller" content="agent-controller-v1" />
+  <meta name="yawb-built-by" content="agent-controller-v1" />
   <title>${firmName} — Modern Legal Counsel</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -280,6 +282,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
 
   <footer class="site-footer">
     <p>© ${new Date().getFullYear()} ${firmName}. Attorney advertising. Prior results do not guarantee similar outcomes.</p>
+    <p data-yawb-controller-marker="agent-controller-v1">Built by agent-controller-v1</p>
   </footer>
 </body>
 </html>`;
