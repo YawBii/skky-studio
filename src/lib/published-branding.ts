@@ -45,7 +45,7 @@ export function injectPublishedBranding(
   if (!/data-yawb-default-brand-style/i.test(out)) {
     out = beforeHeadClose(
       out,
-      `  <style data-yawb-default-brand-style="true">.brand-logo{width:44px;height:44px;border-radius:12px;object-fit:contain;background:#fff;box-shadow:0 8px 20px rgba(13,36,67,.1)}.brand-mark,.logo-mark{width:44px;height:44px;border-radius:12px;background:#fff url('${css(branding.logoUrl)}') center/contain no-repeat!important;color:transparent!important;text-indent:-9999px;overflow:hidden;box-shadow:0 8px 20px rgba(13,36,67,.1)}</style>`,
+      `  <style data-yawb-default-brand-style="true">.brand-logo{object-fit:contain;display:block}.brand-logo-full,.brand-mark,.logo-mark{width:min(220px,42vw)!important;height:56px!important;border-radius:0!important;background-color:transparent!important;background-image:url('${css(branding.logoUrl)}')!important;background-position:left center!important;background-size:contain!important;background-repeat:no-repeat!important;color:transparent!important;text-indent:-9999px;overflow:hidden;box-shadow:none!important;object-fit:contain!important;object-position:left center!important}.brand-logo-full{background-image:none!important}@media(max-width:900px){.brand-logo-full,.brand-mark,.logo-mark{width:min(180px,70vw)!important;height:48px!important}}</style>`,
     );
   }
 
