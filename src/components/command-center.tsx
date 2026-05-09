@@ -1,11 +1,9 @@
-// Command Center: a compact status pill + collapsible drawer that surfaces
-// the most recent / active job for a project without taking over the page.
+// Command Center: compact job status UI for yawB.
 //
-// State is derived from `project_jobs` (via useProjectJobs) and reduced to
-// one of: idle | running | waiting | failed | succeeded (transient).
-//
-// The drawer reuses <JobsPanel /> for deep inspection so the runner/job
-// system stays unchanged.
+// Important builder rule:
+// Preview regenerate / repair jobs must NEVER blank the preview or trap the project.
+// They are best-effort background proofs only. The visible preview should stay on the
+// last good project_files while those jobs run or queue.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -24,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { JobsPanel } from "@/components/jobs-panel";
 import type { Job } from "@/services/jobs";
 import { isFailedJobResolved } from "@/lib/job-resolution";
+import { isStaleActiveJob } from "@/lib/job-guards";
 import { isTabletOrMobile, setPerf } from "@/lib/perf-mode";
 
 export type CommandCenterMode = "idle" | "running" | "waiting" | "failed" | "succeeded";
@@ -36,14 +35,43 @@ export interface CommandCenterDerivedState {
   failedJob: Job | null;
 }
 
+function jobInput(job: Job): Record<string, unknown> {
+  return (job.input ?? {}) as Record<string, unknown>;
+}
+
+function isPreviewBackgroundJob(job: Job): boolean {
+  if (job.type !== "ai.generate_changes" && job.type !== "ai.repair_failure") return false;
+  const source = String(jobInput(job).source ?? "");
+  return (
+    source === "preview_regenerate_design" ||
+    source === "preview_visual_quality_repair" ||
+    source === "direct_build_controller" ||
+    /regenerate design|repair preview/i.test(job.title)
+  );
+}
+
+function isBlockingRunningJob(job: Job): boolean {
+  if (job.status !== "running" && job.status !== "queued") return false;
+  if (isStaleActiveJob(job)) return false;
+  if (isPreviewBackgroundJob(job)) return false;
+  return true;
+}
+
+function isBlockingWaitingJob(job: Job): boolean {
+  if (job.status !== "waiting_for_input") return false;
+  if (isPreviewBackgroundJob(job)) return false;
+  return true;
+}
+
 /** Reduce a list of jobs to a single Command Center state. */
 export function deriveCommandCenterState(jobs: Job[]): CommandCenterDerivedState {
-  const running = jobs.filter((j) => j.status === "running" || j.status === "queued");
-  const waiting = jobs.filter((j) => j.status === "waiting_for_input");
-  // Only treat a failed job as "needs attention" if it isn't resolved by a
-  // newer succeeded job of the same type. Stale failures get hidden.
+  const running = jobs.filter(isBlockingRunningJob);
+  const waiting = jobs.filter(isBlockingWaitingJob);
   const failedJob =
-    jobs.find((j) => j.status === "failed" && !isFailedJobResolved(j, jobs)) ?? null;
+    jobs.find(
+      (j) =>
+        j.status === "failed" && !isPreviewBackgroundJob(j) && !isFailedJobResolved(j, jobs),
+    ) ?? null;
   const lastSucceeded = jobs.find((j) => j.status === "succeeded") ?? null;
 
   let mode: CommandCenterMode = "idle";
@@ -85,13 +113,8 @@ const PILL_LABEL: Record<CommandCenterMode, string> = {
   succeeded: "Done",
 };
 
-/**
- * Compact floating pill anchored to the bottom-left of its containing
- * relative parent. Click to expand the drawer. Color/icon adapts to state.
- */
 export function CommandCenterPill({ state, open, onToggle }: PillProps) {
   const { mode, runningCount } = state;
-
   const Icon =
     mode === "running"
       ? Loader2
@@ -102,7 +125,6 @@ export function CommandCenterPill({ state, open, onToggle }: PillProps) {
           : mode === "succeeded"
             ? CheckCircle2
             : Activity;
-
   const label =
     mode === "running" && runningCount > 1
       ? `Running ${runningCount} jobs`
@@ -164,11 +186,6 @@ function loadHeight(defaultPx: number): number {
   }
 }
 
-/**
- * Bottom-anchored drawer that hosts the full JobsPanel for the active job.
- * Stays inside the preview pane (not full-screen) so chat remains visible.
- * Supports a draggable top resize handle (pointer events) with persistence.
- */
 export function CommandCenterDrawer({
   open,
   onClose,
@@ -179,7 +196,6 @@ export function CommandCenterDrawer({
   previewBlocked,
   hasActiveJob,
 }: DrawerProps) {
-  // Default height: ~45vh, clamped between min and 85vh.
   const defaultPx = typeof window !== "undefined" ? Math.round(window.innerHeight * 0.45) : 480;
   const lightweight = useMemo(() => isTabletOrMobile(), []);
   const [height, setHeight] = useState<number>(() => loadHeight(defaultPx));
@@ -195,9 +211,8 @@ export function CommandCenterDrawer({
     if (!draggingRef.current) return;
     const onMove = (e: PointerEvent) => {
       if (!draggingRef.current || !startRef.current) return;
-      const dy = startRef.current.y - e.clientY; // dragging up grows height
-      const next = clamp(startRef.current.h + dy);
-      setHeight(next);
+      const dy = startRef.current.y - e.clientY;
+      setHeight(clamp(startRef.current.h + dy));
     };
     const onUp = () => {
       if (!draggingRef.current) return;
@@ -282,9 +297,8 @@ export function CommandCenterDrawerContent({
       style={{ height: `${height}px` }}
       className={cn(
         "absolute left-3 right-3 bottom-14 z-30 flex flex-col",
-        "rounded-xl border border-white/10 bg-sidebar/95",
+        "rounded-xl border border-white/10 bg-sidebar/95 overflow-hidden",
         !lightweight && "backdrop-blur-xl shadow-elevated",
-        "overflow-hidden",
       )}
     >
       <div
@@ -307,13 +321,7 @@ export function CommandCenterDrawerContent({
         >
           Open full Jobs tab
         </button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          onClick={onClose}
-          aria-label="Close"
-        >
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose} aria-label="Close">
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -333,13 +341,6 @@ export function CommandCenterDrawerContent({
   );
 }
 
-/**
- * Hook that auto-opens the drawer when state requires attention, returns to
- * the Preview tab after a build succeeds, and briefly shows the "Done" pill
- * before collapsing back to idle.
- *
- * Pure UI orchestration — does NOT touch the runner.
- */
 export function useCommandCenterAutoOpen(
   state: CommandCenterDerivedState,
   opts: {
@@ -355,13 +356,11 @@ export function useCommandCenterAutoOpen(
 
   const { mode, activeJob } = state;
 
-  // Auto-open when running/waiting/failed.
   useEffect(() => {
     if (opts.autoOpen === false) return;
     if (mode === "waiting" || mode === "failed") setOpen(true);
   }, [mode, opts.autoOpen]);
 
-  // Detect job-just-completed transitions to fire callbacks + transient "Done".
   useEffect(() => {
     if (!activeJob) return;
     const prevStatus = lastJobIdRef.current === activeJob.id ? lastStatusRef.current : null;
@@ -369,12 +368,10 @@ export function useCommandCenterAutoOpen(
       if (activeJob.status === "succeeded") {
         opts.onJobSucceeded?.(activeJob);
         setShowSucceeded(activeJob.id);
-        // Auto-collapse the pill back to "idle" after 4s.
         const t = setTimeout(
           () => setShowSucceeded((id) => (id === activeJob.id ? null : id)),
           4000,
         );
-        // Also auto-close the drawer on success.
         setOpen(false);
         return () => clearTimeout(t);
       }
@@ -386,8 +383,6 @@ export function useCommandCenterAutoOpen(
     lastStatusRef.current = activeJob.status;
   }, [activeJob, opts]);
 
-  // Effective mode used for the pill: keep "succeeded" sticky for the brief
-  // confirmation window even if derived state has already moved to idle.
   const effectiveMode: CommandCenterMode = useMemo(() => {
     if (showSucceeded && mode === "idle") return "succeeded";
     return mode;
