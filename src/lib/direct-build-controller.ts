@@ -66,10 +66,9 @@ export async function runDirectBuildController(
     };
   }
 
-  const security = scanProjectSecurity({
-    projectId: input.project.id,
-    files: files.map((file) => ({ path: file.path, content: file.content })),
-  });
+  const security = scanProjectSecurity(
+    files.map((file) => ({ path: file.path, content: file.content })),
+  );
   const criticalFindings = security.findings.filter((finding) => finding.severity === "critical");
   if (criticalFindings.length > 0) {
     return {
