@@ -9,6 +9,7 @@
 import type { Job } from "@/services/jobs";
 
 const TRANSIENT_ERROR_PATTERNS = [/invalid bearer token/i, /no bearer token/i];
+const CONTROLLER_SUCCESS_MARKERS = ["agent-controller-v1", "homepage", "project_files/index.html"];
 
 /**
  * Known placeholder / "feature gap" failures that should NOT be treated as
@@ -45,6 +46,16 @@ function ts(j: Job): number {
   return Number.isFinite(t) ? t : 0;
 }
 
+function blob(j: Job): string {
+  return `${j.title ?? ""} ${j.type ?? ""} ${j.error ?? ""} ${JSON.stringify(j.input ?? {})} ${JSON.stringify(j.output ?? {})}`;
+}
+
+function isControllerHomepageSuccess(j: Job): boolean {
+  if (j.status !== "succeeded") return false;
+  const text = blob(j).toLowerCase();
+  return CONTROLLER_SUCCESS_MARKERS.some((marker) => text.includes(marker));
+}
+
 /** Latest succeeded job of a given type (or any type if `type` omitted). */
 export function latestSucceededJob(jobs: Job[], type?: string): Job | null {
   let best: Job | null = null;
@@ -79,6 +90,17 @@ export function getResolvingSuccess(failed: Job, allJobs: Job[]): Job | null {
 
   const sameTypeSuccess = latestSucceededJob(allJobs, failed.type);
   if (sameTypeSuccess && ts(sameTypeSuccess) > failedAt) return sameTypeSuccess;
+
+  const controllerSuccess = allJobs
+    .filter(isControllerHomepageSuccess)
+    .sort((a, b) => ts(b) - ts(a))[0];
+  if (
+    controllerSuccess &&
+    ts(controllerSuccess) > failedAt &&
+    /ai\.generate_changes|ai\.repair_failure|build\.production/.test(failed.type)
+  ) {
+    return controllerSuccess;
+  }
 
   const errText = failed.error ?? "";
   if (
@@ -141,6 +163,12 @@ export function describeUnresolvedReason(failed: Job, allJobs: Job[]): string {
   if (failed.status !== "failed") return "Not a failed job.";
   const sameTypeSuccess = latestSucceededJob(allJobs, failed.type);
   if (!sameTypeSuccess) {
+    const controllerSuccess = allJobs
+      .filter(isControllerHomepageSuccess)
+      .sort((a, b) => ts(b) - ts(a))[0];
+    if (controllerSuccess && ts(controllerSuccess) > ts(failed)) {
+      return "Resolved by newer agent-controller-v1 homepage write.";
+    }
     return `No newer ${failed.type} success yet.`;
   }
   if (ts(sameTypeSuccess) <= ts(failed)) {
