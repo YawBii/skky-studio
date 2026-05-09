@@ -58,7 +58,7 @@ export async function inspectAgentState(input: InspectInput): Promise<AgentState
   // Project row (single, scoped). Avoid the full project list.
   const { data: projectRow } = await supabase
     .from("projects")
-    .select("id, name, description")
+    .select("id, name, description, logo_url, favicon_url, watermark_url")
     .eq("id", projectId)
     .maybeSingle();
 
@@ -81,7 +81,14 @@ export async function inspectAgentState(input: InspectInput): Promise<AgentState
 
   return {
     project: projectRow
-      ? { id: projectRow.id, name: projectRow.name, description: projectRow.description }
+      ? {
+          id: projectRow.id,
+          name: projectRow.name,
+          description: projectRow.description,
+          logo_url: projectRow.logo_url ?? null,
+          favicon_url: projectRow.favicon_url ?? null,
+          watermark_url: projectRow.watermark_url ?? null,
+        }
       : null,
     files: { indexHtml, stylesCss, appJs, raw: filesResult.files },
     latestJobs,
