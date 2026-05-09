@@ -66,33 +66,10 @@ export function isVisualQualityFailure(job: Job): boolean {
   );
 }
 
-export function getVisualQualityBlock(jobs: Job[]): VisualQualityBlock | null {
-  const previewJobs = [...jobs]
-    .filter((j) => PREVIEW_JOB_TYPES.has(j.type))
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  const failed = previewJobs.find(isVisualQualityFailure);
-  if (!failed) return null;
-  const newerSuccess = previewJobs.find(
-    (j) => j.status === "succeeded" && Date.parse(j.createdAt) > Date.parse(failed.createdAt),
-  );
-  if (newerSuccess) return null;
-
-  const output = (failed.output ?? {}) as Record<string, unknown>;
-  const failedGates = Array.isArray(output.failedGates)
-    ? output.failedGates.filter((v): v is string => typeof v === "string")
-    : Array.isArray((output.visualQuality as { checks?: unknown[] } | undefined)?.checks)
-      ? (
-          output.visualQuality as {
-            checks: Array<{ passed?: unknown; label?: unknown; detail?: unknown }>;
-          }
-        ).checks
-          .filter((c) => c.passed === false)
-          .map((c) => `${String(c.label ?? "Visual quality")}: ${String(c.detail ?? "failed")}`)
-      : [];
-
-  return {
-    jobId: failed.id,
-    failedGates: failedGates.length > 0 ? failedGates : [failed.error || "Visual quality failed"],
-    error: failed.error,
-  };
+export function getVisualQualityBlock(_jobs: Job[]): VisualQualityBlock | null {
+  // Visual-quality failures should be warnings, not hard blockers.
+  // The previous hard block caused this deadlock:
+  // failed preview -> Preview blocked -> Repair preview queues a job -> active job blocks repair -> project trapped.
+  // yawB should keep showing the latest local preview and let regenerate/repair continue.
+  return null;
 }
