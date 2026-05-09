@@ -73,7 +73,16 @@ const dashboardTerms = [
   "matter board",
   "case cockpit",
 ];
-const replacementTerms = ["redesign", "make", "turn", "convert", "replace", "fit", "change", "transform"];
+const replacementTerms = [
+  "redesign",
+  "make",
+  "turn",
+  "convert",
+  "replace",
+  "fit",
+  "change",
+  "transform",
+];
 const lawTerms = ["law firm", "legal", "attorney", "lawyer", "counsel"];
 
 export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
@@ -126,27 +135,88 @@ export function classifyAgentIntent(input: ClassifyInput): AgentIntent {
       domain,
     };
   }
-  if (text.includes("admin panel") || text.includes("moderation") || text.includes("backoffice") || text.includes("back-office") || text.includes("ops console")) {
-    return { artifactType: "admin_panel", confidence: 0.85, reason: "admin/moderation wording", domain };
+  if (
+    text.includes("admin panel") ||
+    text.includes("moderation") ||
+    text.includes("backoffice") ||
+    text.includes("back-office") ||
+    text.includes("ops console")
+  ) {
+    return {
+      artifactType: "admin_panel",
+      confidence: 0.85,
+      reason: "admin/moderation wording",
+      domain,
+    };
   }
-  if (text.includes("crm") || text.includes("customer relationship") || text.includes("pipeline") || text.includes("lead manager") || text.includes("leads manager")) {
+  if (
+    text.includes("crm") ||
+    text.includes("customer relationship") ||
+    text.includes("pipeline") ||
+    text.includes("lead manager") ||
+    text.includes("leads manager")
+  ) {
     return { artifactType: "crm", confidence: 0.85, reason: "crm/pipeline wording", domain };
   }
-  if (text.includes("marketplace") || text.includes("two-sided") || text.includes("listing") || text.includes("catalogue") || text.includes("catalog") || text.includes("storefront")) {
+  if (
+    text.includes("marketplace") ||
+    text.includes("two-sided") ||
+    text.includes("listing") ||
+    text.includes("catalogue") ||
+    text.includes("catalog") ||
+    text.includes("storefront")
+  ) {
     return { artifactType: "marketplace", confidence: 0.85, reason: "marketplace wording", domain };
   }
-  if (text.includes("auth flow") || text.includes("login flow") || text.includes("sign in") || text.includes("sign up") || text.includes("password reset")) {
+  if (
+    text.includes("auth flow") ||
+    text.includes("login flow") ||
+    text.includes("sign in") ||
+    text.includes("sign up") ||
+    text.includes("password reset")
+  ) {
     return { artifactType: "auth_flow", confidence: 0.8, reason: "auth/login wording", domain };
   }
-  if (text.includes("database") || text.includes("schema") || text.includes("migration") || text.includes("table") || text.includes("rls polic")) {
-    return { artifactType: "database_schema", confidence: 0.8, reason: "schema/migration wording", domain };
+  if (
+    text.includes("database") ||
+    text.includes("schema") ||
+    text.includes("migration") ||
+    text.includes("table") ||
+    text.includes("rls polic")
+  ) {
+    return {
+      artifactType: "database_schema",
+      confidence: 0.8,
+      reason: "schema/migration wording",
+      domain,
+    };
   }
-  if (text.includes("deploy") || text.includes("production build") || text.includes("publish") || text.includes("ship live") || text.includes("vercel")) {
+  if (
+    text.includes("deploy") ||
+    text.includes("production build") ||
+    text.includes("publish") ||
+    text.includes("ship live") ||
+    text.includes("vercel")
+  ) {
     return { artifactType: "deploy", confidence: 0.8, reason: "deploy/publish wording", domain };
   }
-  if (text.includes("fix") || text.includes("bug") || text.includes("broken") || text.includes("error") || text.includes("repair") || text.includes("stale") || text.includes("not working") || text.includes("hotfix")) {
+  if (
+    text.includes("fix") ||
+    text.includes("bug") ||
+    text.includes("broken") ||
+    text.includes("error") ||
+    text.includes("repair") ||
+    text.includes("stale") ||
+    text.includes("not working") ||
+    text.includes("hotfix")
+  ) {
     return { artifactType: "fix_bug", confidence: 0.75, reason: "fix/bug/repair wording", domain };
   }
 
-  return { artifactType: "unknown", confidence: 0.3, reason: "no strong signal in request", domain };
+  return {
+    artifactType: "unknown",
+    confidence: 0.3,
+    reason: "no strong signal in request",
+    domain,
+  };
 }
