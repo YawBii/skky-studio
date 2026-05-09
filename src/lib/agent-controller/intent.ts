@@ -4,12 +4,26 @@ export interface ClassifyInput {
   userRequest: string;
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function termRegex(term: string): RegExp {
+  // Word-bounded match so "review" doesn't match "preview".
+  return new RegExp(`\\b${escapeRegExp(term)}\\b`, "i");
+}
+
 function hasAny(text: string, terms: string[]): boolean {
-  return terms.some((term) => text.includes(term));
+  return terms.some((term) => termRegex(term).test(text));
 }
 
 function indexOfAny(text: string, terms: string[]): number {
-  const matches = terms.map((term) => text.indexOf(term)).filter((i) => i >= 0);
+  const matches = terms
+    .map((term) => {
+      const m = termRegex(term).exec(text);
+      return m ? m.index : -1;
+    })
+    .filter((i) => i >= 0);
   return matches.length ? Math.min(...matches) : -1;
 }
 
