@@ -3,6 +3,7 @@ import { FolderKanban, AlertTriangle, Rocket, Plug, Settings, LogOut } from "luc
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { signOut } from "@/services/auth";
+import { DEFAULT_PROJECT_BRANDING } from "@/lib/project-branding";
 
 const nav = [
   { to: "/projects", label: "Projects", icon: FolderKanban },
@@ -37,13 +38,12 @@ export function AppSidebar() {
 
   return (
     <aside className="hidden md:flex w-[64px] shrink-0 flex-col items-center border-r border-white/5 bg-sidebar/70 backdrop-blur-xl py-3">
-      {/* Workspace mark */}
       <Link
         to="/"
-        title="yawB · Workspace"
-        className="h-9 w-9 rounded-xl bg-gradient-to-br from-white/95 to-white/55 text-[oklch(0.16_0_0)] flex items-center justify-center font-display font-bold text-sm shadow-glow"
+        title="SKKY AB · yawB Workspace"
+        className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-glow p-1"
       >
-        y
+        <img src={DEFAULT_PROJECT_BRANDING.faviconUrl} alt="SKKY AB" className="h-full w-full object-contain" />
       </Link>
 
       <nav className="mt-5 flex-1 flex flex-col items-center gap-1">
