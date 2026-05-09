@@ -1,8 +1,9 @@
 import type { Job } from "@/services/jobs";
 
 export const ACTIVE_JOB_STATUSES = new Set(["queued", "running", "waiting_for_input"]);
-export const PREVIEW_JOB_TYPES = new Set(["ai.generate_changes", "build.production"]);
+export const PREVIEW_JOB_TYPES = new Set(["ai.generate_changes", "ai.repair_failure", "build.production"]);
 export const STALE_QUEUED_JOB_MS = 90_000;
+export const STALE_PREVIEW_QUEUED_JOB_MS = 20_000;
 export const STALE_RUNNING_JOB_MS = 5 * 60_000;
 
 export interface VisualQualityBlock {
@@ -23,10 +24,14 @@ function jobAgeMs(job: Job, now = Date.now()): number {
   return Number.isFinite(parsed) ? now - parsed : 0;
 }
 
+function queuedTimeoutFor(job: Job): number {
+  return PREVIEW_JOB_TYPES.has(job.type) ? STALE_PREVIEW_QUEUED_JOB_MS : STALE_QUEUED_JOB_MS;
+}
+
 export function isStaleActiveJob(job: Job, now = Date.now()): StaleJobBlock | null {
   if (!ACTIVE_JOB_STATUSES.has(job.status)) return null;
   const ageMs = jobAgeMs(job, now);
-  if (job.status === "queued" && ageMs > STALE_QUEUED_JOB_MS) {
+  if (job.status === "queued" && ageMs > queuedTimeoutFor(job)) {
     return { jobId: job.id, reason: "queued_timeout", ageMs };
   }
   if (job.status === "running" && ageMs > STALE_RUNNING_JOB_MS) {
