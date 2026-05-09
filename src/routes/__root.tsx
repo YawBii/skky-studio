@@ -7,6 +7,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import appCss from "../styles.css?url";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AssistantPanel } from "@/components/assistant-panel";
@@ -132,8 +133,6 @@ function RootComponent() {
   const isBare =
     BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
     routeIds.some((id) => BARE_ROUTES.includes(id));
-  // Chrome-less project-output routes: render the project output ONLY,
-  // with no yawB sidebar/topbar/chat/diagnostics around it.
   const isProjectOutputRoute =
     pathname.startsWith("/preview/") ||
     pathname.startsWith("/p/") ||
@@ -327,14 +326,27 @@ function WorkspaceShell() {
     mainContent = <Outlet />;
   }
 
-  const onNativePublish = () => {
-    if (!currentProject?.id) return;
-    const url = `/p/${currentProject.id}`;
+  const onNativePublish = async () => {
+    if (!currentProject?.id) {
+      toast("Select a project first");
+      return;
+    }
+    const path = `/p/${currentProject.id}`;
+    const url = new URL(path, window.location.origin).toString();
     console.info("[yawb] native_publish.open", {
       projectId: currentProject.id,
       url,
       provider: "yawb-native",
+      vercelRequired: false,
     });
+
+    try {
+      await navigator.clipboard?.writeText(url);
+      toast.success("Published with yawB Native Hosting — link copied");
+    } catch {
+      toast.success("Published with yawB Native Hosting");
+    }
+
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
