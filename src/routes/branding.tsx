@@ -90,7 +90,9 @@ function BrandingPage() {
     }
     setLoadedBranding(payload);
     await refreshProjects();
-    window.dispatchEvent(new CustomEvent("yawb:project-branding-updated", { detail: { projectId: project.id } }));
+    window.dispatchEvent(
+      new CustomEvent("yawb:project-branding-updated", { detail: { projectId: project.id } }),
+    );
     toast.success("Project branding saved");
   };
 
@@ -107,7 +109,9 @@ function BrandingPage() {
     }
     setLoadedBranding(payload);
     await refreshProjects();
-    window.dispatchEvent(new CustomEvent("yawb:project-branding-updated", { detail: { projectId: project.id } }));
+    window.dispatchEvent(
+      new CustomEvent("yawb:project-branding-updated", { detail: { projectId: project.id } }),
+    );
     toast.success("Project branding reset to SKKY defaults");
   };
 
@@ -117,7 +121,8 @@ function BrandingPage() {
         <div>
           <h1 className="text-3xl font-display font-bold tracking-tight md:text-4xl">Branding</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Every project uses the SKKY AB logo, favicon, and watermark by default. Add URLs here only when a client project needs its own brand.
+            Every project uses the SKKY AB logo, favicon, and watermark by default. Add URLs here
+            only when a client project needs its own brand.
           </p>
         </div>
         <ImageIcon className="mt-2 h-7 w-7 text-muted-foreground" />
@@ -136,9 +141,24 @@ function BrandingPage() {
             </p>
 
             <div className="mt-6 space-y-4">
-              <BrandField label="Logo URL" value={form.logo_url} placeholder={DEFAULT_PROJECT_BRANDING.logoUrl} onChange={(value) => setForm((f) => ({ ...f, logo_url: value }))} />
-              <BrandField label="Favicon URL" value={form.favicon_url} placeholder={DEFAULT_PROJECT_BRANDING.faviconUrl} onChange={(value) => setForm((f) => ({ ...f, favicon_url: value }))} />
-              <BrandField label="Watermark URL" value={form.watermark_url} placeholder={DEFAULT_PROJECT_BRANDING.watermarkUrl} onChange={(value) => setForm((f) => ({ ...f, watermark_url: value }))} />
+              <BrandField
+                label="Logo URL"
+                value={form.logo_url}
+                placeholder={DEFAULT_PROJECT_BRANDING.logoUrl}
+                onChange={(value) => setForm((f) => ({ ...f, logo_url: value }))}
+              />
+              <BrandField
+                label="Favicon URL"
+                value={form.favicon_url}
+                placeholder={DEFAULT_PROJECT_BRANDING.faviconUrl}
+                onChange={(value) => setForm((f) => ({ ...f, favicon_url: value }))}
+              />
+              <BrandField
+                label="Watermark URL"
+                value={form.watermark_url}
+                placeholder={DEFAULT_PROJECT_BRANDING.watermarkUrl}
+                onChange={(value) => setForm((f) => ({ ...f, watermark_url: value }))}
+              />
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -152,11 +172,26 @@ function BrandingPage() {
           </section>
 
           <aside className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Live resolution</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              Live resolution
+            </div>
             <div className="mt-4 space-y-4">
-              <PreviewAsset label="Logo" url={branding.logoUrl} inherited={branding.usesDefaultLogo} />
-              <PreviewAsset label="Favicon" url={branding.faviconUrl} inherited={branding.usesDefaultFavicon} />
-              <PreviewAsset label="Watermark" url={branding.watermarkUrl} inherited={branding.usesDefaultWatermark} wide />
+              <PreviewAsset
+                label="Logo"
+                url={branding.logoUrl}
+                inherited={branding.usesDefaultLogo}
+              />
+              <PreviewAsset
+                label="Favicon"
+                url={branding.faviconUrl}
+                inherited={branding.usesDefaultFavicon}
+              />
+              <PreviewAsset
+                label="Watermark"
+                url={branding.watermarkUrl}
+                inherited={branding.usesDefaultWatermark}
+                wide
+              />
             </div>
           </aside>
         </div>
@@ -165,16 +200,41 @@ function BrandingPage() {
   );
 }
 
-function BrandField({ label, value, placeholder, onChange }: { label: string; value: string; placeholder: string; onChange: (value: string) => void }) {
+function BrandField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="block">
       <div className="mb-1.5 text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-10 w-full rounded-lg border border-white/10 bg-background/50 px-3 text-sm focus:border-white/20 focus:outline-none" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-10 w-full rounded-lg border border-white/10 bg-background/50 px-3 text-sm focus:border-white/20 focus:outline-none"
+      />
     </label>
   );
 }
 
-function PreviewAsset({ label, url, inherited, wide = false }: { label: string; url: string; inherited: boolean; wide?: boolean }) {
+function PreviewAsset({
+  label,
+  url,
+  inherited,
+  wide = false,
+}: {
+  label: string;
+  url: string;
+  inherited: boolean;
+  wide?: boolean;
+}) {
   return (
     <div className="rounded-xl border border-white/10 bg-background/40 p-3">
       <div className="mb-2 flex items-center justify-between gap-3 text-xs">
@@ -184,7 +244,11 @@ function PreviewAsset({ label, url, inherited, wide = false }: { label: string; 
         </span>
       </div>
       <div className="grid min-h-20 place-items-center rounded-lg bg-white p-3">
-        <img src={url} alt={label} className={wide ? "max-h-24 max-w-full object-contain" : "h-14 w-14 object-contain"} />
+        <img
+          src={url}
+          alt={label}
+          className={wide ? "max-h-24 max-w-full object-contain" : "h-14 w-14 object-contain"}
+        />
       </div>
       <div className="mt-2 truncate font-mono text-[10px] text-muted-foreground">{url}</div>
     </div>

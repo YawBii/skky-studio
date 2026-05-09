@@ -151,12 +151,15 @@ function isMissingTable(error: { code?: string; message?: string } | null | unde
   return error.code === "42P01" || error.code === "PGRST205" || msg.includes("does not exist");
 }
 
-function isOneActiveJobViolation(error: { code?: string; message?: string; details?: string } | null | undefined) {
+function isOneActiveJobViolation(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+) {
   if (!error) return false;
   const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
   return (
     error.code === "23505" &&
-    (text.includes("project_jobs_one_active_per_project") || text.includes("project_jobs_project_id_idx"))
+    (text.includes("project_jobs_one_active_per_project") ||
+      text.includes("project_jobs_project_id_idx"))
   );
 }
 
@@ -378,7 +381,10 @@ export async function enqueueJob(input: {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return { ok: false, error: "Not signed in", code: "NO_SESSION" };
 
-    const providerGuard = await requireProviderForJob({ projectId: input.projectId, type: input.type });
+    const providerGuard = await requireProviderForJob({
+      projectId: input.projectId,
+      type: input.type,
+    });
     if (!providerGuard.ok) {
       pushDiag("job.enqueue.provider_blocked", {
         projectId: input.projectId,
@@ -390,7 +396,9 @@ export async function enqueueJob(input: {
         error: providerGuard.error,
         code: providerGuard.code,
         tableMissing: providerGuard.tableMissing,
-        sqlFile: providerGuard.tableMissing ? "docs/sql/2026-04-30-project-connections.sql" : undefined,
+        sqlFile: providerGuard.tableMissing
+          ? "docs/sql/2026-04-30-project-connections.sql"
+          : undefined,
       };
     }
 

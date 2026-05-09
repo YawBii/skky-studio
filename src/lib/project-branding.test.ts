@@ -28,7 +28,10 @@ describe("project branding", () => {
   });
 
   it("injects default favicon and watermark into legacy published HTML", () => {
-    const html = injectPublishedBranding("<!doctype html><html><head><title>x</title></head><body>Hello</body></html>", {});
+    const html = injectPublishedBranding(
+      "<!doctype html><html><head><title>x</title></head><body>Hello</body></html>",
+      {},
+    );
     expect(html).toContain(DEFAULT_PROJECT_BRANDING.faviconUrl);
     expect(html).toContain(DEFAULT_PROJECT_BRANDING.logoUrl);
     expect(html).toContain(DEFAULT_PROJECT_BRANDING.watermarkUrl);
