@@ -282,6 +282,7 @@ export function buildLawFirmHomepage(input: HomepageBuilderInput): HomepageBuild
 
   <footer class="site-footer">
     <p>© ${new Date().getFullYear()} ${firmName}. Attorney advertising. Prior results do not guarantee similar outcomes.</p>
+    <p data-yawb-controller-marker="agent-controller-v1">Built by agent-controller-v1</p>
   </footer>
 </body>
 </html>`;
