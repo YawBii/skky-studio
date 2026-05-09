@@ -9,7 +9,12 @@
 import type { Job } from "@/services/jobs";
 
 const TRANSIENT_ERROR_PATTERNS = [/invalid bearer token/i, /no bearer token/i];
-const CONTROLLER_SUCCESS_MARKERS = ["agent-controller-v1", "homepage", "project_files/index.html"];
+const CONTROLLER_SUCCESS_MARKERS = [
+  "agent-controller-v1",
+  "direct-build-controller-v1",
+  "homepage",
+  "project_files/index.html",
+];
 
 /**
  * Known placeholder / "feature gap" failures that should NOT be treated as
@@ -50,10 +55,22 @@ function blob(j: Job): string {
   return `${j.title ?? ""} ${j.type ?? ""} ${j.error ?? ""} ${JSON.stringify(j.input ?? {})} ${JSON.stringify(j.output ?? {})}`;
 }
 
-function isControllerHomepageSuccess(j: Job): boolean {
+function isControllerSuccess(j: Job): boolean {
   if (j.status !== "succeeded") return false;
   const text = blob(j).toLowerCase();
   return CONTROLLER_SUCCESS_MARKERS.some((marker) => text.includes(marker));
+}
+
+function isPreviewBackgroundFailure(j: Job): boolean {
+  if (j.status !== "failed") return false;
+  if (j.type !== "ai.generate_changes" && j.type !== "ai.repair_failure") return false;
+  const text = blob(j).toLowerCase();
+  return (
+    /regenerate design|repair preview|preview_regenerate_design|preview_visual_quality_repair/.test(
+      text,
+    ) ||
+    /auto-expired: job stayed queued too long|visual quality not met|needs repair/i.test(j.error ?? "")
+  );
 }
 
 /** Latest succeeded job of a given type (or any type if `type` omitted). */
@@ -91,9 +108,7 @@ export function getResolvingSuccess(failed: Job, allJobs: Job[]): Job | null {
   const sameTypeSuccess = latestSucceededJob(allJobs, failed.type);
   if (sameTypeSuccess && ts(sameTypeSuccess) > failedAt) return sameTypeSuccess;
 
-  const controllerSuccess = allJobs
-    .filter(isControllerHomepageSuccess)
-    .sort((a, b) => ts(b) - ts(a))[0];
+  const controllerSuccess = allJobs.filter(isControllerSuccess).sort((a, b) => ts(b) - ts(a))[0];
   if (
     controllerSuccess &&
     ts(controllerSuccess) > failedAt &&
@@ -128,6 +143,11 @@ export function isFailedJobResolved(failed: Job, allJobs: Job[]): boolean {
   // are treated as resolved — they aren't actionable runtime failures and
   // should not trigger Command Center attention or retry suggestions.
   if (isPlaceholderFailure(failed)) return true;
+
+  // Preview regenerate/repair failures are background history now. They must not
+  // keep the project red or suggest retry loops after a visible preview exists.
+  if (isPreviewBackgroundFailure(failed)) return true;
+
   return getResolvingSuccess(failed, allJobs) !== null;
 }
 
@@ -161,13 +181,12 @@ export function groupResolvedFailuresByType(jobs: Job[]): Map<string, Job[]> {
  */
 export function describeUnresolvedReason(failed: Job, allJobs: Job[]): string {
   if (failed.status !== "failed") return "Not a failed job.";
+  if (isPreviewBackgroundFailure(failed)) return "Resolved as non-blocking preview history.";
   const sameTypeSuccess = latestSucceededJob(allJobs, failed.type);
   if (!sameTypeSuccess) {
-    const controllerSuccess = allJobs
-      .filter(isControllerHomepageSuccess)
-      .sort((a, b) => ts(b) - ts(a))[0];
+    const controllerSuccess = allJobs.filter(isControllerSuccess).sort((a, b) => ts(b) - ts(a))[0];
     if (controllerSuccess && ts(controllerSuccess) > ts(failed)) {
-      return "Resolved by newer agent-controller-v1 homepage write.";
+      return "Resolved by newer controller project_files write.";
     }
     return `No newer ${failed.type} success yet.`;
   }
