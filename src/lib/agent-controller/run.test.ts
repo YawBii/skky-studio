@@ -140,10 +140,12 @@ describe("runAgentController", () => {
     expect(proof.filesTouched).toEqual(["index.html", "styles.css"]);
     expect(proof.verification?.passed).toBe(true);
 
-    const writtenFiles = writer.mock.calls[0]?.[1] ?? [];
+    const writtenFiles = (writer.mock.calls[0]?.[1] ?? []) as Array<{ path: string }>;
     expect(writtenFiles.map((file) => file.path)).toEqual(["index.html", "styles.css"]);
     const output = `${proof.outputs?.indexHtml ?? ""}\n${proof.outputs?.stylesCss ?? ""}`;
-    expect(output).not.toMatch(/Case cockpit|Admin panel|Supabase|LexOS|Matter board|Active matters/i);
+    expect(output).not.toMatch(
+      /Case cockpit|Admin panel|Supabase|LexOS|Matter board|Active matters/i,
+    );
     expect(output).toMatch(/Built by agent-controller-v1/);
     expect(output).toMatch(/Practice Areas/);
   });
