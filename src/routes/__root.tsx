@@ -120,9 +120,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  // Use matched route ids — works correctly during SSR. `location.pathname`
-  // can be "/" on the SSR pass for nested routes in some TanStack versions,
-  // which caused the preview iframe to render the full yawB workspace shell.
   useEffect(() => {
     initClientTelemetry();
   }, []);
@@ -135,12 +132,15 @@ function RootComponent() {
   const isBare =
     BARE_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
     routeIds.some((id) => BARE_ROUTES.includes(id));
-  // Chrome-less local preview route — render the project output ONLY,
+  // Chrome-less project-output routes: render the project output ONLY,
   // with no yawB sidebar/topbar/chat/diagnostics around it.
-  const isPreviewEmbed =
-    pathname.startsWith("/preview/") || routeIds.includes("/preview/$projectId");
+  const isProjectOutputRoute =
+    pathname.startsWith("/preview/") ||
+    pathname.startsWith("/p/") ||
+    routeIds.includes("/preview/$projectId") ||
+    routeIds.includes("/p/$projectId");
 
-  if (isPreviewEmbed) {
+  if (isProjectOutputRoute) {
     return (
       <AuthProvider>
         <BodyPointerEventsGuard />
@@ -178,8 +178,6 @@ function AuthGate() {
     );
   }
   if (!session) {
-    // Hard gate: render the signed-out shell only. Do NOT mount WorkspaceTopBar,
-    // Chat, project lists, ProviderLinksPanel, or any provider hooks.
     return <MobileSignedOutEmpty />;
   }
   return <WorkspaceShell />;
@@ -187,9 +185,7 @@ function AuthGate() {
 
 function WorkspaceShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Auth gating happens upstream in <AuthGate />; if we render, session exists.
 
-  // One-time cleanup of legacy split key from earlier builds.
   useEffect(() => {
     try {
       window.localStorage.removeItem("yawb:workspace-split");
@@ -225,7 +221,6 @@ function WorkspaceShell() {
   const { connections } = useProjectConnections(currentProject?.id ?? null);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  // Persisted right (chat) width in pixels.
   const persistedWidth =
     typeof prefs.workspaceSplit === "object" && prefs.workspaceSplit
       ? (prefs.workspaceSplit as Record<string, number>)["chat-width-px"]
@@ -247,7 +242,6 @@ function WorkspaceShell() {
     }
   }, [loaded, persistedWidth]);
 
-  // Real collaborators only — no demo fallback in the authenticated app.
   const collaborators = present.map((p) => ({
     name: p.name,
     initials: p.initials,
@@ -256,7 +250,6 @@ function WorkspaceShell() {
     status: p.status,
   }));
 
-  // Only show real workspace/project names. No demo fallback.
   const workspaceName = workspaceIsReal && currentWorkspace ? currentWorkspace.name : "yawB";
   const projectName = projectIsReal && currentProject ? currentProject.name : "No project selected";
 
@@ -293,7 +286,6 @@ function WorkspaceShell() {
     ],
   );
 
-  // Diagnostics for selection state.
   useEffect(() => {
     if (typeof window === "undefined") return;
     setDiag({
@@ -308,9 +300,6 @@ function WorkspaceShell() {
     });
   }, [currentWorkspace?.id, currentProject?.id, connections.length]);
 
-  // Only show the empty-state takeover on the home/projects routes. On any
-  // other route (settings, connectors, deploys, …) always render the route so
-  // navigation isn't "stuck" on the create-workspace screen.
   const isHomeRoute = pathname === "/" || pathname === "/projects";
   let mainContent: React.ReactNode;
   if (isHomeRoute && workspaceEmpty) {
@@ -338,6 +327,17 @@ function WorkspaceShell() {
     mainContent = <Outlet />;
   }
 
+  const onNativePublish = () => {
+    if (!currentProject?.id) return;
+    const url = `/p/${currentProject.id}`;
+    console.info("[yawb] native_publish.open", {
+      projectId: currentProject.id,
+      url,
+      provider: "yawb-native",
+    });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden">
       <AppSidebar />
@@ -350,6 +350,7 @@ function WorkspaceShell() {
           connections={connections}
           collaborators={collaborators}
           presenceLive={isLive}
+          onDeploy={onNativePublish}
           onShare={() => setInviteOpen(true)}
           projects={projects}
           currentProject={currentProject}
