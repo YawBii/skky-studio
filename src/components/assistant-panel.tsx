@@ -575,6 +575,9 @@ export function AssistantPanel({
                 }),
               );
               window.dispatchEvent(
+                new CustomEvent("yawb:switch-tab", { detail: { tab: "preview" } }),
+              );
+              window.dispatchEvent(
                 new CustomEvent("yawb:preview-force-reload", { detail: { projectId: pid } }),
               );
             },
