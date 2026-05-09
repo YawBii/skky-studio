@@ -137,6 +137,8 @@ export type JobsSource = "supabase" | "empty" | "table-missing" | "error" | "no-
 
 export const JOBS_SQL_FILE = "docs/sql/2026-04-30-project-jobs.sql";
 const CONNECT_VERCEL_MESSAGE = "Connect Vercel to publish this project.";
+export const JOB_ALREADY_ACTIVE_MESSAGE =
+  "A job is already running for this project. Finish or cancel it first.";
 const VERCEL_PROVIDER_JOB_TYPES = new Set<string>([
   "vercel.create_preview_deploy",
   "vercel.promote_production",
@@ -147,6 +149,15 @@ function isMissingTable(error: { code?: string; message?: string } | null | unde
   if (!error) return false;
   const msg = (error.message ?? "").toLowerCase();
   return error.code === "42P01" || error.code === "PGRST205" || msg.includes("does not exist");
+}
+
+function isOneActiveJobViolation(error: { code?: string; message?: string; details?: string } | null | undefined) {
+  if (!error) return false;
+  const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return (
+    error.code === "23505" &&
+    (text.includes("project_jobs_one_active_per_project") || text.includes("project_jobs_project_id_idx"))
+  );
 }
 
 function rowToJob(r: Record<string, unknown>): Job {
@@ -397,7 +408,6 @@ export async function enqueueJob(input: {
       .from("project_jobs")
       .select("*")
       .eq("project_id", input.projectId)
-      .eq("type", input.type)
       .in("status", [...ACTIVE_JOB_STATUSES])
       .order("created_at", { ascending: false })
       .limit(1);
@@ -415,13 +425,18 @@ export async function enqueueJob(input: {
     }
     const existing = existingRows?.[0] ? rowToJob(existingRows[0]) : null;
     if (existing) {
-      pushDiag("job.enqueue.single_flight", {
+      pushDiag("job.enqueue.project_active_blocked", {
         projectId: input.projectId,
-        type: input.type,
+        requestedType: input.type,
         existingJobId: existing.id,
+        existingType: existing.type,
         existingStatus: existing.status,
       });
-      return { ok: true, job: existing, existing: true };
+      return {
+        ok: false,
+        error: `${JOB_ALREADY_ACTIVE_MESSAGE} Active job: ${existing.title} (${existing.status}).`,
+        code: "JOB_ALREADY_ACTIVE",
+      };
     }
 
     const { data: jobRow, error: jobErr } = await supabase
@@ -439,6 +454,14 @@ export async function enqueueJob(input: {
           tableMissing: true,
           sqlFile: JOBS_SQL_FILE,
         };
+      }
+      if (isOneActiveJobViolation(jobErr)) {
+        pushDiag("job.enqueue.project_active_conflict", {
+          projectId: input.projectId,
+          requestedType: input.type,
+          code: jobErr.code,
+        });
+        return { ok: false, error: JOB_ALREADY_ACTIVE_MESSAGE, code: "JOB_ALREADY_ACTIVE" };
       }
       return { ok: false, error: jobErr.message, code: jobErr.code };
     }
