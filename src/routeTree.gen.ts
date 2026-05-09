@@ -27,12 +27,14 @@ import { Route as CreateRouteImport } from './routes/create'
 import { Route as ConnectorsRouteImport } from './routes/connectors'
 import { Route as CodexRouteImport } from './routes/codex'
 import { Route as CloudRouteImport } from './routes/cloud'
+import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VersionsProjectIdRouteImport } from './routes/versions.$projectId'
 import { Route as PublishProjectIdRouteImport } from './routes/publish.$projectId'
 import { Route as ProofProjectIdRouteImport } from './routes/proof.$projectId'
 import { Route as PreviewProjectIdRouteImport } from './routes/preview.$projectId'
+import { Route as PProjectIdRouteImport } from './routes/p.$projectId'
 import { Route as BuilderProjectIdRouteImport } from './routes/builder.$projectId'
 import { Route as ApiPublicVerifyRouteImport } from './routes/api/public/verify'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
@@ -129,6 +131,11 @@ const CloudRoute = CloudRouteImport.update({
   path: '/cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BrandingRoute = BrandingRouteImport.update({
+  id: '/branding',
+  path: '/branding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BillingRoute = BillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -157,6 +164,11 @@ const ProofProjectIdRoute = ProofProjectIdRouteImport.update({
 const PreviewProjectIdRoute = PreviewProjectIdRouteImport.update({
   id: '/preview/$projectId',
   path: '/preview/$projectId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PProjectIdRoute = PProjectIdRouteImport.update({
+  id: '/p/$projectId',
+  path: '/p/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuilderProjectIdRoute = BuilderProjectIdRouteImport.update({
@@ -188,6 +200,7 @@ const ApiPublicAiChatRoute = ApiPublicAiChatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
+  '/branding': typeof BrandingRoute
   '/cloud': typeof CloudRoute
   '/codex': typeof CodexRoute
   '/connectors': typeof ConnectorsRoute
@@ -207,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/status': typeof StatusRoute
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
+  '/p/$projectId': typeof PProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
   '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
@@ -219,6 +233,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
+  '/branding': typeof BrandingRoute
   '/cloud': typeof CloudRoute
   '/codex': typeof CodexRoute
   '/connectors': typeof ConnectorsRoute
@@ -238,6 +253,7 @@ export interface FileRoutesByTo {
   '/status': typeof StatusRoute
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
+  '/p/$projectId': typeof PProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
   '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
@@ -251,6 +267,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/billing': typeof BillingRoute
+  '/branding': typeof BrandingRoute
   '/cloud': typeof CloudRoute
   '/codex': typeof CodexRoute
   '/connectors': typeof ConnectorsRoute
@@ -270,6 +287,7 @@ export interface FileRoutesById {
   '/status': typeof StatusRoute
   '/team': typeof TeamRoute
   '/builder/$projectId': typeof BuilderProjectIdRoute
+  '/p/$projectId': typeof PProjectIdRoute
   '/preview/$projectId': typeof PreviewProjectIdRoute
   '/proof/$projectId': typeof ProofProjectIdRoute
   '/publish/$projectId': typeof PublishProjectIdRoute
@@ -284,6 +302,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/billing'
+    | '/branding'
     | '/cloud'
     | '/codex'
     | '/connectors'
@@ -303,6 +322,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/team'
     | '/builder/$projectId'
+    | '/p/$projectId'
     | '/preview/$projectId'
     | '/proof/$projectId'
     | '/publish/$projectId'
@@ -315,6 +335,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/billing'
+    | '/branding'
     | '/cloud'
     | '/codex'
     | '/connectors'
@@ -334,6 +355,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/team'
     | '/builder/$projectId'
+    | '/p/$projectId'
     | '/preview/$projectId'
     | '/proof/$projectId'
     | '/publish/$projectId'
@@ -346,6 +368,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/billing'
+    | '/branding'
     | '/cloud'
     | '/codex'
     | '/connectors'
@@ -365,6 +388,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/team'
     | '/builder/$projectId'
+    | '/p/$projectId'
     | '/preview/$projectId'
     | '/proof/$projectId'
     | '/publish/$projectId'
@@ -378,6 +402,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BillingRoute: typeof BillingRoute
+  BrandingRoute: typeof BrandingRoute
   CloudRoute: typeof CloudRoute
   CodexRoute: typeof CodexRoute
   ConnectorsRoute: typeof ConnectorsRoute
@@ -397,6 +422,7 @@ export interface RootRouteChildren {
   StatusRoute: typeof StatusRoute
   TeamRoute: typeof TeamRoute
   BuilderProjectIdRoute: typeof BuilderProjectIdRoute
+  PProjectIdRoute: typeof PProjectIdRoute
   PreviewProjectIdRoute: typeof PreviewProjectIdRoute
   ProofProjectIdRoute: typeof ProofProjectIdRoute
   PublishProjectIdRoute: typeof PublishProjectIdRoute
@@ -535,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CloudRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/branding': {
+      id: '/branding'
+      path: '/branding'
+      fullPath: '/branding'
+      preLoaderRoute: typeof BrandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/billing': {
       id: '/billing'
       path: '/billing'
@@ -575,6 +608,13 @@ declare module '@tanstack/react-router' {
       path: '/preview/$projectId'
       fullPath: '/preview/$projectId'
       preLoaderRoute: typeof PreviewProjectIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$projectId': {
+      id: '/p/$projectId'
+      path: '/p/$projectId'
+      fullPath: '/p/$projectId'
+      preLoaderRoute: typeof PProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/builder/$projectId': {
@@ -618,6 +658,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BillingRoute: BillingRoute,
+  BrandingRoute: BrandingRoute,
   CloudRoute: CloudRoute,
   CodexRoute: CodexRoute,
   ConnectorsRoute: ConnectorsRoute,
@@ -637,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatusRoute: StatusRoute,
   TeamRoute: TeamRoute,
   BuilderProjectIdRoute: BuilderProjectIdRoute,
+  PProjectIdRoute: PProjectIdRoute,
   PreviewProjectIdRoute: PreviewProjectIdRoute,
   ProofProjectIdRoute: ProofProjectIdRoute,
   PublishProjectIdRoute: PublishProjectIdRoute,
