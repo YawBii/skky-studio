@@ -16,6 +16,14 @@ export interface PersistMonsterProjectResult {
   };
 }
 
+function shouldPersist(file: MonsterGeneratedFile): boolean {
+  // yawB preview regeneration must feel instant. Persist only the visible
+  // preview files here; backend/docs/route architecture can be produced in a
+  // separate explicit production step instead of blocking the user behind a
+  // long queue.
+  return file.path === "index.html" || file.path === "styles.css" || file.path === "app.js";
+}
+
 export async function persistMonsterGeneratedFiles(input: {
   sb: MonsterSupabaseLike;
   projectId: string;
@@ -32,8 +40,10 @@ export async function persistMonsterGeneratedFiles(input: {
       error: `visualQuality failed; refusing to persist generated preview: ${failed}`,
     };
   }
+
+  const files = input.generation.files.filter(shouldPersist);
   const written: string[] = [];
-  for (const file of input.generation.files) {
+  for (const file of files) {
     const { error } = await input.sb.from("project_files").upsert(
       {
         project_id: input.projectId,
@@ -77,9 +87,7 @@ export function splitMonsterGeneratedFiles(files: MonsterGeneratedFile[]): {
   backend: MonsterGeneratedFile[];
 } {
   return {
-    frontend: files.filter(
-      (file) => file.path === "index.html" || file.path === "styles.css" || file.path === "app.js",
-    ),
+    frontend: files.filter(shouldPersist),
     backend: files.filter(
       (file) => file.path.startsWith("supabase/") || file.path.startsWith("docs/generated/"),
     ),
