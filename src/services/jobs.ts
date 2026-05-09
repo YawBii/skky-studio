@@ -96,9 +96,52 @@ export interface JobStep {
   finishedAt: string | null;
 }
 
+export interface StepAttempt {
+  id: string;
+  stepId: string;
+  jobId: string;
+  attemptNumber: number;
+  status: string;
+  output: Record<string, unknown>;
+  error: string | null;
+  logs: Array<{ ts: string; msg: string }>;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+interface StepResult {
+  status: "succeeded" | "failed" | "skipped" | "waiting_for_input";
+  output?: Record<string, unknown>;
+  error?: string;
+  log?: string;
+  ask?: AskInput;
+}
+
+export interface AskInput {
+  question: string;
+  kind: QuestionKind;
+  options?: Array<{ value: string; label: string; description?: string }>;
+  required?: boolean;
+}
+
+export interface TickResult {
+  advanced: boolean;
+  jobId?: string;
+  stepKey?: string;
+  status?: StepResult["status"];
+  error?: string;
+  questionId?: string;
+}
+
 export type JobsSource = "supabase" | "empty" | "table-missing" | "error" | "no-project";
 
 export const JOBS_SQL_FILE = "docs/sql/2026-04-30-project-jobs.sql";
+const CONNECT_VERCEL_MESSAGE = "Connect Vercel to publish this project.";
+const VERCEL_PROVIDER_JOB_TYPES = new Set<string>([
+  "vercel.create_preview_deploy",
+  "vercel.promote_production",
+  "vercel.set_env",
+]);
 
 function isMissingTable(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false;
@@ -143,7 +186,20 @@ function rowToStep(r: Record<string, unknown>): JobStep {
   };
 }
 
-// ---------- Step planning ----------
+function rowToQuestion(r: Record<string, unknown>): JobQuestion {
+  return {
+    id: String(r.id),
+    jobId: String(r.job_id),
+    stepId: (r.step_id as string | null) ?? null,
+    question: String(r.question),
+    kind: r.kind as QuestionKind,
+    options: (r.options as JobQuestion["options"]) ?? [],
+    answer: r.answer ?? null,
+    required: Boolean(r.required),
+    createdAt: String(r.created_at),
+    answeredAt: (r.answered_at as string | null) ?? null,
+  };
+}
 
 interface StepPlan {
   key: string;
@@ -223,7 +279,38 @@ function planStepsForType(type: string, input: Record<string, unknown>): StepPla
   }
 }
 
-// ---------- Public API ----------
+async function requireProviderForJob(input: {
+  projectId: string;
+  type: string;
+}): Promise<{ ok: true } | { ok: false; error: string; code: string; tableMissing?: boolean }> {
+  if (!VERCEL_PROVIDER_JOB_TYPES.has(input.type)) return { ok: true };
+
+  const { data, error } = await supabase
+    .from("project_connections")
+    .select("id")
+    .eq("project_id", input.projectId)
+    .eq("provider", "vercel")
+    .eq("status", "connected")
+    .limit(1);
+
+  if (error) {
+    if (isMissingTable(error)) {
+      return {
+        ok: false,
+        error: `${CONNECT_VERCEL_MESSAGE} The project_connections table is missing.`,
+        code: "PROVIDER_TABLE_MISSING",
+        tableMissing: true,
+      };
+    }
+    return { ok: false, error: error.message, code: error.code ?? "PROVIDER_CHECK_FAILED" };
+  }
+
+  if (!data || data.length === 0) {
+    return { ok: false, error: CONNECT_VERCEL_MESSAGE, code: "PROVIDER_NOT_LINKED" };
+  }
+
+  return { ok: true };
+}
 
 export async function listJobs(projectId: string | null | undefined): Promise<{
   jobs: Job[];
@@ -279,6 +366,22 @@ export async function enqueueJob(input: {
   try {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return { ok: false, error: "Not signed in", code: "NO_SESSION" };
+
+    const providerGuard = await requireProviderForJob({ projectId: input.projectId, type: input.type });
+    if (!providerGuard.ok) {
+      pushDiag("job.enqueue.provider_blocked", {
+        projectId: input.projectId,
+        type: input.type,
+        code: providerGuard.code,
+      });
+      return {
+        ok: false,
+        error: providerGuard.error,
+        code: providerGuard.code,
+        tableMissing: providerGuard.tableMissing,
+        sqlFile: providerGuard.tableMissing ? "docs/sql/2026-04-30-project-connections.sql" : undefined,
+      };
+    }
 
     const payload = {
       project_id: input.projectId,
@@ -353,7 +456,6 @@ export async function enqueueJob(input: {
     if (stepRows.length > 0) {
       const { error: stepErr } = await supabase.from("project_job_steps").insert(stepRows);
       if (stepErr) {
-        // Best-effort: mark job failed if we couldn't even plan it.
         await supabase
           .from("project_jobs")
           .update({
@@ -388,7 +490,7 @@ export async function cancelJob(jobId: string): Promise<{ ok: boolean; error?: s
       .eq("id", jobId)
       .in("status", ["queued", "running", "waiting_for_input"]);
     if (error) return { ok: false, error: error.message };
-    // Cancel queued/running/waiting steps; append a log entry too.
+
     const { data: liveSteps } = await supabase
       .from("project_job_steps")
       .select("id, logs, status")
@@ -415,9 +517,6 @@ export async function cancelJob(jobId: string): Promise<{ ok: boolean; error?: s
 
 export async function retryJob(jobId: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    // Re-queue the job. Re-queue ONLY failed/cancelled steps; preserve their
-    // prior logs/output/error (history lives in project_job_step_attempts).
-    // Bump per-step attempt_number so the next run records a new attempt row.
     const { data: jobRow, error: getErr } = await supabase
       .from("project_jobs")
       .select("retry_count")
@@ -436,7 +535,7 @@ export async function retryJob(jobId: string): Promise<{ ok: boolean; error?: st
       })
       .eq("id", jobId);
     if (error) return { ok: false, error: error.message };
-    // Find failed/cancelled steps and bump attempt_number while re-queuing.
+
     const { data: failedSteps } = await supabase
       .from("project_job_steps")
       .select("id, attempt_number")
@@ -462,8 +561,6 @@ export async function retryJob(jobId: string): Promise<{ ok: boolean; error?: st
   }
 }
 
-// Retry exactly one failed step. Does not touch other steps. Sets job back to
-// queued so the runner picks the failed step up again. Bumps attempt_number.
 export async function retryStep(input: {
   jobId: string;
   stepId: string;
@@ -507,19 +604,6 @@ export async function retryStep(input: {
   }
 }
 
-export interface StepAttempt {
-  id: string;
-  stepId: string;
-  jobId: string;
-  attemptNumber: number;
-  status: string;
-  output: Record<string, unknown>;
-  error: string | null;
-  logs: Array<{ ts: string; msg: string }>;
-  startedAt: string;
-  finishedAt: string | null;
-}
-
 export async function listJobStepAttempts(
   jobId: string,
 ): Promise<{ attempts: StepAttempt[]; error?: string }> {
@@ -530,7 +614,6 @@ export async function listJobStepAttempts(
       .eq("job_id", jobId)
       .order("started_at", { ascending: true });
     if (error) {
-      // Table may not exist yet on older deployments — treat as no history.
       if (isMissingTable(error)) return { attempts: [] };
       return { attempts: [], error: error.message };
     }
@@ -551,38 +634,6 @@ export async function listJobStepAttempts(
   } catch (e) {
     return { attempts: [], error: e instanceof Error ? e.message : String(e) };
   }
-}
-
-// ---------- Step types (kept for UI/contract; runner now lives server-side) ----------
-
-interface StepResult {
-  status: "succeeded" | "failed" | "skipped" | "waiting_for_input";
-  output?: Record<string, unknown>;
-  error?: string;
-  log?: string;
-  ask?: AskInput;
-}
-
-export interface AskInput {
-  question: string;
-  kind: QuestionKind;
-  options?: Array<{ value: string; label: string; description?: string }>;
-  required?: boolean;
-}
-
-function rowToQuestion(r: Record<string, unknown>): JobQuestion {
-  return {
-    id: String(r.id),
-    jobId: String(r.job_id),
-    stepId: (r.step_id as string | null) ?? null,
-    question: String(r.question),
-    kind: r.kind as QuestionKind,
-    options: (r.options as JobQuestion["options"]) ?? [],
-    answer: r.answer ?? null,
-    required: Boolean(r.required),
-    createdAt: String(r.created_at),
-    answeredAt: (r.answered_at as string | null) ?? null,
-  };
 }
 
 export async function listJobQuestions(
@@ -661,21 +712,6 @@ export async function answerJobQuestion(input: {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
-}
-
-// ---------- Server-backed runner trigger ----------
-//
-// The browser DOES NOT execute provider work. tickJobs() asks the server
-// function to claim and run exactly one step. RLS still applies because the
-// server function uses a Supabase client built from the caller's bearer.
-
-export interface TickResult {
-  advanced: boolean;
-  jobId?: string;
-  stepKey?: string;
-  status?: StepResult["status"];
-  error?: string;
-  questionId?: string;
 }
 
 export async function tickJobs(projectId: string): Promise<TickResult> {
