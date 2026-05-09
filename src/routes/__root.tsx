@@ -219,6 +219,11 @@ function WorkspaceShell() {
   const { present, isLive } = useProjectPresence({ projectId: presenceProjectId });
   const { connections } = useProjectConnections(currentProject?.id ?? null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [nativePublishedUrl, setNativePublishedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setNativePublishedUrl(null);
+  }, [currentProject?.id]);
 
   const persistedWidth =
     typeof prefs.workspaceSplit === "object" && prefs.workspaceSplit
@@ -333,6 +338,7 @@ function WorkspaceShell() {
     }
     const path = `/p/${currentProject.id}`;
     const url = new URL(path, window.location.origin).toString();
+    setNativePublishedUrl(url);
     console.info("[yawb] native_publish.open", {
       projectId: currentProject.id,
       url,
@@ -368,6 +374,9 @@ function WorkspaceShell() {
           currentProject={currentProject}
           selectProject={selectProject}
         />
+        {nativePublishedUrl && (
+          <PublishedUrlPanel url={nativePublishedUrl} onDismiss={() => setNativePublishedUrl(null)} />
+        )}
         <div className="flex-1 min-h-0">
           <SplitPane
             initialRightWidth={rightWidth}
@@ -399,6 +408,44 @@ function WorkspaceShell() {
         workspaceName={workspaceName}
       />
       <DiagnosticsPanel />
+    </div>
+  );
+}
+
+function PublishedUrlPanel({ url, onDismiss }: { url: string; onDismiss: () => void }) {
+  const copy = async () => {
+    try {
+      await navigator.clipboard?.writeText(url);
+      toast.success("Published URL copied");
+    } catch {
+      toast("Copy failed — open the link and copy from the address bar");
+    }
+  };
+
+  return (
+    <div
+      data-testid="native-published-url-panel"
+      className="border-b border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-50"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="font-medium">Published with yawB Native Hosting</div>
+          <div className="truncate font-mono text-[11px] text-emerald-100/80">{url}</div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button size="sm" variant="outline" onClick={copy} className="h-7 text-[11px]">
+            Copy link
+          </Button>
+          <Button size="sm" variant="secondary" asChild className="h-7 text-[11px]">
+            <a href={url} target="_blank" rel="noreferrer">
+              Open site
+            </a>
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onDismiss} className="h-7 px-2 text-[11px]">
+            Dismiss
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
