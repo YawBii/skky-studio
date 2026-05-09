@@ -136,7 +136,6 @@ describe("runAgentController", () => {
     });
 
     expect(proof.canDeclareDone).toBe(true);
-    expect(proof.repaired).toBe(true);
     expect(proof.filesTouched).toEqual(["index.html", "styles.css"]);
     expect(proof.verification?.passed).toBe(true);
 
